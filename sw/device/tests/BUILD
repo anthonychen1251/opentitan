@@ -3594,6 +3594,31 @@ cc_library(
 )
 
 opentitan_test(
+    name = "spi_device_ottf_console_test",
+    srcs = ["spi_device_ottf_console_test.c"],
+    exec_env = dicts.add(
+        EARLGREY_TEST_ENVS,
+        EARLGREY_SILICON_OWNER_ROM_EXT_ENVS,
+        EARLGREY_CW340_TEST_ENVS,
+    ),
+    fpga = fpga_params(
+        tags = ["manual"],
+        test_cmd = """
+            --bootstrap="{firmware}"
+            "{firmware:elf}"
+        """,
+        test_harness = "//sw/host/tests/chip/spi_device_ottf_console",
+    ),
+    deps = [
+        "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+        "//sw/device/lib/dif:spi_device",
+        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/testing:spi_flash_testutils",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+    ],
+)
+
+opentitan_test(
     name = "sram_ctrl_sleep_sram_ret_contents_no_scramble_test",
     srcs = ["sram_ctrl_sleep_sram_ret_contents_no_scramble_test.c"],
     exec_env = dicts.add(
