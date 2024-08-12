@@ -12,6 +12,7 @@
 #include "sw/device/lib/base/macros.h"
 #include "sw/device/lib/base/memory.h"
 #include "sw/device/lib/base/status.h"
+#include "sw/device/lib/dif/dif_spi_device.h"
 #include "sw/device/lib/dif/dif_uart.h"
 
 // This is declared as an enum to force the values to be
@@ -68,6 +69,150 @@ void base_set_stdout(buffer_sink_t out) {
   base_stdout = out;
 }
 
+static const size_t kSpiDeviceFrameHeaderSizeBytes = 12;
+static uint32_t spi_device_frame_num = 0;
+
+/**
+ * Sends data out of the SPI device.
+ *
+ * Data is packaged into a frame that is described below.
+ * The host side reads the header first, then decides how many words
+ * to read from the data section.
+ *
+ * -----------------------------------------------
+ * |      Frame Number     | 4-bytes  |          |
+ * -----------------------------------|  Header  |
+ * |   Data Length (bytes) | 4-bytes  |          |
+ * -----------------------------------|----------|
+ * |      Data (word aligned)         |          |
+ * -----------------------------------|   Data   |
+ * |     0xFF Pad Bytes    | <4-bytes |          |
+ * -----------------------------------|----------|
+ */
+static size_t base_dev_spi_device(void *data, const char *buf, size_t len) {
+  dif_spi_device_handle_t *spi_device = (dif_spi_device_handle_t *)data;
+  const size_t kDataPacketSizeBytes = ((len + 3u) & ~3u) + 4;
+  const size_t kFrameSizeBytes =
+      kSpiDeviceFrameHeaderSizeBytes + kDataPacketSizeBytes;
+  uint8_t frame_bytes[kFrameSizeBytes];
+
+  // Add the frame number.
+  for (size_t i = 0; i < 4; ++i) {
+    frame_bytes[i] = (spi_device_frame_num >> (i * 8)) & 0xff;
+  }
+  // Add the data length.
+  for (size_t i = 0; i < 4; ++i) {
+    frame_bytes[i + 4] = (len >> (i * 8)) & 0xff;
+  }
+
+  // Construct the frame data packet.
+  // Add the data and pad bytes.
+  for (size_t i = 0; i < ((len + 3u) & ~3u); ++i) {
+    if (i < len) {
+      frame_bytes[i + 8] = buf[i];
+    } else {
+      frame_bytes[i + 8] = 0xff;
+    }
+  }
+  if (dif_spi_device_write_flash_buffer(
+          spi_device, kDifSpiDeviceFlashBufferTypeMailbox, 0, kFrameSizeBytes,
+          frame_bytes) != kDifOk) {
+    return 0;
+  }
+
+#if 1
+  // Wait for a SPI transaction cause an upload.
+  bool upload_pending = true;
+  do {
+    // The UploadCmdfifoNotEmpty interrupt status is updated after the SPI
+    // transaction completes.
+    if (dif_spi_device_irq_is_pending(&spi_device->dev,
+                                      kDifSpiDeviceIrqUploadCmdfifoNotEmpty,
+                                      &upload_pending) != kDifOk) {
+      return 0;
+    }
+  } while (!upload_pending);
+
+  uint8_t occupancy;
+
+  // Get the SPI opcode.
+  if (dif_spi_device_get_flash_command_fifo_occupancy(spi_device, &occupancy) !=
+      kDifOk) {
+    return 0;
+  }
+  if (occupancy != 1) {
+    // Cannot have an uploaded command without an opcode.
+    return 0;
+  }
+  uint8_t opcode_value;
+  if (dif_spi_device_pop_flash_command_fifo(spi_device, &opcode_value) !=
+      kDifOk) {
+    return 0;
+  }
+  // // Get the flash_status register.
+  uint32_t flash_status;
+  if (dif_spi_device_get_flash_status_registers(spi_device, &flash_status) !=
+      kDifOk) {
+    return 0;
+  }
+
+  // // Get the SPI address (if available).
+  if (dif_spi_device_get_flash_address_fifo_occupancy(spi_device, &occupancy) !=
+      kDifOk) {
+    return 0;
+  }
+  dif_toggle_t addr_4b;
+  uint32_t address_value = 0;
+  if (occupancy) {
+    if (dif_spi_device_get_4b_address_mode(spi_device, &addr_4b) != kDifOk) {
+      return 0;
+    }
+
+    if (dif_spi_device_pop_flash_address_fifo(spi_device, &address_value) !=
+        kDifOk) {
+      return 0;
+    }
+  }
+
+  // // Get the SPI data payload (if available).
+  uint32_t start;
+  uint16_t data_len = 0;
+  uint8_t data_arr[128];
+  if (dif_spi_device_get_flash_payload_fifo_occupancy(spi_device, &data_len,
+                                                      &start) != kDifOk) {
+    return 0;
+  }
+  if (data_len) {
+    if (data_len > sizeof(data_arr)) {
+      // We aren't expecting more than 256 bytes of data.
+      return 0;
+    }
+    if (dif_spi_device_read_flash_payload_buffer(spi_device, start, data_len,
+                                                 data_arr) != kDifOk) {
+      return 0;
+    }
+  }
+
+  // Finished: ack the IRQ.
+  if (dif_spi_device_irq_acknowledge(
+          &spi_device->dev, kDifSpiDeviceIrqUploadCmdfifoNotEmpty) != kDifOk) {
+    return 0;
+  }
+
+  // if (address_value -0x1000 == 0x400)
+  // {
+  //   // the upload command used to
+  // }
+
+  if (dif_spi_device_set_flash_status_registers(spi_device, 0x00) != kDifOk) {
+    return 0;
+  }
+#endif
+
+  spi_device_frame_num++;
+  return len;
+}
+
 static size_t base_dev_uart(void *data, const char *buf, size_t len) {
   const dif_uart_t *uart = (const dif_uart_t *)data;
   for (size_t i = 0; i < len; ++i) {
@@ -76,6 +221,13 @@ static size_t base_dev_uart(void *data, const char *buf, size_t len) {
     }
   }
   return len;
+}
+
+void base_spi_device_stdout(const dif_spi_device_handle_t *spi_device) {
+  // Reset the frame counter.
+  spi_device_frame_num = 0;
+  base_set_stdout((buffer_sink_t){.data = (void *)spi_device,
+                                  .sink = &base_dev_spi_device});
 }
 
 void base_uart_stdout(const dif_uart_t *uart) {
