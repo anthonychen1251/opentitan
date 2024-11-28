@@ -58,6 +58,7 @@ static uint32_t repeat_byte_to_u32(uint8_t byte) {
   return word << 24 | word << 16 | word << 8 | word;
 }
 
+OT_NOINLINE
 void *OT_PREFIX_IF_NOT_RV32(memcpy)(void *restrict dest,
                                     const void *restrict src, size_t len) {
   if (dest == NULL || src == NULL) {

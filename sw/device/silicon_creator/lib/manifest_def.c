@@ -24,7 +24,7 @@ extern char _manifest_address_translation[];
  * binary by `opentitantool` (overriding the implicitly specified initial value
  * of zero).
  */
-OT_SECTION(".manifest")
+OT_USED OT_SECTION(".manifest")
 static manifest_t kManifest_ = {
     .manifest_version =
         (manifest_version_t){
