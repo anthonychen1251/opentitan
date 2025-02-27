@@ -230,7 +230,7 @@ manifest(d = {
 [
     opentitan_binary(
         name = "rom_ext_{}_slot_{}".format(variation_name, slot),
-        testonly = True,
+        # testonly = True,
         # TODO(#22780): Integrate real keys for A1 flows.
         ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:prod_key_0_ecdsa_p256": "prod_key_0"},
         exec_env = [

@@ -25,6 +25,7 @@ load(
     "otp_per_class_bytes",
     "otp_per_class_ints",
     "otp_per_class_lists",
+    "otp_json_immutable_rom_ext",
 )
 
 package(default_visibility = ["//visibility:public"])
@@ -98,7 +99,7 @@ otp_json(
                 "CREATOR_SW_CFG_SRAM_KEY_RENEW_EN": otp_hex(0x0),
 
                 # Disable the use of the ROM_EXT immutable section.
-                "CREATOR_SW_CFG_IMMUTABLE_ROM_EXT_EN": otp_hex(CONST.HARDENED_FALSE),
+                "CREATOR_SW_CFG_IMMUTABLE_ROM_EXT_EN": otp_hex(CONST.HARDENED_TRUE),
             },
         ),
     ],
@@ -244,6 +245,7 @@ MANUF_SW_INITIALIZED = [
     ":alert_digest_cfg",
     ":otp_json_creator_sw_cfg",
     ":otp_json_owner_sw_cfg",
+    ":otp_json_immutable_rom_ext",
 ]
 
 # The `MANUF_INDIVIDUALIZED` OTP profile configures the following partitions:
@@ -342,6 +344,21 @@ otp_image(
         CONST.LCV.PROD_END,
     )
 ]
+
+otp_json_immutable_rom_ext(
+    name = "otp_json_immutable_rom_ext",
+    partitions = [
+        otp_partition(
+            name = "CREATOR_SW_CFG",
+            items = {
+                "CREATOR_SW_CFG_IMMUTABLE_ROM_EXT_EN": otp_hex(CONST.HARDENED_TRUE),
+            },
+        ),
+    ],
+    # The rom_ext used to calculate the value of CREATOR_SW_CFG_IMMUTABLE_ROM_EXT_* fields
+    rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_dice_x509_slot_b",
+)
+
 
 # `MANUF_PERSONALIZED` configuration. Available on `LC_MISSION_STATES` life
 # cycle states.

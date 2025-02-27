@@ -222,7 +222,7 @@ cc_test(
 
 cc_library(
     name = "test_owner",
-    testonly = True,
+    # testonly = True,
     srcs = ["test_owner.c"],
     deps = [
         ":datatypes",

@@ -8,7 +8,7 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "includes",
-    testonly = True,
+    # testonly = True,
     hdrs = [
         "activate_ecdsa_p256.h",
         "app_dev_ecdsa_p256.h",
