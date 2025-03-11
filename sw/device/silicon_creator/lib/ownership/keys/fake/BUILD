@@ -18,6 +18,8 @@ cc_library(
         "app_test_ecdsa_p256.h",
         "owner_ecdsa_p256.h",
         "unlock_ecdsa_p256.h",
+        "app_new_ecdsa_p256.h",
+        "app_new_spx.h",
     ],
 )
 

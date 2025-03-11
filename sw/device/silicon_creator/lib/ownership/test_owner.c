@@ -11,7 +11,9 @@
 #include "sw/device/silicon_creator/lib/ownership/keys/fake/activate_ecdsa_p256.h"
 #include "sw/device/silicon_creator/lib/ownership/keys/fake/app_dev_ecdsa_p256.h"
 #include "sw/device/silicon_creator/lib/ownership/keys/fake/app_dev_spx.h"
+#include "sw/device/silicon_creator/lib/ownership/keys/fake/app_new_ecdsa_p256.h"
 #include "sw/device/silicon_creator/lib/ownership/keys/fake/app_prod_ecdsa_p256.h"
+#include "sw/device/silicon_creator/lib/ownership/keys/fake/app_new_spx.h"
 #include "sw/device/silicon_creator/lib/ownership/keys/fake/app_prod_spx.h"
 #include "sw/device/silicon_creator/lib/ownership/keys/fake/app_test_ecdsa_p256.h"
 #include "sw/device/silicon_creator/lib/ownership/keys/fake/owner_ecdsa_p256.h"
@@ -83,6 +85,27 @@ rom_error_t sku_creator_owner_init(boot_data_t *bootdata,
       .raw = UNLOCK_ECDSA_P256};
 
   owner_application_key_t *app = (owner_application_key_t *)owner_page[0].data;
+#if 1
+    *app = (owner_application_key_t){
+        .header =
+            {
+                .tag = kTlvTagApplicationKey,
+                .length = kTlvLenApplicationKeyHybrid,
+            },
+        .key_alg = kOwnershipKeyAlgHybridSpxPrehash,
+        .key_domain = kOwnerAppDomainProd,
+        .key_diversifier = {0},
+        .usage_constraint = 0,
+        .data =
+            {
+                .hybrid =
+                    {
+                        .ecdsa = APP_NEW_ECDSA_P256,
+                        .spx = APP_NEW_SPX,
+                    },
+            },
+    };
+#else
   *app = (owner_application_key_t){
       .header =
           {
@@ -174,6 +197,7 @@ rom_error_t sku_creator_owner_init(boot_data_t *bootdata,
                   },
           },
   };
+#endif
 
   // Fill the remainder of the data segment with the end tag (0x5a5a5a5a).
   app = (owner_application_key_t *)((uintptr_t)app + app->header.length);
