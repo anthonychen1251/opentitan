@@ -101,6 +101,7 @@ SECTIONS {
     *(.srodata.*)
     *(.rodata)
     *(.rodata.*)
+    . = ALIGN(4);
   } > owner_flash
 
   /**

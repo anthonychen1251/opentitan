@@ -338,6 +338,10 @@ impl Image {
         let offset = if ext_table_entry.offset != 0 {
             ext_table_entry.offset
         } else {
+            log::error!(
+                "self.size {:?}",
+                self.size
+            );
             ensure!(
                 self.size % align_of::<u32>() == 0,
                 ImageError::BadExtensionAlignment(entry_id)

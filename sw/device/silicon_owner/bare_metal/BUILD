@@ -81,6 +81,9 @@ opentitan_binary(
 opentitan_binary(
     name = "bare_metal_slot_b",
     testonly = True,
+    ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:prod_key_0_ecdsa_p256": "prod_key_0"},
+    spx_key = {"//sw/device/silicon_creator/rom/keys/fake/spx:prod_key_1_spx_key": "prod_key_1"},
+    # spx_key = {"//sw/device/silicon_creator/lib/ownership/keys/fake:app_dev_spx": "dev_key_0"},
     srcs = ["bare_metal_start.S"],
     exec_env = [
         "//hw/top_earlgrey:fpga_cw310_rom_ext",

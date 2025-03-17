@@ -10,6 +10,7 @@
 
 void bare_metal_main(void) {
   dbg_printf("Bare metal PASS!\r\n");
+  dbg_printf("...sleeping...\r\n");
   while (true) {
   }
 }
