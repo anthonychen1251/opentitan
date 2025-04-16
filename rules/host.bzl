@@ -19,7 +19,9 @@ def _host_tools_transition_impl(settings, attr):
     ret = {
         "//command_line_option:platforms": "@local_config_platform//:host",
         "//command_line_option:copt": settings["//command_line_option:copt"],
-        "//command_line_option:features": settings["//command_line_option:features"],
+        "//command_line_option:features": settings["//command_line_option:features"] + ["-coverage"],
+        "//command_line_option:host_features": settings["//command_line_option:host_features"] + ["-coverage"],
+        "//command_line_option:collect_code_coverage": False,
         "//hw/bitstream/universal:rom": "//hw/bitstream/universal:none",
         "//hw/bitstream/universal:otp": "//hw/bitstream/universal:none",
         "//hw/bitstream/universal:env": "//hw/bitstream/universal:none",
@@ -31,11 +33,15 @@ host_tools_transition = transition(
     inputs = [
         "//command_line_option:copt",
         "//command_line_option:features",
+        "//command_line_option:host_features",
+        "//command_line_option:collect_code_coverage",
     ],
     outputs = [
         "//command_line_option:platforms",
         "//command_line_option:copt",
         "//command_line_option:features",
+        "//command_line_option:host_features",
+        "//command_line_option:collect_code_coverage",
         "//hw/bitstream/universal:rom",
         "//hw/bitstream/universal:otp",
         "//hw/bitstream/universal:env",

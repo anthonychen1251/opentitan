@@ -19,6 +19,8 @@ INCLUDE hw/top_earlgrey/sw/autogen/top_earlgrey_memory.ld
 _ottf_size = LENGTH(eflash) / 2;
 _ottf_start_address = ORIGIN(eflash) + _ottf_size;
 
+_ottf_addr_delta = 0;
+
 REGION_ALIAS("ottf_flash", eflash);
 
 INCLUDE sw/device/lib/testing/test_framework/ottf_common.ld

@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 load("//rules:linker.bzl", "ld_library")
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -25,6 +26,11 @@ config_setting(
     define_values = {
         "measure_coverage_on_target": "true",
     },
+)
+
+bool_flag(
+    name = "measure_coverage_on_target_flag",
+    build_setting_default = False,
 )
 
 cc_library(

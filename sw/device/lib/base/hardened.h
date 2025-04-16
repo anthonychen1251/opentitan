@@ -190,7 +190,7 @@ typedef enum hardened_byte_bool {
  *         at runtime.
  */
 OT_WARN_UNUSED_RESULT
-inline uint32_t launder32(uint32_t val) {
+static inline uint32_t launder32(uint32_t val) {
   // NOTE: This implementation is LLVM-specific, and should be considered to be
   // a no-op in every other compiler. For example, GCC has in the past peered
   // into the insides of assembly blocks.
@@ -212,11 +212,11 @@ inline uint32_t launder32(uint32_t val) {
   // `LaunderPure(y)` (in this particular case, from bisecting the passes,
   // it appears to happen during register allocation).
   //
-  // We work around this by marking the inline asm volatile.
+  // We work around this by marking the static inline asm volatile.
   //
-  // Alternatively, we could add a "nonce" to the inline asm that has been
-  // tainted by a volatile asm operation. This has the benefit that the input
-  // does not need to happen-before the volatile operation, and can be
+  // Alternatively, we could add a "nonce" to the static inline asm that has
+  // been tainted by a volatile asm operation. This has the benefit that the
+  // input does not need to happen-before the volatile operation, and can be
   // arbitrarily reordered, while ensuring that no call of launder32() is
   // "pure" in the deduplication sense. I.e.:
   //
@@ -240,7 +240,7 @@ inline uint32_t launder32(uint32_t val) {
   // > of statements.
 
   // When we're building for static analysis, reduce false positives by
-  // short-circuiting the inline assembly block.
+  // short-circuiting the static inline assembly block.
 #if OT_BUILD_FOR_STATIC_ANALYZER || OT_DISABLE_HARDENING
   return val;
 #endif
@@ -262,7 +262,7 @@ inline uint32_t launder32(uint32_t val) {
  *         runtime.
  */
 OT_WARN_UNUSED_RESULT
-inline uintptr_t launderw(uintptr_t val) {
+static inline uintptr_t launderw(uintptr_t val) {
 #if OT_BUILD_FOR_STATIC_ANALYZER || OT_DISABLE_HARDENING
   return val;
 #endif
@@ -278,7 +278,7 @@ inline uintptr_t launderw(uintptr_t val) {
  * instructions such that the intermediate `val` actually appears in a
  * register. Because it is impure, `barrier32()` operations will not be
  * reordered past each other or MMIO operations, although they can be reordered
- * past functions if LTO inlines them.
+ * past functions if LTO static inlines them.
  *
  * Most compilers will try to reorder arithmetic operations in such a way
  * that they form large basic blocks, since modern microarchitectures can
@@ -357,7 +357,7 @@ inline uintptr_t launderw(uintptr_t val) {
  *
  * @param val A value to create a barrier for.
  */
-inline void barrier32(uint32_t val) { asm volatile("" ::"r"(val)); }
+static inline void barrier32(uint32_t val) { asm volatile("" ::"r"(val)); }
 
 /**
  * Creates a reordering barrier for `val`.
@@ -366,7 +366,7 @@ inline void barrier32(uint32_t val) { asm volatile("" ::"r"(val)); }
  *
  * @param val A value to create a barrier for.
  */
-inline void barrierw(uintptr_t val) { asm volatile("" ::"r"(val)); }
+static inline void barrierw(uintptr_t val) { asm volatile("" ::"r"(val)); }
 
 /**
  * A constant-time, 32-bit boolean value.
@@ -397,7 +397,7 @@ typedef uint32_t ct_bool32_t;
  * @return `a < 0`.
  */
 OT_WARN_UNUSED_RESULT
-inline ct_bool32_t ct_sltz32(int32_t a) {
+static inline ct_bool32_t ct_sltz32(int32_t a) {
   // Proof. `a` is negative iff its MSB is set;
   // arithmetic-right-shifting by bits(a)-1 smears the sign bit across all
   // of `a`.
@@ -412,7 +412,7 @@ inline ct_bool32_t ct_sltz32(int32_t a) {
  * @return `a < b`.
  */
 OT_WARN_UNUSED_RESULT
-inline ct_bool32_t ct_sltu32(uint32_t a, uint32_t b) {
+static inline ct_bool32_t ct_sltu32(uint32_t a, uint32_t b) {
   // Proof. See Hacker's Delight page 23.
   return ct_sltz32(OT_SIGNED(((a & ~b) | ((a ^ ~b) & (a - b)))));
 }
@@ -425,7 +425,7 @@ inline ct_bool32_t ct_sltu32(uint32_t a, uint32_t b) {
  * @return `a == 0`.
  */
 OT_WARN_UNUSED_RESULT
-inline ct_bool32_t ct_seqz32(uint32_t a) {
+static inline ct_bool32_t ct_seqz32(uint32_t a) {
   // Proof. See Hacker's Delight page 23.
   // HD gives this formula: `a == b := ~(a-b | b-a)`.
   //
@@ -445,7 +445,7 @@ inline ct_bool32_t ct_seqz32(uint32_t a) {
  * @return `a == b`.
  */
 OT_WARN_UNUSED_RESULT
-inline ct_bool32_t ct_seq32(uint32_t a, uint32_t b) {
+static inline ct_bool32_t ct_seq32(uint32_t a, uint32_t b) {
   // Proof. a ^ b == 0 -> a ^ a ^ b == a ^ 0 -> b == a.
   return ct_seqz32(a ^ b);
 }
@@ -464,7 +464,7 @@ inline ct_bool32_t ct_seq32(uint32_t a, uint32_t b) {
  * @return `c ? a : b`.
  */
 OT_WARN_UNUSED_RESULT
-inline uint32_t ct_cmov32(ct_bool32_t c, uint32_t a, uint32_t b) {
+static inline uint32_t ct_cmov32(ct_bool32_t c, uint32_t a, uint32_t b) {
   // Proof. See Hacker's Delight page 46. HD gives this as a branchless swap;
   // branchless select is a special case of that.
 
@@ -490,7 +490,7 @@ typedef uintptr_t ct_boolw_t;
  * @return `a < 0`.
  */
 OT_WARN_UNUSED_RESULT
-inline ct_boolw_t ct_sltzw(intptr_t a) {
+static inline ct_boolw_t ct_sltzw(intptr_t a) {
   return OT_UNSIGNED(a >> (sizeof(a) * 8 - 1));
 }
 
@@ -502,7 +502,7 @@ inline ct_boolw_t ct_sltzw(intptr_t a) {
  * @return `a < b`.
  */
 OT_WARN_UNUSED_RESULT
-inline ct_boolw_t ct_sltuw(uintptr_t a, uintptr_t b) {
+static inline ct_boolw_t ct_sltuw(uintptr_t a, uintptr_t b) {
   return ct_sltzw(OT_SIGNED((a & ~b) | ((a ^ ~b) & (a - b))));
 }
 
@@ -514,7 +514,7 @@ inline ct_boolw_t ct_sltuw(uintptr_t a, uintptr_t b) {
  * @return `a == 0`.
  */
 OT_WARN_UNUSED_RESULT
-inline ct_boolw_t ct_seqzw(uintptr_t a) {
+static inline ct_boolw_t ct_seqzw(uintptr_t a) {
   return ct_sltzw(OT_SIGNED(~a & (a - 1)));
 }
 
@@ -526,7 +526,9 @@ inline ct_boolw_t ct_seqzw(uintptr_t a) {
  * @return `a == b`.
  */
 OT_WARN_UNUSED_RESULT
-inline ct_boolw_t ct_seqw(uintptr_t a, uintptr_t b) { return ct_seqzw(a ^ b); }
+static inline ct_boolw_t ct_seqw(uintptr_t a, uintptr_t b) {
+  return ct_seqzw(a ^ b);
+}
 
 /**
  * Performs a constant-time select.
@@ -542,7 +544,7 @@ inline ct_boolw_t ct_seqw(uintptr_t a, uintptr_t b) { return ct_seqzw(a ^ b); }
  * @return `c ? a : b`.
  */
 OT_WARN_UNUSED_RESULT
-inline uintptr_t ct_cmovw(ct_boolw_t c, uintptr_t a, uintptr_t b) {
+static inline uintptr_t ct_cmovw(ct_boolw_t c, uintptr_t a, uintptr_t b) {
   return (launderw(c) & a) | (launderw(~c) & b);
 }
 

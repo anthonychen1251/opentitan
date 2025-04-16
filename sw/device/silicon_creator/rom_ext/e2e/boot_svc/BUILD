@@ -41,7 +41,7 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
     },
     fpga = fpga_params(
-        assemble = "{rom_ext}@0 {firmware}@0x10000 {firmware}@0x90000",
+        assemble = "{rom_ext}@{rom_ext_slot_a} {firmware}@{owner_slot_a} {firmware}@{owner_slot_b}",
         exit_failure = "BFV|PASS|FAIL",
         exit_success = "FinalBootLog: 2:AA\r\n",
     ),
@@ -91,7 +91,7 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
     },
     fpga = fpga_params(
-        assemble = "{rom_ext}@0 {firmware}@0x10000",
+        assemble = "{rom_ext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
         #exit_failure = "BFV|PASS|FAIL",
         #exit_success = "FinalBootLog: 2:AA\r\n",
     ),
@@ -119,7 +119,7 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
     },
     fpga = fpga_params(
-        assemble = "{rom_ext}@0 {firmware}@0x10000 {firmware}@0x90000",
+        assemble = "{rom_ext}@{rom_ext_slot_a} {firmware}@{owner_slot_a} {firmware}@{owner_slot_b}",
         exit_failure = "BFV:.*|PASS|FAIL",
         exit_success = "FinalBootLog: 3:ABA\r\n",
     ),
@@ -145,7 +145,7 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
     },
     fpga = fpga_params(
-        assemble = "{rom_ext}@0 {firmware}@0x10000 {firmware}@0x90000",
+        assemble = "{rom_ext}@{rom_ext_slot_a} {firmware}@{owner_slot_a} {firmware}@{owner_slot_b}",
         exit_failure = "BFV:.*|PASS|FAIL",
         exit_success = "FinalBootLog: 5:ABBBA\r\n",
         test_cmd = """
@@ -179,7 +179,7 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
     },
     fpga = fpga_params(
-        assemble = "{rom_ext}@0 {firmware}@0x10000 {firmware}@0x90000",
+        assemble = "{rom_ext}@{rom_ext_slot_a} {firmware}@{owner_slot_a} {firmware}@{owner_slot_b}",
         exit_failure = "BFV:.*|PASS|FAIL",
         exit_success = "FinalBootLog: 3:AAA\r\n",
     ),
@@ -235,7 +235,7 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
     },
     fpga = fpga_params(
-        assemble = "{rom_ext}@0 {firmware}@0x10000 {min_sec_ver_4:signed_bin}@0x90000",
+        assemble = "{rom_ext}@{rom_ext_slot_a} {firmware}@{owner_slot_a} {min_sec_ver_4:signed_bin}@{owner_slot_b}",
         binaries = {
             ":min_sec_ver_4": "min_sec_ver_4",
         },

@@ -76,6 +76,9 @@ _imm_section_start_boot:
   la   a1, _bss_end
   jal  ra, crt_section_clear
 
+#ifdef OT_COVERAGE_BUILD
+  call coverage_init
+#endif
 
   /**
    * Restore registers.

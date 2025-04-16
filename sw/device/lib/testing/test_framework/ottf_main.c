@@ -10,6 +10,7 @@
 #include "external/freertos/include/FreeRTOS.h"
 #include "external/freertos/include/queue.h"
 #include "external/freertos/include/task.h"
+#include "sw/device/coverage/runtime.h"
 #include "sw/device/lib/arch/device.h"
 #include "sw/device/lib/base/macros.h"
 #include "sw/device/lib/base/mmio.h"
@@ -22,7 +23,6 @@
 #include "sw/device/lib/testing/rand_testutils.h"
 #include "sw/device/lib/testing/test_framework/FreeRTOSConfig.h"
 #include "sw/device/lib/testing/test_framework/check.h"
-#include "sw/device/lib/testing/test_framework/coverage.h"
 #include "sw/device/lib/testing/test_framework/ottf_console.h"
 #include "sw/device/lib/testing/test_framework/ottf_test_config.h"
 #include "sw/device/lib/testing/test_framework/status.h"
@@ -136,7 +136,7 @@ static void report_test_status(bool result) {
     }
   }
 
-  coverage_send_buffer();
+  COVERAGE_REPORT();
   test_status_set(result ? kTestStatusPassed : kTestStatusFailed);
 }
 

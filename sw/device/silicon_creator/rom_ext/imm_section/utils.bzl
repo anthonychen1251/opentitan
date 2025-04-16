@@ -15,65 +15,101 @@ load(
     "IMM_SECTION_VERSION",
 )
 
-def _bin_to_imm_section_object_impl(ctx):
+def _cc_import(ctx, cc_toolchain, object):
+    feature_configuration = cc_common.configure_features(
+        ctx = ctx,
+        cc_toolchain = cc_toolchain,
+    )
+
+    lib_name = "lib" + ctx.label.name + ".a"
+    static_library = ctx.actions.declare_file(lib_name)
+    ctx.actions.run(
+        outputs = [static_library],
+        inputs = [object] + cc_toolchain.all_files.to_list(),
+        arguments = ["-rcs", static_library.path, object.path],
+        executable = cc_toolchain.ar_executable,
+    )
+
+    library_to_link = cc_common.create_library_to_link(
+        actions = ctx.actions,
+        feature_configuration = feature_configuration,
+        cc_toolchain = cc_toolchain,
+        static_library = static_library,
+        alwayslink = True,
+    )
+
+    cc_info = CcInfo(
+        linking_context = cc_common.create_linking_context(
+            linker_inputs = depset([
+                cc_common.create_linker_input(
+                    libraries = depset([library_to_link]),
+                    owner = ctx.label,
+                ),
+            ]),
+        ),
+    )
+
+    return static_library, cc_info
+
+def _choose_one_build(src):
+    # Returns binary_file, [Runfiles]
+
+    if type(src) == "File":
+        return src, []
+
+    # e2e/exec_env tests ensure the immutable rom_ext is the same across all
+    # exec env.
+    bin = get_one_binary_file(src, field = "binary", providers = [SiliconBinaryInfo])
+    elf = get_one_binary_file(src, field = "elf", providers = [SiliconBinaryInfo])
+    return bin, [elf]
+
+def _create_imm_section_targets_impl(ctx):
     cc_toolchain = find_cc_toolchain(ctx)
 
-    for src in ctx.files.src:
-        if src.extension != "bin":
-            continue
-        object = ctx.actions.declare_file(
-            "{}.{}".format(
-                src.basename.replace("." + src.extension, ""),
-                "o",
-            ),
-        )
-        ctx.actions.run(
-            outputs = [object],
-            inputs = [src] + cc_toolchain.all_files.to_list(),
-            arguments = [
-                "-I",
-                "binary",
-                "-O",
-                "elf32-littleriscv",
-                "--rename-section",
-                ".data=.rom_ext_immutable,alloc,load,readonly,data,contents",
-                src.path,
-                object.path,
-            ],
-            executable = cc_toolchain.objcopy_executable,
-        )
+    src, runfiles = _choose_one_build(ctx.attr.src)
 
-        # e2e/exec_env tests ensure the immutable rom_ext is the same across all
-        # exec env, so simply return the first one.
-        outputs = [object]
-        return [
-            DefaultInfo(
-                files = depset(outputs),
-                runfiles = ctx.runfiles(files = outputs),
-            ),
-        ]
+    object = ctx.actions.declare_file(
+        "{}.{}".format(
+            src.basename.replace("." + src.extension, ""),
+            "o",
+        ),
+    )
+    ctx.actions.run(
+        outputs = [object],
+        inputs = [src] + cc_toolchain.all_files.to_list(),
+        arguments = [
+            "-I",
+            "binary",
+            "-O",
+            "elf32-littleriscv",
+            "--rename-section",
+            ".data=.rom_ext_immutable,alloc,load,readonly,data,contents",
+            src.path,
+            object.path,
+        ],
+        executable = cc_toolchain.objcopy_executable,
+    )
 
-bin_to_imm_section_object = rv_rule(
-    implementation = _bin_to_imm_section_object_impl,
+    lib, cc_info = _cc_import(ctx, cc_toolchain, object)
+
+    return [
+        DefaultInfo(
+            files = depset([lib]),
+            runfiles = ctx.runfiles(files = runfiles),
+        ),
+        cc_info,
+    ]
+
+create_imm_section_targets = rv_rule(
+    implementation = _create_imm_section_targets_impl,
     attrs = {
         "src": attr.label(allow_files = True),
         "_cc_toolchain": attr.label(default = Label("@bazel_tools//tools/cpp:current_cc_toolchain")),
     },
+    provides = [CcInfo],
     toolchains = ["@rules_cc//cc:toolchain_type"],
+    fragments = ["cpp"],
 )
-
-def create_imm_section_targets(name, src):
-    object_target_name = name + "_object"
-    bin_to_imm_section_object(
-        name = object_target_name,
-        src = src,
-    )
-    native.cc_import(
-        name = name,
-        objects = [object_target_name],
-        data = [object_target_name],
-        alwayslink = 1,
-    )
 
 _RELEASE_BUILD_HEADER = """\
 # Copyright lowRISC contributors (OpenTitan project).

@@ -192,8 +192,17 @@ sram_start:
   // Configure the AST
   li a0, 0  // Do not run in verbose mode.
   call ast_program_config
+
+#ifdef OT_COVERAGE_BUILD
+  call coverage_init
+#endif
+
   // Jump into the C program entry point.
   call test_main
+
+#ifdef OT_COVERAGE_BUILD
+  call coverage_report
+#endif
 
   // Notify the host that we are done by loading a magic value in sp.
   lw   t3, 0(sp)

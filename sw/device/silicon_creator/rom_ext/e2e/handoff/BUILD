@@ -14,6 +14,7 @@ ld_library(
     includes = ["fault_common.ld"],
     deps = [
         "//sw/device:info_sections",
+        "//sw/device/coverage:llvm_prf_cnts",
         "//sw/device/silicon_creator/lib/base:static_critical_sections",
     ],
 )

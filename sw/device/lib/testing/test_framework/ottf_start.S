@@ -163,27 +163,9 @@ _ottf_start:
   la   a1, _bss_end
   call crt_section_clear
 
- /**
-  * Call the functions in the `.init_array` section.
-  *
-  * This section is typically empty except for executables built with LLVM
-  * coverage enabled. When coverage is enabled, the compiler emits pointers to
-  * the functions that initialize the profile buffer in this section. These
-  * functions must be called before the instrumented functions in the program.
-  *
-  * We use `s0` and `s1` to represent the start and end pointers of
-  * `.init_array`, respectively, and `t0` to store the addresses of the
-  * functions to be called.
-  */
-  la   s0, _init_array_start
-  la   s1, _init_array_end
-  bgeu s0, s1, init_array_loop_end
-init_array_loop:
-  lw   t0, 0(s0)
-  jalr t0
-  addi s0, s0, 0x4
-  bltu s0, s1, init_array_loop
-init_array_loop_end:
+#ifdef OT_COVERAGE_BUILD
+  call coverage_init
+#endif
 
  /**
   * Jump into the OTTF C entry point.

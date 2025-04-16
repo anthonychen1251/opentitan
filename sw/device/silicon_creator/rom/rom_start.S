@@ -511,6 +511,10 @@ LABEL_FOR_TEST(kRomStartWatchdogEnabled)
   la   t0, (_rom_interrupt_vector_c + 1)
   csrw mtvec, t0
 
+#ifdef OT_COVERAGE_BUILD
+  call coverage_init
+#endif
+
   /**
    * Jump to C Code
    */

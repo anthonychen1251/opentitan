@@ -19,6 +19,8 @@ _dv_log_offset = 0x10000;
 
 ENTRY(_imm_section_start_boot)
 
+REGION_ALIAS("coverage_flash", rom_ext_flash);
+
 SECTIONS {
   /**
    * Ibex interrupt vector.
@@ -76,6 +78,8 @@ SECTIONS {
     *(.rodata)
     *(.rodata.*)
   } > rom_ext_flash
+
+  INCLUDE sw/device/coverage/rodata.ld
 
   /**
    * Critical static data that is accessible by both the ROM and the ROM
@@ -169,3 +173,5 @@ SECTIONS {
       "Error: immutable section version string should be exactly 32 bytes");
   } > rom_ext_flash
 }
+
+INCLUDE sw/device/coverage/llvm_prf_cnts.ld

@@ -27,6 +27,8 @@ cc_library(
     srcs = [
         "include/profile/InstrProfData.inc",
         "lib/profile/InstrProfiling.h",
+        "lib/profile/InstrProfilingInternal.h",
     ],
+    features = ["-coverage"],
     includes = ["include"],
 )

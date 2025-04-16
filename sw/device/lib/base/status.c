@@ -123,8 +123,13 @@ bool status_extract(status_t s, const char **code, int32_t *arg, char *mod_id) {
   }
 }
 
-extern bool status_ok(status_t s);
-extern absl_status_t status_err(status_t s);
+bool status_ok(status_t s) { return s.value >= 0; }
+
+absl_status_t status_err(status_t s) {
+  return s.value < 0 ? (absl_status_t)bitfield_field32_read(
+                           OT_UNSIGNED(s.value), STATUS_FIELD_CODE)
+                     : kOk;
+}
 
 // This is a weak implementation that does nothing. This way it can easily be
 // overidden and does not require every user of status to manually add a

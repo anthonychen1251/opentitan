@@ -4,12 +4,14 @@
 
 #include "sw/device/silicon_creator/rom_ext/imm_section/imm_section.h"
 
+#include "sw/device/coverage/runtime.h"
 #include "sw/device/lib/arch/device.h"
 #include "sw/device/lib/base/hardened.h"
 #include "sw/device/lib/base/macros.h"
 #include "sw/device/silicon_creator/lib/base/boot_measurements.h"
 #include "sw/device/silicon_creator/lib/base/sec_mmio.h"
 #include "sw/device/silicon_creator/lib/cert/dice_chain.h"
+#include "sw/device/silicon_creator/lib/dbg_print.h"
 #include "sw/device/silicon_creator/lib/drivers/flash_ctrl.h"
 #include "sw/device/silicon_creator/lib/drivers/rnd.h"
 #include "sw/device/silicon_creator/lib/epmp_state.h"
@@ -53,6 +55,7 @@ static rom_error_t imm_section_start(void) {
   // Make mutable part executable.
   HARDENED_RETURN_IF_ERROR(imm_section_epmp_mutable_rx(rom_ext));
 
+  dbg_printf("Done\r\n");
   return kErrorOk;
 }
 
@@ -62,6 +65,8 @@ void imm_section_main(void) {
   // If there's an error, this hardened check will trigger the irq handler
   // in ROM to shutdown.
   HARDENED_CHECK_EQ(error, kErrorOk);
+
+  COVERAGE_REPORT();
 
   // Go back to ROM / Mutable ROM_EXT.
   return;

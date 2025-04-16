@@ -4,6 +4,7 @@
 
 #include "sw/device/silicon_creator/rom_ext/rom_ext.h"
 
+#include "sw/device/coverage/runtime.h"
 #include "sw/device/lib/arch/device.h"
 #include "sw/device/lib/base/csr.h"
 #include "sw/device/lib/base/macros.h"
@@ -408,6 +409,7 @@ static rom_error_t rom_ext_boot(boot_data_t *boot_data, boot_log_t *boot_log,
 
   // Jump to OWNER entry point.
   dbg_printf("entry: 0x%x\r\n", (unsigned int)entry_point);
+  COVERAGE_REPORT();
   ((owner_stage_entry_point *)entry_point)();
 
   return kErrorRomExtBootFailed;
@@ -776,5 +778,6 @@ void rom_ext_main(void) {
     HARDENED_CHECK_EQ(error, kErrorWriteBootdataThenReboot);
     error = boot_data_write(&boot_data);
   }
+  COVERAGE_REPORT();
   shutdown_finalize(error);
 }

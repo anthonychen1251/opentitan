@@ -1,0 +1,13 @@
+diff --git a/lib/profile/InstrProfilingWriter.c b/lib/profile/InstrProfilingWriter.c
+index 5c437d9..40499d9 100644
+--- a/lib/profile/InstrProfilingWriter.c
++++ b/lib/profile/InstrProfilingWriter.c
+@@ -35,7 +35,7 @@ COMPILER_RT_VISIBILITY uint32_t VPBufferSize = 0;
+ /* The buffer writer is responsible in keeping writer state
+  * across the call.
+  */
+-COMPILER_RT_VISIBILITY uint32_t lprofBufferWriter(ProfDataWriter *This,
++COMPILER_RT_VISIBILITY uint32_t _lprofBufferWriter(ProfDataWriter *This,
+                                                   ProfDataIOVec *IOVecs,
+                                                   uint32_t NumIOVecs) {
+   uint32_t I;

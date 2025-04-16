@@ -28,6 +28,8 @@ _dv_log_offset = 0x10000;
 
 ENTRY(sram_start);
 
+REGION_ALIAS("coverage_flash", ram_main);
+
 PHDRS {
   sram_segment PT_LOAD;
 }
@@ -71,6 +73,8 @@ SECTIONS {
     . = ALIGN(4);
     __rodata_end = .;
   } > ram_main : sram_segment
+
+  INCLUDE sw/device/coverage/rodata.ld
 
   .data : ALIGN(4) {
     /* This will get loaded into `gp`, and the linker will use that register for
@@ -117,3 +121,5 @@ SECTIONS {
 
   INCLUDE sw/device/info_sections.ld
 }
+
+INCLUDE sw/device/coverage/llvm_prf_cnts.ld

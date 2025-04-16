@@ -28,7 +28,7 @@ uint32_t ibex_fpga_version(void);
 /**
  * Set the MCYCLE counter register to zero.
  */
-inline void ibex_mcycle_zero(void) {
+static inline void ibex_mcycle_zero(void) {
   CSR_WRITE(CSR_REG_MCYCLE, 0);
   CSR_WRITE(CSR_REG_MCYCLEH, 0);
 }
@@ -37,7 +37,7 @@ inline void ibex_mcycle_zero(void) {
  * Read the low 32 bits of the MCYCLE counter.
  */
 OT_WARN_UNUSED_RESULT
-inline uint32_t ibex_mcycle32(void) {
+static inline uint32_t ibex_mcycle32(void) {
   uint32_t val;
   CSR_READ(CSR_REG_MCYCLE, &val);
   return val;
@@ -47,7 +47,7 @@ inline uint32_t ibex_mcycle32(void) {
  * Read the 64-bit MCYCLE counter.
  */
 OT_WARN_UNUSED_RESULT
-inline uint64_t ibex_mcycle(void) {
+static inline uint64_t ibex_mcycle(void) {
   uint32_t lo, hi, hi2;
   do {
     CSR_READ(CSR_REG_MCYCLEH, &hi);
@@ -60,7 +60,7 @@ inline uint64_t ibex_mcycle(void) {
 /**
  * Convert from microseconds to CPU cycles.
  */
-inline uint64_t ibex_time_to_cycles(uint64_t time_us) {
+static inline uint64_t ibex_time_to_cycles(uint64_t time_us) {
   return to_cpu_cycles(time_us);
 }
 #else

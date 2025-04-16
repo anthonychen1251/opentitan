@@ -92,6 +92,7 @@ cc_library(
     deps = [
         "//hw/top_earlgrey/ip_autogen/flash_ctrl:flash_ctrl_c_regs",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+        "//sw/device/coverage:runtime_api",
         "//sw/device/lib/base:csr",
         "//sw/device/lib/base:macros",
         "//sw/device/silicon_creator/lib:dbg_print",
@@ -104,6 +105,7 @@ ld_library(
     includes = ["rom_ext_common.ld"],
     deps = [
         "//sw/device:info_sections",
+        "//sw/device/coverage:llvm_prf_cnts",
         "//sw/device/silicon_creator/lib/base:static_critical_sections",
         "//sw/device/silicon_creator/lib/base:static_dice_sections",
     ],
@@ -144,6 +146,7 @@ ld_library(
             "rom_ext_start.S",
         ],
         hdrs = ["rom_ext.h"],
+        linkopts = ["-lgcc"],
         target_compatible_with = [OPENTITAN_CPU],
         deps = [
             ":rom_ext_boot_policy",
@@ -153,6 +156,8 @@ ld_library(
             "//hw/ip/otp_ctrl/data:otp_ctrl_c_regs",
             "//hw/ip/sram_ctrl/data:sram_ctrl_c_regs",
             "//hw/top_earlgrey/ip_autogen/flash_ctrl:flash_ctrl_c_regs",
+            "//sw/device/coverage:runtime_api",
+            "//sw/device/coverage:uart_runtime",
             "//sw/device/lib/arch:device",
             "//sw/device/lib/base:csr",
             "//sw/device/lib/base:macros",
@@ -224,7 +229,7 @@ manifest(d = {
         ],
         linker_script = ":ld_slot_{}".format(slot),
         manifest = ":manifest",
-        spx_key = {"//sw/device/silicon_creator/rom/keys/fake/spx:prod_key_0_spx": "prod_key_0"},
+        # spx_key = {"//sw/device/silicon_creator/rom/keys/fake/spx:prod_key_0_spx": "prod_key_0"},
         deps = [
             ":rom_ext_{}".format(variation_name),
             "//sw/device/lib/crt",

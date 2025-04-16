@@ -18,4 +18,8 @@ def crt_repos(local = None):
             url = "https://github.com/lowRISC/crt/archive/refs/tags/v0.4.16.tar.gz",
             strip_prefix = "crt-0.4.16",
             sha256 = "db9a536d01110aad7e5f9ac4b9d008215bf1966df294c3f8b2f16138ac78592d",
+            patches = [
+                Label("//third_party/crt:0001-Coverage.patch"),
+            ],
+            patch_args = ["-p1"],
         )

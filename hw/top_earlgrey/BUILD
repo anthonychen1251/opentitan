@@ -73,6 +73,15 @@ CLEAR_MANIFEST = manifest(d = {
     "name": "none_manifest",
 })
 
+EARLGREY_SLOTS = {
+    "rom_ext_slot_a": "0x0",
+    "rom_ext_slot_b": "0x80000",
+    "owner_slot_a": "0x10000",
+    "owner_slot_b": "0x90000",
+    "rom_instrumented_delta": "0x20000",
+    "rom_ext_instrumented_delta": "0x30000",
+}
+
 ###########################################################################
 # FPGA CW310 Environments
 ###########################################################################
@@ -86,11 +95,17 @@ fpga_cw310(
     ],
     linker_script = "//sw/device/lib/testing/test_framework:ottf_ld_silicon_creator_slot_a",
     rom_scramble_config = "//hw/top_earlgrey/data:autogen/top_earlgrey.gen.hjson",
+    slot_addresses = EARLGREY_SLOTS,
     test_cmd = "testing-not-supported",
 )
 
-fpga_cw310(
+alias(
     name = "fpga_cw310_test_rom",
+    actual = ":fpga_cw340_test_rom",
+)
+
+fpga_cw310(
+    name = "_fpga_cw310_test_rom",
     testonly = True,
     args = [
         "--rcfile=",
@@ -121,8 +136,13 @@ fpga_cw310(
     """,
 )
 
-fpga_cw310(
+alias(
     name = "fpga_cw310_rom_with_fake_keys",
+    actual = ":fpga_cw340_rom_with_fake_keys",
+)
+
+fpga_cw310(
+    name = "_fpga_cw310_rom_with_fake_keys",
     testonly = True,
     base = ":fpga_cw310_test_rom",
     ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:test_key_0_ecdsa_p256": "test_key_0"},
@@ -142,6 +162,7 @@ sim_qemu(
     linker_script = "//sw/device/lib/testing/test_framework:ottf_ld_silicon_creator_slot_a",
     otp = "//hw/ip/otp_ctrl/data:img_rma",
     rom_scramble_config = "//hw/top_earlgrey/data:autogen/top_earlgrey.gen.hjson",
+    slot_addresses = EARLGREY_SLOTS,
 )
 
 sim_qemu(
@@ -154,8 +175,13 @@ sim_qemu(
     rom = "//sw/device/silicon_creator/rom:mask_rom",
 )
 
-fpga_cw310(
+alias(
     name = "fpga_cw310_rom_ext",
+    actual = ":fpga_cw340_rom_ext",
+)
+
+fpga_cw310(
+    name = "_fpga_cw310_rom_ext",
     testonly = True,
     base = ":fpga_cw310_test_rom",
     ecdsa_key = select({
@@ -175,7 +201,7 @@ fpga_cw310(
         "interface": "cw310",
         "exit_success": DEFAULT_TEST_SUCCESS_MSG,
         "exit_failure": DEFAULT_TEST_FAILURE_MSG,
-        "assemble": "{rom_ext}@0 {firmware}@0x10000",
+        "assemble": "{rom_ext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
     },
     rom = "//sw/device/silicon_creator/rom:mask_rom",
     rom_ext = select({
@@ -184,8 +210,13 @@ fpga_cw310(
     }),
 )
 
-fpga_cw310(
+alias(
     name = "fpga_hyper310_rom_with_fake_keys",
+    actual = ":fpga_cw340_rom_with_fake_keys",
+)
+
+fpga_cw310(
+    name = "_fpga_hyper310_rom_with_fake_keys",
     testonly = True,
     args = [
         "--rcfile=",
@@ -214,8 +245,13 @@ fpga_cw310(
     """,
 )
 
-fpga_cw310(
+alias(
     name = "fpga_hyper310_rom_ext",
+    actual = ":fpga_cw340_rom_ext",
+)
+
+fpga_cw310(
+    name = "_fpga_hyper310_rom_ext",
     testonly = True,
     base = ":fpga_hyper310_rom_with_fake_keys",
     ecdsa_key = {"//sw/device/silicon_creator/lib/ownership/keys/fake:app_prod_ecdsa": "prod_key_0"},
@@ -231,7 +267,7 @@ fpga_cw310(
         "interface": "hyper310",
         "exit_success": DEFAULT_TEST_SUCCESS_MSG,
         "exit_failure": DEFAULT_TEST_FAILURE_MSG,
-        "assemble": "{rom_ext}@0 {firmware}@0x10000",
+        "assemble": "{rom_ext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
     },
     rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_dice_x509_slot_a",
 )
@@ -241,8 +277,13 @@ fpga_cw310(
 # as SRAM programs. Use the `fpga_cw310_sival_rom_ext` execution environment to
 # emulate silicon targets containing a `rom_ext` stage.
 # See sw/device/tests/doc/sival/devguide.md for more details.
-fpga_cw310(
+alias(
     name = "fpga_cw310_sival",
+    actual = ":fpga_cw340_sival",
+)
+
+fpga_cw310(
+    name = "_fpga_cw310_sival",
     testonly = True,
     base = ":fpga_hyper310_rom_with_fake_keys",
 
@@ -260,8 +301,13 @@ fpga_cw310(
 # stage.
 # See `fpga_cw310_sival` for more details.
 # Also, see sw/device/tests/doc/sival/devguide.md.
-fpga_cw310(
+alias(
     name = "fpga_cw310_sival_rom_ext",
+    actual = ":fpga_cw340_sival_rom_ext",
+)
+
+fpga_cw310(
+    name = "_fpga_cw310_sival_rom_ext",
     testonly = True,
     base = ":fpga_hyper310_rom_ext",
     ecdsa_key = {"//sw/device/silicon_creator/lib/ownership/keys/fake:app_prod_ecdsa": "prod_key_0"},
@@ -292,6 +338,7 @@ fpga_cw305(
     ],
     linker_script = "//sw/device/lib/testing/test_framework:ottf_ld_silicon_creator_slot_a",
     rom_scramble_config = "//hw/top_earlgrey/data:autogen/top_earlgrey.gen.hjson",
+    slot_addresses = EARLGREY_SLOTS,
     test_cmd = "testing-not-supported",
 )
 
@@ -325,6 +372,7 @@ fpga_cw340(
         "exit_failure": DEFAULT_TEST_FAILURE_MSG,
     },
     rom_scramble_config = "//hw/top_earlgrey/data:autogen/top_earlgrey.gen.hjson",
+    slot_addresses = EARLGREY_SLOTS,
     test_cmd = "testing-not-supported",
 )
 
@@ -387,7 +435,7 @@ fpga_cw340(
         "interface": "hyper340",
         "exit_success": DEFAULT_TEST_SUCCESS_MSG,
         "exit_failure": DEFAULT_TEST_FAILURE_MSG,
-        "assemble": "{rom_ext}@0 {firmware}@0x10000",
+        "assemble": "{rom_ext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
     },
     rom_ext = select({
         "//signing:test_keys": "//sw/device/silicon_creator/rom_ext:rom_ext_dice_x509_slot_a",
@@ -466,6 +514,7 @@ silicon(
         "exit_failure": DEFAULT_TEST_FAILURE_MSG,
     },
     rom_scramble_config = "//hw/top_earlgrey/data:autogen/top_earlgrey.gen.hjson",
+    slot_addresses = EARLGREY_SLOTS,
     test_cmd = """
         --exec="transport init"
         --exec="bootstrap --clear-uart=true {firmware}"
@@ -501,12 +550,13 @@ silicon(
         "interface": "teacup",
         "exit_success": DEFAULT_TEST_SUCCESS_MSG,
         "exit_failure": DEFAULT_TEST_FAILURE_MSG,
-        "assemble": "{rom_ext}@0 {firmware}@0x10000",
+        "assemble": "{rom_ext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
     },
     rom_ext = select({
         "//signing:test_keys": "//sw/device/silicon_creator/rom_ext/sival:rom_ext_dice_x509_fake_slot_a",
         "//conditions:default": "//sw/device/silicon_creator/rom_ext/sival/binaries:rom_ext_dice_x509_prod",
     }),
+    slot_addresses = EARLGREY_SLOTS,
     test_cmd = """
         --exec="transport init"
         --exec="bootstrap --clear-uart=true {firmware}"
@@ -532,6 +582,7 @@ sim_verilator(
     linker_script = "//sw/device/lib/testing/test_framework:ottf_ld_silicon_creator_slot_a",
     otp = "//hw/ip/otp_ctrl/data:img_rma",
     rom_scramble_config = "//hw/top_earlgrey/data:autogen/top_earlgrey.gen.hjson",
+    slot_addresses = EARLGREY_SLOTS,
     test_cmd = "testing-not-supported",
 )
 
@@ -595,6 +646,7 @@ sim_dv(
     otp_mmap = "//hw/ip/otp_ctrl/data:otp_ctrl_mmap.hjson",
     otp_seed = "//hw/ip/otp_ctrl/data:otp_seed",
     rom_scramble_config = "//hw/top_earlgrey/data:autogen/top_earlgrey.gen.hjson",
+    slot_addresses = EARLGREY_SLOTS,
 )
 
 sim_dv(

@@ -34,6 +34,7 @@ _FIELDS = {
     "rom_scramble_config": ("file.rom_scramble_config", False),
     "openocd": ("attr.openocd", False),
     "openocd_adapter_config": ("attr.openocd_adapter_config", False),
+    "slot_addresses": ("attr.slot_addresses", False),
 }
 
 ExecEnvInfo = provider(
@@ -149,6 +150,10 @@ def exec_env_common_attrs(**kwargs):
             default = kwargs.get("rom_ext"),
             allow_files = True,
             doc = "ROM_EXT image to use in this environment",
+        ),
+        "slot_addresses": attr.string_dict(
+            default = kwargs.get("slot_addresses", {}),
+            doc = "Firmware slot addresses to use in this environment",
         ),
         "otp": attr.label(
             default = kwargs.get("otp"),
@@ -307,7 +312,12 @@ def update_file_attr(name, attr, provider, data_files, param, action_param = Non
             fail("attr must be a single item")
     if type(attr) == "File":
         _update(name, attr, data_files, param, action_param)
-    elif provider and provider in attr:
+        return
+
+    if DefaultInfo in attr:
+        data_files.extend(attr[DefaultInfo].default_runfiles.files.to_list() or [])
+
+    if provider and provider in attr:
         update_file_provider(name, attr[provider], data_files, param, action_param, default)
     elif DefaultInfo in attr:
         # Filter out disassembly files.
@@ -393,5 +403,15 @@ def common_test_setup(ctx, exec_env, firmware):
         data_labels += jtag_data
         data_files += get_files(jtag_data)
         param["jtag_test_cmd"] = jtag_test_cmd
+
+    # Update actual slot addresses
+    slot_addresses = dict(exec_env.slot_addresses)
+    slot_addresses.update(ctx.attr.slot_addresses)
+    if rom_ext != None and InstrumentedFilesInfo in rom_ext:
+        delta = int(slot_addresses["rom_ext_instrumented_delta"], 0)
+        for key, value in slot_addresses.items():
+            if key.startswith("owner_"):
+                slot_addresses[key] = str(int(value, 0) + delta)
+    action_param.update(slot_addresses)
 
     return test_harness, data_labels, data_files, param, action_param

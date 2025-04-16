@@ -3,7 +3,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use anyhow::{anyhow, bail, Result};
+use crc::{Crc, CRC_32_ISO_HDLC};
 use mio::{Events, Interest, Poll, Token};
+use rand::Rng;
 use regex::{Captures, Regex};
 use std::fs::File;
 use std::io::{ErrorKind, Read, Write};
@@ -13,6 +15,9 @@ use std::time::{Duration, Instant, SystemTime};
 
 use crate::io::console::{ConsoleDevice, ConsoleError};
 use crate::util::file;
+
+const COVERAGE_START_ANCHOR: &str = "== COVERAGE PROFILE START ==\r\n";
+const COVERAGE_END_ANCHOR: &str = "== COVERAGE PROFILE END ==\r\n";
 
 #[derive(Default)]
 pub struct UartConsole {
@@ -25,6 +30,8 @@ pub struct UartConsole {
     pub buffer: String,
     pub newline: bool,
     pub break_en: bool,
+    pub alt_buffer_enabled: bool,
+    pub alt_buffer: String,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -91,21 +98,8 @@ impl UartConsole {
         // HACK(nbdd0121): do a nonblocking read because the UART buffer may still have data in it.
         // If we wait for mio event now, we might be blocking forever.
         while self.uart_read(device, Duration::from_millis(0), &mut stdout)? {
-            if self
-                .exit_success
-                .as_ref()
-                .map(|rx| rx.is_match(&self.buffer))
-                == Some(true)
-            {
-                return Ok(ExitStatus::ExitSuccess);
-            }
-            if self
-                .exit_failure
-                .as_ref()
-                .map(|rx| rx.is_match(&self.buffer))
-                == Some(true)
-            {
-                return Ok(ExitStatus::ExitFailure);
+            if let Some(exit_status) = self.process_buffer()? {
+                return Ok(exit_status);
             }
         }
 
@@ -154,21 +148,8 @@ impl UartConsole {
                     // `mio` convention demands that we keep reading until a read returns zero
                     // bytes, otherwise next `poll()` is not guaranteed to notice more data.
                     while self.uart_read(device, Duration::from_millis(1), &mut stdout)? {
-                        if self
-                            .exit_success
-                            .as_ref()
-                            .map(|rx| rx.is_match(&self.buffer))
-                            == Some(true)
-                        {
-                            return Ok(ExitStatus::ExitSuccess);
-                        }
-                        if self
-                            .exit_failure
-                            .as_ref()
-                            .map(|rx| rx.is_match(&self.buffer))
-                            == Some(true)
-                        {
-                            return Ok(ExitStatus::ExitFailure);
+                        if let Some(exit_status) = self.process_buffer()? {
+                            return Ok(exit_status);
                         }
                     }
                 }
@@ -183,10 +164,70 @@ impl UartConsole {
 
     // Maintain a buffer for the exit regexes to match against.
     fn append_buffer(&mut self, data: &[u8]) {
-        self.buffer.push_str(&String::from_utf8_lossy(data));
+        let data = &String::from_utf8_lossy(data);
+        self.buffer.push_str(data);
         while self.buffer.len() > UartConsole::BUFFER_LEN {
             self.buffer.remove(0);
         }
+        if self.alt_buffer_enabled {
+            self.alt_buffer.push_str(data);
+        }
+    }
+
+    fn process_coverage(&mut self) -> Result<()> {
+        let response = &self.alt_buffer.strip_suffix(COVERAGE_END_ANCHOR).unwrap();
+        let response = hex::decode(response)?;
+        if response.len() == 0 {
+            // bail!("Got empty coverage");
+        }
+        if response.len() < 4 {
+            bail!("Coverage from device is too short");
+        }
+
+        let (response, crc) = response.split_at(response.len() - 4);
+        let crc = u32::from_le_bytes(crc.try_into()?);
+        let actual = Crc::<u32>::new(&CRC_32_ISO_HDLC).checksum(response);
+        if crc != actual {
+            bail!("Coverage corrupted: crc = {crc:08x}, actual = {actual:08x}");
+        }
+
+        let path = std::env::var("LLVM_PROFILE_FILE").unwrap_or("./default.profraw".to_owned());
+        let path = path.replace("%h", "test.on.device");
+        let path = path.replace("%p", &rand::thread_rng().gen::<u32>().to_string());
+        let path = path.replace("%m", "0");
+
+        println!("Saving coverage profile to {path}");
+        std::fs::write(path, response)?;
+
+        Ok(())
+    }
+
+    fn process_buffer(&mut self) -> Result<Option<ExitStatus>> {
+        if self
+            .exit_success
+            .as_ref()
+            .map(|rx| rx.is_match(&self.buffer))
+            == Some(true)
+        {
+            return Ok(Some(ExitStatus::ExitSuccess));
+        }
+        if self
+            .exit_failure
+            .as_ref()
+            .map(|rx| rx.is_match(&self.buffer))
+            == Some(true)
+        {
+            return Ok(Some(ExitStatus::ExitFailure));
+        }
+        if self.buffer.ends_with(COVERAGE_START_ANCHOR) {
+            self.alt_buffer_enabled = true;
+            self.alt_buffer.clear();
+        }
+        if self.buffer.ends_with(COVERAGE_END_ANCHOR) {
+            self.alt_buffer_enabled = false;
+            self.process_coverage()?;
+        }
+        Ok(None)
     }
 
     // Read from the console device and process the data read.
@@ -204,25 +245,27 @@ impl UartConsole {
         if len == 0 {
             return Ok(false);
         }
-        for i in 0..len {
-            if self.timestamp && self.newline {
-                let t = humantime::format_rfc3339_millis(SystemTime::now());
-                stdout.as_mut().map_or(Ok(()), |out| {
-                    out.write_fmt(format_args!("[{}  console]", t))
-                })?;
-                self.newline = false;
+        if !self.alt_buffer_enabled {
+            for i in 0..len {
+                if self.timestamp && self.newline {
+                    let t = humantime::format_rfc3339_millis(SystemTime::now());
+                    stdout.as_mut().map_or(Ok(()), |out| {
+                        out.write_fmt(format_args!("[{}  console]", t))
+                    })?;
+                    self.newline = false;
+                }
+                self.newline = buf[i] == b'\n';
+                stdout
+                    .as_mut()
+                    .map_or(Ok(()), |out| out.write_all(&buf[i..i + 1]))?;
             }
-            self.newline = buf[i] == b'\n';
-            stdout
-                .as_mut()
-                .map_or(Ok(()), |out| out.write_all(&buf[i..i + 1]))?;
-        }
-        stdout.as_mut().map_or(Ok(()), |out| out.flush())?;
+            stdout.as_mut().map_or(Ok(()), |out| out.flush())?;
 
-        // If we're logging, save it to the logfile.
-        self.logfile
-            .as_mut()
-            .map_or(Ok(()), |f| f.write_all(&buf[..len]))?;
+            // If we're logging, save it to the logfile.
+            self.logfile
+                .as_mut()
+                .map_or(Ok(()), |f| f.write_all(&buf[..len]))?;
+        }
         self.append_buffer(&buf[..len]);
         Ok(true)
     }
@@ -294,21 +337,8 @@ impl UartConsole {
 
         // Check for input on the uart.
         self.uart_read(device, Duration::from_millis(10), stdout)?;
-        if self
-            .exit_success
-            .as_ref()
-            .map(|rx| rx.is_match(&self.buffer))
-            == Some(true)
-        {
-            return Ok(ExitStatus::ExitSuccess);
-        }
-        if self
-            .exit_failure
-            .as_ref()
-            .map(|rx| rx.is_match(&self.buffer))
-            == Some(true)
-        {
-            return Ok(ExitStatus::ExitFailure);
+        if let Some(exit_status) = self.process_buffer()? {
+            return Ok(exit_status);
         }
         self.process_input(device, stdin)
     }

@@ -23,6 +23,12 @@ __DYNAMIC = 0;
  */
 ENTRY(_start_boot)
 
+/**
+ * Shift the firmware address space if requested by --defsym.
+ */
+_ottf_addr_delta = DEFINED(_ottf_addr_delta) ? _ottf_addr_delta : 0;
+_slot_start_address += _ottf_addr_delta;
+
 /* DV Log offset (has to be different to other boot stages). */
 _dv_log_offset = 0x20000;
 
@@ -49,6 +55,8 @@ _manifest_entry_point = _start_boot - _slot_start_address;
 _manifest_address_translation = (_text_start >= ORIGIN(eflash) &&
                                  _text_start < (ORIGIN(eflash)
                                               + LENGTH(eflash))) ? 0x1d4 : 0x739;
+
+REGION_ALIAS("coverage_flash", owner_flash);
 
 /**
  * NOTE: We have to align each section to word boundaries as our current
@@ -102,6 +110,8 @@ SECTIONS {
     *(.rodata)
     *(.rodata.*)
   } > owner_flash
+
+  INCLUDE sw/device/coverage/rodata.ld
 
   /**
    * Critical static data that is accessible by both the ROM and the ROM
@@ -173,3 +183,5 @@ SECTIONS {
 
   INCLUDE sw/device/info_sections.ld
 }
+
+INCLUDE sw/device/coverage/llvm_prf_cnts.ld

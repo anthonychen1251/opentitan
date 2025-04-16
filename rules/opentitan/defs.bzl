@@ -252,6 +252,7 @@ def opentitan_test(
 
     # Precompute parameters.
     all_test_params = []
+    all_other_test_params = []
     for (env, pname) in exec_env.items():
         pname = _parameter_name(env, pname)
 
@@ -264,7 +265,18 @@ def opentitan_test(
         tparam = test_parameters[pname]
         if pname in kwargs_unused:
             kwargs_unused.remove(pname)
-        all_test_params.append((env, pname, tparam, extra_tags))
+        if env.find("fpga") != -1:
+            all_test_params.append((env, pname, tparam, extra_tags))
+        else:
+            all_other_test_params.append((env, pname, tparam, extra_tags))
+    if len(all_test_params) == 0:
+        all_test_params = all_other_test_params
+        all_other_test_params = []
+
+    if False:
+        all_test_params = sorted(all_test_params)[-1:]
+    else:
+        all_test_params.extend(all_other_test_params)
 
     # Find all exec_envs which are not marked as broken.
     non_broken_exec_env = []

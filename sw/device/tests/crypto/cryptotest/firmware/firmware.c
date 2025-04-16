@@ -42,18 +42,18 @@ status_t process_cmd(ujson_t *uj) {
     cryptotest_cmd_t cmd;
     TRY(ujson_deserialize_cryptotest_cmd_t(uj, &cmd));
     switch (cmd) {
-      case kCryptotestCommandAes:
-        RESP_ERR(uj, handle_aes(uj));
-        break;
-      case kCryptotestCommandDrbg:
-        RESP_ERR(uj, handle_drbg(uj));
-        break;
-      case kCryptotestCommandEcdsa:
-        RESP_ERR(uj, handle_ecdsa(uj));
-        break;
-      case kCryptotestCommandEcdh:
-        RESP_ERR(uj, handle_ecdh(uj));
-        break;
+      // case kCryptotestCommandAes:
+      //   RESP_ERR(uj, handle_aes(uj));
+      //   break;
+      // case kCryptotestCommandDrbg:
+      //   RESP_ERR(uj, handle_drbg(uj));
+      //   break;
+      // case kCryptotestCommandEcdsa:
+      //   RESP_ERR(uj, handle_ecdsa(uj));
+      //   break;
+      // case kCryptotestCommandEcdh:
+      //   RESP_ERR(uj, handle_ecdh(uj));
+      //   break;
       case kCryptotestCommandHash:
         RESP_ERR(uj, handle_hash(uj));
         break;
@@ -63,9 +63,11 @@ status_t process_cmd(ujson_t *uj) {
       case kCryptotestCommandKmac:
         RESP_ERR(uj, handle_kmac(uj));
         break;
-      case kCryptotestCommandSphincsPlus:
-        RESP_ERR(uj, handle_sphincsplus(uj));
-        break;
+      // case kCryptotestCommandSphincsPlus:
+      //   RESP_ERR(uj, handle_sphincsplus(uj));
+      //   break;
+      case kCryptotestCommandQuit:
+        return OK_STATUS(0);
       default:
         LOG_ERROR("Unrecognized command: %d", cmd);
         RESP_ERR(uj, INVALID_ARGUMENT());

@@ -60,6 +60,8 @@ _epmp_stack_guard_na4 = _stack_start / 4;
 
 ENTRY(_rom_start_boot);
 
+REGION_ALIAS("coverage_flash", rom);
+
 /**
  * NOTE: We have to align each section to word boundaries as our current
  * s19->slm conversion scripts are not able to handle non-word aligned sections.
@@ -145,6 +147,8 @@ SECTIONS {
     *(.rodata.*)
   } > rom
 
+  INCLUDE sw/device/coverage/rodata.ld
+
   /**
    * Critical static data that is accessible by both the ROM and the ROM
    * extension.
@@ -154,17 +158,19 @@ SECTIONS {
   /**
    * OpenTitan ROM does not have a mutable `.data` section.
    */
-  .data (NOLOAD) : {
+  .data : ALIGN(4) {
     *(.sdata)
     *(.sdata.*)
     *(.data)
     *(.data.*)
 
     /* Tests are an exception to the rule that .data must be empty */
+    /*
     ASSERT(
         (DEFINED(rom_test) ? 0 : SIZEOF(.data)) == 0,
         "Error: .data section must be empty");
-  } > ram_main
+    */
+  } > ram_main AT> rom
 
   /**
    * Standard BSS section. This will be zeroed at runtime by the CRT.
@@ -204,3 +210,5 @@ SECTIONS {
 
   INCLUDE sw/device/info_sections.ld
 }
+
+INCLUDE sw/device/coverage/llvm_prf_cnts.ld

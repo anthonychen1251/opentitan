@@ -67,6 +67,7 @@ ld_library(
     deps = [
         "//hw/top_earlgrey/sw/autogen:top_earlgrey_memory",
         "//sw/device:info_sections",
+        "//sw/device/coverage:llvm_prf_cnts",
     ],
 )
 
@@ -193,6 +194,7 @@ cc_library(
 
 opentitan_binary(
     name = "mask_rom",
+    collect_code_coverage = 0,
     exec_env = [
         "//hw/top_earlgrey:fpga_cw310",
         "//hw/top_earlgrey:fpga_cw340",
@@ -203,6 +205,27 @@ opentitan_binary(
     ],
     kind = "rom",
     linker_script = ":linker_script",
+    deps = [
+        ":mask_rom_lib",
+        # We depend on rom_isrs here rather than in mask_rom_lib so that the
+        # `rom_exception_handler` symbol remains unresolved and can be supplied
+        # by tests such as `rom_epmp_test`.
+        ":rom_isrs",
+    ],
+)
+
+opentitan_binary(
+    name = "instrumented_mask_rom",
+    exec_env = [
+        "//hw/top_earlgrey:fpga_cw310",
+        "//hw/top_earlgrey:fpga_cw340",
+        # "//hw/top_earlgrey:sim_dv_base",
+        # "//hw/top_earlgrey:sim_verilator_base",
+        # "//hw/top_earlgrey:sim_qemu_base",
+        # "//hw/top_earlgrey:silicon_creator",
+    ],
+    linker_script = ":linker_script",
+    manifest = "//hw/top_earlgrey:none_manifest",
     deps = [
         ":mask_rom_lib",
         # We depend on rom_isrs here rather than in mask_rom_lib so that the

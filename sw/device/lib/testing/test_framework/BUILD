@@ -28,13 +28,13 @@ cc_library(
         "coverage_llvm.c",
     ],
     hdrs = ["coverage.h"],
-    linkopts = ["-lgcc"],
+    features = ["-coverage"],
     deps = [
+        "//sw/device/coverage:printer",
         "//sw/device/lib/base:crc32",
         "//sw/device/lib/base:memory",
         "//sw/device/lib/runtime:log",
         "//sw/device/lib/runtime:print",
-        "//third_party/llvm_compiler_rt",
     ],
 )
 
@@ -85,6 +85,7 @@ ld_library(
     includes = ["ottf_common.ld"],
     deps = [
         "//sw/device:info_sections",
+        "//sw/device/coverage:llvm_prf_cnts",
         "//sw/device/silicon_creator/lib/base:static_critical_sections",
     ],
 )
@@ -251,12 +252,13 @@ cc_library(
     target_compatible_with = [OPENTITAN_CPU],
     deps = [
         ":check",
-        ":coverage",
         ":freertos_port",
         ":ottf_console",
         ":ottf_start",
         ":ottf_test_config",
         ":status",
+        "//sw/device/coverage:ottf_runtime",
+        "//sw/device/coverage:runtime_api",
         "//sw/device/lib/arch:device",
         "//sw/device/lib/base:macros",
         "//sw/device/lib/base:mmio",

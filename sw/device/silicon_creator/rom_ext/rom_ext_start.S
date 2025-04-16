@@ -158,6 +158,10 @@ _rom_ext_start_boot:
   la   a1, _bss_end
   call crt_section_clear
 
+#ifdef OT_COVERAGE_BUILD
+  call coverage_init
+#endif
+
   // Re-clobber all of the temporary registers.
   li t0, 0x0
   li t1, 0x0

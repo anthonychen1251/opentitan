@@ -31,16 +31,36 @@ def obj_transform(ctx, **kwargs):
     src = get_override(ctx, "attr.src", kwargs)
     out_format = get_override(ctx, "attr.format", kwargs)
 
-    ctx.actions.run(
+    ctx.actions.run_shell(
         outputs = [output],
-        inputs = [src] + cc_toolchain.all_files.to_list(),
-        arguments = [
-            "--output-target",
-            out_format,
-            src.path,
-            output.path,
-        ],
-        executable = cc_toolchain.objcopy_executable,
+        inputs = [src, ctx.file._util_check_all_zeros] + cc_toolchain.all_files.to_list(),
+        command = """
+            set -euo pipefail
+
+            # Check if prf_cnts is all zeros, so we can put it in bss.
+            PRF_CNTS="$(mktemp prf_cnts_XXXXXX)"
+            {objcopy} \
+                --output-target {out_format} \
+                --only-section __llvm_prf_cnts \
+                {src_path} \
+                "$PRF_CNTS"
+            {_util_check_all_zeros} "$PRF_CNTS"
+
+            # Flatten the firmware
+            {objcopy} \
+                --output-target {out_format} \
+                --remove-section __llvm_prf_cnts \
+                --remove-section __llvm_prf_data \
+                --remove-section __llvm_prf_names \
+                {src_path} \
+                {output_path}
+        """.format(
+            objcopy = cc_toolchain.objcopy_executable,
+            out_format = out_format,
+            src_path = src.path,
+            output_path = output.path,
+            _util_check_all_zeros = ctx.file._util_check_all_zeros.path,
+        ),
     )
     return output
 

@@ -55,7 +55,7 @@ def ot_binary(ctx, **kwargs):
         includes: Include directories to pass to the compiler.
         deps: Dependencies for this binary.
         linker_script: Linker script for this binary.
-        linkopts: Linker options for this binary.
+        linkopts: Extra linker options for this binary.
     Returns:
       (elf_file, map_file) File objects.
     """
@@ -104,10 +104,13 @@ def ot_binary(ctx, **kwargs):
         linking_contexts.append(linker_script[CcInfo].linking_context)
     mapfile = kwargs.get("mapfile", "{}.map".format(name))
     mapfile = ctx.actions.declare_file(mapfile)
+
+    extra_linkopts = (ctx.attr.linkopts or []) + kwargs.get("linkopts", [])
+
     linkopts = [
         "-Wl,-Map={}".format(mapfile.path),
         "-nostdlib",
-    ] + _expand(ctx, "linkopts", get_override(ctx, "attr.linkopts", kwargs))
+    ] + _expand(ctx, "linkopts", extra_linkopts)
 
     lout = cc_common.link(
         name = name + ".elf",
@@ -162,7 +165,7 @@ def _binary_name(ctx, exec_env):
         exec_env = exec_env.exec_env,
     )
 
-def _build_binary(ctx, exec_env, name, deps, kind):
+def _build_binary(ctx, exec_env, name, deps, kind, linkopts = []):
     """Build a binary, sign and perform output file transformations.
 
     This function is the core of the `opentitan_binary` and `opentitan_test`
@@ -183,6 +186,7 @@ def _build_binary(ctx, exec_env, name, deps, kind):
         name = name,
         deps = deps,
         linker_script = linker_script,
+        linkopts = linkopts,
     )
     binary = obj_transform(
         ctx,
@@ -237,17 +241,26 @@ def _opentitan_binary(ctx):
     providers = []
     default_info = []
     groups = {}
+    runfiles = ctx.runfiles()
+    seen = {}
     for exec_env_target in ctx.attr.exec_env:
         exec_env = exec_env_target[ExecEnvInfo]
+        if exec_env in seen:
+            continue
+        seen[exec_env] = None
         name = _binary_name(ctx, exec_env)
         deps = ctx.attr.deps + exec_env.libs
+        for dep in deps:
+            runfiles = runfiles.merge(dep[DefaultInfo].default_runfiles)
 
         kind = ctx.attr.kind
         provides, signed = _build_binary(ctx, exec_env, name, deps, kind)
         providers.append(exec_env.provider(kind = kind, **provides))
         default_info.append(provides["default"])
-        default_info.append(provides["elf"])
-        default_info.append(provides["disassembly"])
+        runfiles = runfiles.merge(ctx.runfiles(files = [
+            provides["elf"],
+            provides["disassembly"],
+        ]))
 
         # FIXME(cfrantz): logs are a special case and get added into
         # the DefaultInfo provider.
@@ -267,7 +280,7 @@ def _opentitan_binary(ctx):
         groups.update(_as_group_info(exec_env.exec_env, signed))
         groups.update(_as_group_info(exec_env.exec_env, provides))
 
-    providers.append(DefaultInfo(files = depset(default_info)))
+    providers.append(DefaultInfo(files = depset(default_info), runfiles = runfiles))
     providers.append(OutputGroupInfo(**groups))
     return providers
 
@@ -338,6 +351,10 @@ common_binary_attrs = {
         executable = True,
         cfg = "exec",
     ),
+    "_util_check_all_zeros": attr.label(
+        default = "//util:check_all_zeros.py",
+        allow_single_file = True,
+    ),
 }
 
 opentitan_binary = rv_rule(
@@ -375,11 +392,32 @@ _testing_bitstream = transition(
 def _opentitan_test(ctx):
     exec_env = ctx.attr.exec_env[ExecEnvInfo]
 
+    extra_symbols = {
+        "_ottf_addr_delta": 0,
+        "_ottf_size_delta": 0,
+    }
+
+    slot_addresses = dict(exec_env.slot_addresses)
+    slot_addresses.update(ctx.attr.slot_addresses)
+    rom_ext = get_fallback(ctx, "attr.rom_ext", exec_env)
+    if rom_ext != None and InstrumentedFilesInfo in rom_ext:
+        rom_ext_instrumented_delta = int(slot_addresses["rom_ext_instrumented_delta"], 0)
+        extra_symbols["_ottf_addr_delta"] += rom_ext_instrumented_delta
+        extra_symbols["_ottf_size_delta"] += rom_ext_instrumented_delta
+
+    rom = get_fallback(ctx, "attr.rom", exec_env)
+    assemble = ctx.attr.param.get("assemble", exec_env.param.get("assemble", ""))
+    if rom != None and InstrumentedFilesInfo in rom and "slot_b" in assemble:
+        rom_instrumented_delta = int(slot_addresses["rom_instrumented_delta"], 0)
+        extra_symbols["_ottf_size_delta"] += rom_instrumented_delta
+
+    linkopts = ["-Wl,--defsym={}={}".format(key, value) for key, value in extra_symbols.items()]
+
     if ctx.attr.srcs or ctx.attr.deps:
         name = _binary_name(ctx, exec_env)
         deps = ctx.attr.deps + exec_env.libs
         kind = ctx.attr.kind
-        provides, signed = _build_binary(ctx, exec_env, name, deps, kind)
+        provides, signed = _build_binary(ctx, exec_env, name, deps, kind, linkopts = linkopts)
         p = exec_env.provider(**provides)
     else:
         p = None
@@ -458,7 +496,21 @@ opentitan_test = rv_rule(
             allow_single_file = True,
             doc = "OpenOCD adapter configuration override for this test",
         ),
+        "slot_addresses": attr.string_dict(
+            default = {},
+            doc = "Firmware slot addresses to use in this environment",
+        ),
         "_cc_toolchain": attr.label(default = Label("@bazel_tools//tools/cpp:current_cc_toolchain")),
+        "_lcov_merger": attr.label(
+            default = configuration_field(fragment = "coverage", name = "output_generator"),
+            executable = True,
+            cfg = "exec",
+        ),
+        "_collect_cc_coverage": attr.label(
+            default = "//sw/device/coverage/collect_cc_coverage",
+            executable = True,
+            cfg = "exec",
+        ),
     }.items()),
     fragments = ["cpp"],
     toolchains = ["@rules_cc//cc:toolchain_type"],
