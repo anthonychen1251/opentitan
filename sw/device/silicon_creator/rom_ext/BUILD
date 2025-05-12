@@ -229,7 +229,7 @@ manifest(d = {
         ],
         linker_script = ":ld_slot_{}".format(slot),
         manifest = ":manifest",
-        # spx_key = {"//sw/device/silicon_creator/rom/keys/fake/spx:prod_key_0_spx": "prod_key_0"},
+        spx_key = {"//sw/device/silicon_creator/rom/keys/fake/spx:prod_key_0_spx": "prod_key_0"},
         deps = [
             ":rom_ext_{}".format(variation_name),
             "//sw/device/lib/crt",

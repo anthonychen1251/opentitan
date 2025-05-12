@@ -19,8 +19,6 @@ INCLUDE hw/top_earlgrey/sw/autogen/top_earlgrey_memory.ld
 _ottf_start_address = ORIGIN(rom_ext_virtual);
 _ottf_size = LENGTH(rom_ext_virtual);
 
-_ottf_addr_delta = 0;
-
 REGION_ALIAS("ottf_flash", rom_ext_virtual);
 
 INCLUDE sw/device/lib/testing/test_framework/ottf_common.ld

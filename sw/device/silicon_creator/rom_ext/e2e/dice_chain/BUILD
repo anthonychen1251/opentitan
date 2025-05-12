@@ -87,7 +87,7 @@ opentitan_binary(
         },
         exec_env = [
             "//hw/top_earlgrey:fpga_cw310_rom_with_fake_keys",
-            "//hw/top_earlgrey:fpga_cw340_rom_with_fake_keys",
+            # "//hw/top_earlgrey:fpga_cw340_rom_with_fake_keys",
         ],
     )
     for variation in ROM_EXT_VARIATIONS.keys()

@@ -343,7 +343,7 @@ _NORMAL_DEPENDENCIES = {
             "num-bigint-dig": "@crate_index__num-bigint-dig-0.8.4//:num_bigint_dig",
             "num-traits": "@crate_index__num-traits-0.2.17//:num_traits",
             "num_enum": "@crate_index__num_enum-0.7.0//:num_enum",
-            "object": "@crate_index__object-0.32.1//:object",
+            "object": "@crate_index__object-0.32.2//:object",
             "once_cell": "@crate_index__once_cell-1.18.0//:once_cell",
             "openssl": "@crate_index__openssl-0.10.64//:openssl",
             "openssl-sys": "@crate_index__openssl-sys-0.9.102//:openssl_sys",
@@ -1177,6 +1177,16 @@ def crate_repositories():
         urls = ["https://static.crates.io/crates/deranged/0.3.8/download"],
         strip_prefix = "deranged-0.3.8",
         build_file = Label("@lowrisc_opentitan//third_party/rust/crates:BUILD.deranged-0.3.8.bazel"),
+    )
+
+    maybe(
+        http_archive,
+        name = "crate_index__derive_more-0.99.20",
+        sha256 = "6edb4b64a43d977b8e99788fe3a04d483834fba1215a7e02caa415b626497f7f",
+        type = "tar.gz",
+        urls = ["https://static.crates.io/crates/derive_more/0.99.20/download"],
+        strip_prefix = "derive_more-0.99.20",
+        build_file = Label("@lowrisc_opentitan//third_party/rust/crates:BUILD.derive_more-0.99.20.bazel"),
     )
 
     maybe(
@@ -2383,12 +2393,12 @@ def crate_repositories():
 
     maybe(
         http_archive,
-        name = "crate_index__object-0.32.1",
-        sha256 = "9cf5f9dd3933bd50a9e1f149ec995f39ae2c496d31fd772c1fd45ebc27e902b0",
+        name = "crate_index__object-0.32.2",
+        sha256 = "a6a622008b6e321afc04970976f62ee297fdbaa6f95318ca343e3eebb9648441",
         type = "tar.gz",
-        urls = ["https://static.crates.io/crates/object/0.32.1/download"],
-        strip_prefix = "object-0.32.1",
-        build_file = Label("@lowrisc_opentitan//third_party/rust/crates:BUILD.object-0.32.1.bazel"),
+        urls = ["https://static.crates.io/crates/object/0.32.2/download"],
+        strip_prefix = "object-0.32.2",
+        build_file = Label("@lowrisc_opentitan//third_party/rust/crates:BUILD.object-0.32.2.bazel"),
     )
 
     maybe(
@@ -3053,12 +3063,12 @@ def crate_repositories():
 
     maybe(
         http_archive,
-        name = "crate_index__ruzstd-0.4.0",
-        sha256 = "ac3ffab8f9715a0d455df4bbb9d21e91135aab3cd3ca187af0cd0c3c3f868fdc",
+        name = "crate_index__ruzstd-0.5.0",
+        sha256 = "58c4eb8a81997cf040a091d1f7e1938aeab6749d3a0dfa73af43cdc32393483d",
         type = "tar.gz",
-        urls = ["https://static.crates.io/crates/ruzstd/0.4.0/download"],
-        strip_prefix = "ruzstd-0.4.0",
-        build_file = Label("@lowrisc_opentitan//third_party/rust/crates:BUILD.ruzstd-0.4.0.bazel"),
+        urls = ["https://static.crates.io/crates/ruzstd/0.5.0/download"],
+        strip_prefix = "ruzstd-0.5.0",
+        build_file = Label("@lowrisc_opentitan//third_party/rust/crates:BUILD.ruzstd-0.5.0.bazel"),
     )
 
     maybe(
@@ -3529,26 +3539,6 @@ def crate_repositories():
         urls = ["https://static.crates.io/crates/thiserror/1.0.49/download"],
         strip_prefix = "thiserror-1.0.49",
         build_file = Label("@lowrisc_opentitan//third_party/rust/crates:BUILD.thiserror-1.0.49.bazel"),
-    )
-
-    maybe(
-        http_archive,
-        name = "crate_index__thiserror-core-1.0.38",
-        sha256 = "0d97345f6437bb2004cd58819d8a9ef8e36cdd7661c2abc4bbde0a7c40d9f497",
-        type = "tar.gz",
-        urls = ["https://static.crates.io/crates/thiserror-core/1.0.38/download"],
-        strip_prefix = "thiserror-core-1.0.38",
-        build_file = Label("@lowrisc_opentitan//third_party/rust/crates:BUILD.thiserror-core-1.0.38.bazel"),
-    )
-
-    maybe(
-        http_archive,
-        name = "crate_index__thiserror-core-impl-1.0.38",
-        sha256 = "10ac1c5050e43014d16b2f94d0d2ce79e65ffdd8b38d8048f9c8f6a8a6da62ac",
-        type = "tar.gz",
-        urls = ["https://static.crates.io/crates/thiserror-core-impl/1.0.38/download"],
-        strip_prefix = "thiserror-core-impl-1.0.38",
-        build_file = Label("@lowrisc_opentitan//third_party/rust/crates:BUILD.thiserror-core-impl-1.0.38.bazel"),
     )
 
     maybe(

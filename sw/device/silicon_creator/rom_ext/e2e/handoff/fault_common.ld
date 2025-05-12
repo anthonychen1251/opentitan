@@ -23,12 +23,6 @@ __DYNAMIC = 0;
  */
 ENTRY(_start_boot)
 
-/**
- * Shift the firmware address space if requested by --defsym.
- */
-_ottf_addr_delta = DEFINED(_ottf_addr_delta) ? _ottf_addr_delta : 0;
-_slot_start_address += _ottf_addr_delta;
-
 /* DV Log offset (has to be different to other boot stages). */
 _dv_log_offset = 0x20000;
 

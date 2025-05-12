@@ -32,9 +32,10 @@ use zerocopy::AsBytes;
 
 const BUILD_ID_SIZE: usize = 20;
 const PRF_MAGIC: u64 = 0xff6c70726f665281;
+const OTC_MAGIC: u64 = 0x7265766f43544f81; // File magic: \x81OTCover
 const PRF_VERSION: u64 = 8;
 const PRF_DATA_ENTRY_SIZE: u64 = 40;
-const PRF_CNTS_ENTRY_SIZE: u64 = 8;
+const VARIANT_MASK_BYTE_COVERAGE: u64 = (0x1 << 60);
 
 macro_rules! debug_log {
     ($($arg:tt)*) => {
@@ -86,6 +87,7 @@ struct ProfileData {
     elf: PathBuf,
     file_name: String,
     header: ProfileHeader,
+    cnts_size: u64,
     data: Vec<u8>,
     names: Vec<u8>,
 }
@@ -118,27 +120,24 @@ fn process_elf(path: &PathBuf) -> Result<ProfileData> {
         bail!("Invalid __llvm_prf_data section size");
     }
 
-    if prf_cnts.size() % PRF_CNTS_ENTRY_SIZE != 0 {
-        bail!("Invalid __llvm_prf_cnts section size");
-    }
-
     Ok(ProfileData {
         build_id: build_id,
         elf: path.clone(),
         file_name,
         header: ProfileHeader {
             Magic: PRF_MAGIC,
-            Version: PRF_VERSION,
+            Version: 0, // The field will be set later.
             BinaryIdsSize: 0,
             NumData: prf_data.size() / PRF_DATA_ENTRY_SIZE,
             PaddingBytesBeforeCounters: 0,
-            NumCounters: prf_cnts.size() / PRF_CNTS_ENTRY_SIZE,
+            NumCounters: 0, // The field will be set later.
             PaddingBytesAfterCounters: 0,
             NamesSize: prf_names.size(),
             CountersDelta: prf_cnts.address().wrapping_sub(prf_data.address()) as u32 as u64,
             NamesDelta: prf_names.address() as u32 as u64,
             ValueKindLast: 1,
         },
+        cnts_size: prf_cnts.size(),
         data: prf_data.data()?.to_vec(),
         names: prf_names.data()?.to_vec(),
     })
@@ -152,7 +151,8 @@ fn decompress(path: &PathBuf) -> Result<ProfileCounter> {
 
     let mut byte = [0u8; 1];
     while f.read_exact(&mut byte).is_ok() {
-        if byte[0] == 0 {
+        if byte[0] == 0 || byte[0] == 0xff {
+            let tag = byte[0];
             // Compressed padding.
             f.read_exact(&mut byte)?; // Read the padding marker/size.
 
@@ -171,7 +171,7 @@ fn decompress(path: &PathBuf) -> Result<ProfileCounter> {
                 // Any other value is the padding length itself.
                 _ => byte[0] as usize,
             };
-            cnts.resize(cnts.len() + pad, 0u8);
+            cnts.resize(cnts.len() + pad, tag);
         } else {
             // Regular data byte.
             cnts.push(byte[0]);
@@ -193,14 +193,25 @@ fn decompress(path: &PathBuf) -> Result<ProfileCounter> {
 fn process_profraw(path: &PathBuf, profile_map: &HashMap<String, ProfileData>) -> Result<()> {
     let ProfileCounter { build_id, cnts } = decompress(path)?;
 
-    if cnts.len() > 8 {
-        let magic = u64::from_le_bytes((&cnts[..8]).try_into()?);
-        if magic == PRF_MAGIC {
-            // Full profraw, save it directly.
-            std::fs::write(path, cnts)?;
-            return Ok(());
-        }
+    if cnts.len() < 8 {
+        bail!("Input profraw file is too short.");
     }
+
+    let (magic, cnts) = cnts.split_at(8);
+    let magic = u64::from_le_bytes(magic.try_into()?);
+    if magic == PRF_MAGIC {
+        // Full profraw, save it directly.
+        std::fs::write(path, cnts)?;
+        return Ok(());
+    }
+
+    if magic != OTC_MAGIC {
+        bail!("Unknown profraw file magic bytes.");
+    }
+
+    let (version, cnts) = cnts.split_at(8);
+    let version = u64::from_le_bytes(version.try_into()?);
+    let cnts_width = if (version & VARIANT_MASK_BYTE_COVERAGE != 0) {1} else {8};
 
     // Counters only, try to correlate with elf data.
     let profile = match profile_map.get(&build_id) {
@@ -216,20 +227,26 @@ fn process_profraw(path: &PathBuf, profile_map: &HashMap<String, ProfileData>) -
     };
     eprintln!("Profile matched {build_id} -> {:?}", profile.file_name);
     debug_log!("{:?}", profile.elf);
-    debug_log!("{:#?}", profile.header);
 
-    if profile.header.NumCounters * PRF_CNTS_ENTRY_SIZE != cnts.len() as u64 {
+    if profile.cnts_size != cnts.len() as u64 {
         bail!("cnts size mismatched");
     }
 
-    assert_eq!(
-        profile.data.len() as u64,
-        profile.header.NumData * PRF_DATA_ENTRY_SIZE
-    );
-    assert_eq!(profile.names.len() as u64, profile.header.NamesSize);
+    if cnts.len() % cnts_width != 0 {
+        bail!("Invalid __llvm_prf_cnts section size");
+    }
+
+    let header = ProfileHeader{
+        Version: version,
+        NumCounters: (cnts.len() / cnts_width) as u64,
+        ..profile.header
+    };
+    debug_log!("{:#?}", header);
+    assert_eq!(profile.data.len() as u64, header.NumData * PRF_DATA_ENTRY_SIZE);
+    assert_eq!(profile.names.len() as u64, header.NamesSize);
 
     let mut f = std::fs::File::create(path)?;
-    f.write_all(profile.header.as_bytes())?;
+    f.write_all(header.as_bytes())?;
     f.write_all(&profile.data)?;
     f.write_all(&cnts)?;
     f.write_all(&profile.names)?;

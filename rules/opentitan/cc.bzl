@@ -253,8 +253,13 @@ def _opentitan_binary(ctx):
         for dep in deps:
             runfiles = runfiles.merge(dep[DefaultInfo].default_runfiles)
 
+        slot_addresses = dict(exec_env.slot_addresses)
+        slot_addresses.update(ctx.attr.slot_addresses)
+
+        linkopts = ["-Wl,--defsym=_{}={}".format(key, value) for key, value in slot_addresses.items()]
+
         kind = ctx.attr.kind
-        provides, signed = _build_binary(ctx, exec_env, name, deps, kind)
+        provides, signed = _build_binary(ctx, exec_env, name, deps, kind, linkopts = linkopts)
         providers.append(exec_env.provider(kind = kind, **provides))
         default_info.append(provides["default"])
         runfiles = runfiles.merge(ctx.runfiles(files = [
@@ -351,6 +356,10 @@ common_binary_attrs = {
         executable = True,
         cfg = "exec",
     ),
+    "slot_addresses": attr.string_dict(
+        default = {},
+        doc = "Firmware slot addresses to use in this environment",
+    ),
     "_util_check_all_zeros": attr.label(
         default = "//util:check_all_zeros.py",
         allow_single_file = True,
@@ -392,26 +401,10 @@ _testing_bitstream = transition(
 def _opentitan_test(ctx):
     exec_env = ctx.attr.exec_env[ExecEnvInfo]
 
-    extra_symbols = {
-        "_ottf_addr_delta": 0,
-        "_ottf_size_delta": 0,
-    }
-
     slot_addresses = dict(exec_env.slot_addresses)
     slot_addresses.update(ctx.attr.slot_addresses)
-    rom_ext = get_fallback(ctx, "attr.rom_ext", exec_env)
-    if rom_ext != None and InstrumentedFilesInfo in rom_ext:
-        rom_ext_instrumented_delta = int(slot_addresses["rom_ext_instrumented_delta"], 0)
-        extra_symbols["_ottf_addr_delta"] += rom_ext_instrumented_delta
-        extra_symbols["_ottf_size_delta"] += rom_ext_instrumented_delta
 
-    rom = get_fallback(ctx, "attr.rom", exec_env)
-    assemble = ctx.attr.param.get("assemble", exec_env.param.get("assemble", ""))
-    if rom != None and InstrumentedFilesInfo in rom and "slot_b" in assemble:
-        rom_instrumented_delta = int(slot_addresses["rom_instrumented_delta"], 0)
-        extra_symbols["_ottf_size_delta"] += rom_instrumented_delta
-
-    linkopts = ["-Wl,--defsym={}={}".format(key, value) for key, value in extra_symbols.items()]
+    linkopts = ["-Wl,--defsym=_{}={}".format(key, value) for key, value in slot_addresses.items()]
 
     if ctx.attr.srcs or ctx.attr.deps:
         name = _binary_name(ctx, exec_env)
@@ -496,10 +489,6 @@ opentitan_test = rv_rule(
             allow_single_file = True,
             doc = "OpenOCD adapter configuration override for this test",
         ),
-        "slot_addresses": attr.string_dict(
-            default = {},
-            doc = "Firmware slot addresses to use in this environment",
-        ),
         "_cc_toolchain": attr.label(default = Label("@bazel_tools//tools/cpp:current_cc_toolchain")),
         "_lcov_merger": attr.label(
             default = configuration_field(fragment = "coverage", name = "output_generator"),
@@ -522,8 +511,9 @@ def _opentitan_binary_assemble_impl(ctx):
     result = []
     tc = ctx.toolchains[LOCALTOOLS_TOOLCHAIN]
     for env in ctx.attr.exec_env:
-        exec_env_name = env[ExecEnvInfo].exec_env
-        exec_env_provider = env[ExecEnvInfo].provider
+        exec_env = env[ExecEnvInfo]
+        exec_env_name = exec_env.exec_env
+        exec_env_provider = exec_env.provider
         name = "{}_{}".format(ctx.attr.name, exec_env_name)
         spec = []
         input_bins = []
@@ -532,6 +522,14 @@ def _opentitan_binary_assemble_impl(ctx):
                 fail("Only flash binaries can be assembled.")
             input_bins.append(binary[exec_env_provider].default)
             spec.append("{}@{}".format(binary[exec_env_provider].default.path, offset))
+
+        action_param = {}
+        action_param.update(exec_env.slot_addresses)
+        spec = ' '.join(spec)
+        for _ in range(10):
+          spec = spec.format(**action_param)
+        spec = spec.split(' ')
+
         img = assemble_for_test(ctx, name, spec, input_bins, tc.tools.opentitantool)
         result.append(exec_env_provider(default = img, kind = "flash"))
         assembled_bins.append(img)

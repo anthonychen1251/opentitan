@@ -25,14 +25,6 @@ __DYNAMIC = 0;
 ENTRY(_ottf_start);
 
 /**
- * Shift the firmware address space if requested by --defsym.
- */
-_ottf_addr_delta = DEFINED(_ottf_addr_delta) ? _ottf_addr_delta : 0;
-_ottf_size_delta = DEFINED(_ottf_size_delta) ? _ottf_size_delta : 0;
-_ottf_start_address += _ottf_addr_delta;
-_ottf_size -= _ottf_size_delta;
-
-/**
  * DV Log offset.
  * TODO: this will need to be different depending on the boot stage the OTTF is
  * launched at. See lowrisc/opentitan:#10712.

@@ -11,11 +11,11 @@ load("@rules_rust//rust:defs.bzl", "rust_library")
 package(default_visibility = ["//visibility:public"])
 
 # licenses([
-#     "TODO",  # Apache-2.0 OR MIT
+#     "TODO",  # MIT
 # ])
 
 rust_library(
-    name = "object",
+    name = "ruzstd",
     srcs = glob(["**/*.rs"]),
     compile_data = glob(
         include = ["**"],
@@ -29,25 +29,18 @@ rust_library(
         ],
     ),
     crate_features = [
-        "archive",
-        "coff",
-        "compression",
         "default",
-        "elf",
-        "macho",
-        "pe",
-        "read",
-        "read_core",
         "std",
-        "unaligned",
-        "xcoff",
     ],
     crate_root = "src/lib.rs",
     edition = "2018",
+    proc_macro_deps = [
+        "@crate_index__derive_more-0.99.20//:derive_more",
+    ],
     rustc_flags = ["--cap-lints=allow"],
     tags = [
         "cargo-bazel",
-        "crate-name=object",
+        "crate-name=ruzstd",
         "manual",
         "noclippy",
         "norustfmt",
@@ -86,10 +79,9 @@ rust_library(
         "@rules_rust//rust/platform:x86_64-unknown-none": [],
         "//conditions:default": ["@platforms//:incompatible"],
     }),
-    version = "0.32.1",
+    version = "0.5.0",
     deps = [
-        "@crate_index__flate2-1.0.28//:flate2",
-        "@crate_index__memchr-2.6.4//:memchr",
-        "@crate_index__ruzstd-0.4.0//:ruzstd",
+        "@crate_index__byteorder-1.5.0//:byteorder",
+        "@crate_index__twox-hash-1.6.3//:twox_hash",
     ],
 )

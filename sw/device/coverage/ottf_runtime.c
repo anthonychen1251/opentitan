@@ -15,13 +15,14 @@ extern char __llvm_prf_data_start[];
 extern char __llvm_prf_data_end[];
 extern char __llvm_prf_names_start[];
 extern char __llvm_prf_names_end[];
+extern uint64_t __llvm_profile_raw_version;
 extern char _bss_start[];
 extern char _bss_end[];
 extern char _build_id_start[];
 extern char _build_id_end[];
 
 void coverage_init(void) {
-  LOG_INFO("COVERAGE:UTTF");
+  base_printf("COVERAGE:OTTF\r\n");
 
   coverage_printer_init();
 }
@@ -30,6 +31,7 @@ void coverage_init(void) {
  * Sends the given buffer as a hex string over dif console.
  */
 void coverage_report(void) {
+  LOG_INFO("version: %08x%08x", (uint32_t)(__llvm_profile_raw_version>>32), (uint32_t)__llvm_profile_raw_version);
   LOG_INFO("cnts: %08x - %08x", __llvm_prf_cnts_start, __llvm_prf_cnts_end);
   LOG_INFO("size: %u",
            (uint32_t)__llvm_prf_cnts_end - (uint32_t)__llvm_prf_cnts_start);

@@ -407,11 +407,7 @@ def common_test_setup(ctx, exec_env, firmware):
     # Update actual slot addresses
     slot_addresses = dict(exec_env.slot_addresses)
     slot_addresses.update(ctx.attr.slot_addresses)
-    if rom_ext != None and InstrumentedFilesInfo in rom_ext:
-        delta = int(slot_addresses["rom_ext_instrumented_delta"], 0)
-        for key, value in slot_addresses.items():
-            if key.startswith("owner_"):
-                slot_addresses[key] = str(int(value, 0) + delta)
     action_param.update(slot_addresses)
+    param.update(slot_addresses)
 
     return test_harness, data_labels, data_files, param, action_param

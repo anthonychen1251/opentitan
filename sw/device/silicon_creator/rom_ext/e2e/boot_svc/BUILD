@@ -66,7 +66,7 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
     },
     fpga = fpga_params(
-        assemble = "{rom_ext}@0 {firmware}@0x10000 {firmware}@0x90000",
+        assemble = "{rom_ext}@{rom_ext_slot_a} {firmware}@{owner_slot_a} {firmware}@{owner_slot_b}",
         exit_failure = "BFV|PASS|FAIL",
         exit_success = "mode: RESQ\r\n",
     ),

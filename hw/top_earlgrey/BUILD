@@ -73,14 +73,24 @@ CLEAR_MANIFEST = manifest(d = {
     "name": "none_manifest",
 })
 
-EARLGREY_SLOTS = {
+EARLGREY_SLOTS_NORMAL = {
     "rom_ext_slot_a": "0x0",
     "rom_ext_slot_b": "0x80000",
     "owner_slot_a": "0x10000",
     "owner_slot_b": "0x90000",
-    "rom_instrumented_delta": "0x20000",
-    "rom_ext_instrumented_delta": "0x30000",
+    "rom_ext_size": "0x10000",
 }
+EARLGREY_SLOTS_COVERAGE = {
+    "rom_ext_slot_a": "0x0",
+    "rom_ext_slot_b": "0x80000",
+    "owner_slot_a": "0x40000",
+    "owner_slot_b": "0xc0000",
+    "rom_ext_size": "0x40000",
+}
+EARLGREY_SLOTS = select({
+    "//sw/device:measure_coverage_on_target": EARLGREY_SLOTS_COVERAGE,
+    "//conditions:default": EARLGREY_SLOTS_NORMAL,
+})
 
 ###########################################################################
 # FPGA CW310 Environments

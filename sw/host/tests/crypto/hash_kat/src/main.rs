@@ -172,8 +172,12 @@ fn test_hash(opts: &Opts, transport: &TransportWrapper) -> Result<()> {
             test_counter += 1;
             log::info!("Test counter: {}", test_counter);
             run_hash_testcase(hash_test, opts, &spi_console_device, &mut fail_counter)?;
+            break;
         }
+        break;
     }
+    CryptotestCommand::Quit.send(&spi_console_device)?;
+    let _ = UartConsole::wait_for(&spi_console_device, r"PASS!", opts.timeout * 10)?;
     assert_eq!(
         0, fail_counter,
         "Failed {} out of {} tests.",

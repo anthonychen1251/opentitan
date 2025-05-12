@@ -324,6 +324,7 @@ dual_cc_library(
             "//sw/device/lib/runtime:irq",
             "//sw/device/lib/testing:spi_device_testutils",
             "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+            "//sw/device/coverage:ottf_runtime",
         ],
         shared = [
             "//sw/device/lib/base:status",

@@ -42,6 +42,7 @@ def obj_transform(ctx, **kwargs):
             {objcopy} \
                 --output-target {out_format} \
                 --only-section __llvm_prf_cnts \
+                --gap-fill 0xa5 \
                 {src_path} \
                 "$PRF_CNTS"
             {_util_check_all_zeros} "$PRF_CNTS"
@@ -55,12 +56,12 @@ def obj_transform(ctx, **kwargs):
                 {src_path} \
                 {output_path}
         """.format(
-            objcopy = cc_toolchain.objcopy_executable,
-            out_format = out_format,
-            src_path = src.path,
-            output_path = output.path,
-            _util_check_all_zeros = ctx.file._util_check_all_zeros.path,
-        ),
+            objcopy=cc_toolchain.objcopy_executable,
+            out_format=out_format,
+            src_path=src.path,
+            output_path=output.path,
+            _util_check_all_zeros=ctx.file._util_check_all_zeros.path,
+        )
     )
     return output
 

@@ -241,8 +241,12 @@ fn test_ecdh(opts: &Opts, transport: &TransportWrapper) -> Result<()> {
                 &mut fail_counter,
                 &mut failures,
             )?;
+            break;
         }
+        break;
     }
+    CryptotestCommand::Quit.send(&spi_console_device)?;
+    let _ = UartConsole::wait_for(&spi_console_device, r"PASS!", opts.timeout * 10)?;
     assert_eq!(
         0, fail_counter,
         "Failed {} out of {} tests. Failed tests: {:?}",

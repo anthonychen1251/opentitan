@@ -20,6 +20,7 @@ def crt_repos(local = None):
             sha256 = "db9a536d01110aad7e5f9ac4b9d008215bf1966df294c3f8b2f16138ac78592d",
             patches = [
                 Label("//third_party/crt:0001-Coverage.patch"),
+                Label("//third_party/crt:0002-toolchain.patch"),
             ],
             patch_args = ["-p1"],
         )

@@ -123,7 +123,9 @@ def _test_dispatch(ctx, exec_env, firmware):
     # assemble the image.  Replace the firmware param with the newly assembled
     # image.
     if "assemble" in param:
-        assemble = param["assemble"].format(**action_param)
+        assemble = param["assemble"]
+        for _ in range(10):
+          assemble = assemble.format(**action_param)
         assemble = ctx.expand_location(assemble, data_labels)
         image = assemble_for_test(
             ctx,

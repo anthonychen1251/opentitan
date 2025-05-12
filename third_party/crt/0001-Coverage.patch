@@ -2,7 +2,7 @@ diff --git a/platforms/riscv32/features/BUILD.bazel b/platforms/riscv32/features
 index 63e62b9..8691ef8 100644
 --- a/platforms/riscv32/features/BUILD.bazel
 +++ b/platforms/riscv32/features/BUILD.bazel
-@@ -136,6 +136,39 @@ feature(
+@@ -136,6 +136,40 @@ feature(
      ],
  )
  
@@ -16,6 +16,7 @@ index 63e62b9..8691ef8 100644
 +                flag_group(
 +                    flags = [
 +                        "-mllvm", "-disable-vp",
++                        "-mllvm", "--enable-single-byte-coverage",
 +                        "-fprofile-instr-generate",
 +                        "-fcoverage-mapping",
 +                        "-DOT_COVERAGE_BUILD=1",

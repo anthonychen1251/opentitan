@@ -6,21 +6,17 @@
 #     bazel run @//third_party/rust:crate_index
 ###############################################################################
 
-load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_library")
 
 package(default_visibility = ["//visibility:public"])
 
 # licenses([
-#     "TODO",  # MIT OR Apache-2.0
+#     "TODO",  # Apache-2.0 OR MIT
 # ])
 
 rust_library(
-    name = "thiserror_core",
+    name = "object",
     srcs = glob(["**/*.rs"]),
-    aliases = {
-        "@crate_index__thiserror-core-impl-1.0.38//:thiserror_core_impl": "thiserror_impl",
-    },
     compile_data = glob(
         include = ["**"],
         exclude = [
@@ -33,17 +29,25 @@ rust_library(
         ],
     ),
     crate_features = [
+        "archive",
+        "coff",
+        "compression",
+        "default",
+        "elf",
+        "macho",
+        "pe",
+        "read",
+        "read_core",
         "std",
+        "unaligned",
+        "xcoff",
     ],
     crate_root = "src/lib.rs",
     edition = "2018",
-    proc_macro_deps = [
-        "@crate_index__thiserror-core-impl-1.0.38//:thiserror_core_impl",
-    ],
     rustc_flags = ["--cap-lints=allow"],
     tags = [
         "cargo-bazel",
-        "crate-name=thiserror-core",
+        "crate-name=object",
         "manual",
         "noclippy",
         "norustfmt",
@@ -82,48 +86,10 @@ rust_library(
         "@rules_rust//rust/platform:x86_64-unknown-none": [],
         "//conditions:default": ["@platforms//:incompatible"],
     }),
-    version = "1.0.38",
+    version = "0.32.2",
     deps = [
-        "@crate_index__thiserror-core-1.0.38//:build_script_build",
+        "@crate_index__flate2-1.0.28//:flate2",
+        "@crate_index__memchr-2.6.4//:memchr",
+        "@crate_index__ruzstd-0.5.0//:ruzstd",
     ],
-)
-
-cargo_build_script(
-    name = "thiserror-core_build_script",
-    srcs = glob(["**/*.rs"]),
-    crate_features = [
-        "std",
-    ],
-    crate_name = "build_script_build",
-    crate_root = "build.rs",
-    data = glob(
-        include = ["**"],
-        exclude = [
-            "**/* *",
-            ".tmp_git_root/**/*",
-            "BUILD",
-            "BUILD.bazel",
-            "WORKSPACE",
-            "WORKSPACE.bazel",
-        ],
-    ),
-    edition = "2018",
-    rustc_flags = [
-        "--cap-lints=allow",
-    ],
-    tags = [
-        "cargo-bazel",
-        "crate-name=thiserror-core",
-        "manual",
-        "noclippy",
-        "norustfmt",
-    ],
-    version = "1.0.38",
-    visibility = ["//visibility:private"],
-)
-
-alias(
-    name = "build_script_build",
-    actual = "thiserror-core_build_script",
-    tags = ["manual"],
 )
