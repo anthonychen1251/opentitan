@@ -193,14 +193,14 @@ sram_start:
   li a0, 0  // Do not run in verbose mode.
   call ast_program_config
 
-#ifdef OT_COVERAGE_BUILD
+#ifdef OT_COVERAGE_INSTRUMENTED
   call coverage_init
 #endif
 
   // Jump into the C program entry point.
   call test_main
 
-#ifdef OT_COVERAGE_BUILD
+#ifdef OT_COVERAGE_INSTRUMENTED
   call coverage_report
 #endif
 

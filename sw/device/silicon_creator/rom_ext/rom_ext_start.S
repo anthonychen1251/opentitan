@@ -158,7 +158,7 @@ _rom_ext_start_boot:
   la   a1, _bss_end
   call crt_section_clear
 
-#ifdef OT_COVERAGE_BUILD
+#ifdef OT_COVERAGE_INSTRUMENTED
   call coverage_init
 #endif
 

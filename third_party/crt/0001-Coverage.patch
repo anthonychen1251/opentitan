@@ -19,7 +19,7 @@ index 63e62b9..8691ef8 100644
 +                        "-mllvm", "--enable-single-byte-coverage",
 +                        "-fprofile-instr-generate",
 +                        "-fcoverage-mapping",
-+                        "-DOT_COVERAGE_BUILD=1",
++                        "-DOT_COVERAGE_INSTRUMENTED=1",
 +                    ],
 +                ),
 +            ],
@@ -31,7 +31,7 @@ index 63e62b9..8691ef8 100644
 +                    flags = [
 +                        "-fprofile-instr-generate",
 +                        "-fcoverage-mapping",
-+                        "-Wl,--defsym=_ot_coverage_build=1",
++                        "-Wl,--defsym=_ot_coverage_instrumented=1",
 +                        "-Wl,--build-id=sha1",
 +                    ],
 +                ),
