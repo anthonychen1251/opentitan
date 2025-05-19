@@ -132,3 +132,16 @@ index 0000000..67239b3
 +    "${ARGS[@]}" \
 +    "$@"\
 +    "${POSTARGS[@]}"
+diff --git a/toolchains/lowrisc_rv32imcb/wrappers/BUILD b/toolchains/lowrisc_rv32imcb/wrappers/BUILD
+index 7121e88..1603e79 100644
+--- a/toolchains/lowrisc_rv32imcb/wrappers/BUILD
++++ b/toolchains/lowrisc_rv32imcb/wrappers/BUILD
+@@ -11,6 +11,8 @@ filegroup(
+         "gcc",
+         "gcov",
+         "ld",
++        "llvm-cov",
++        "llvm-profdata",
+         "nm",
+         "objcopy",
+         "objdump",

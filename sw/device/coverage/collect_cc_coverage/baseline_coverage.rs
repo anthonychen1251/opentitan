@@ -39,9 +39,9 @@ const VARIANT_MASK_BYTE_COVERAGE: u64 = (0x1 << 60);
 
 macro_rules! debug_log {
     ($($arg:tt)*) => {
-        if env::var("VERBOSE_COVERAGE").is_ok() {
+        // if env::var("VERBOSE_COVERAGE").is_ok() {
             eprintln!($($arg)*);
-        }
+        // }
     };
 }
 
@@ -261,6 +261,37 @@ fn process_profraw(path: &PathBuf, profile_map: &HashMap<String, ProfileData>) -
     Ok(())
 }
 
+fn baseline_profraw(profile: &ProfileData, output_path: &PathBuf) -> Result<()> {
+    let version = PRF_VERSION | VARIANT_MASK_BYTE_COVERAGE;
+    let cnts_width = 1;
+
+    let cnts = vec![0x00; profile.cnts_size as usize];
+
+    let header = ProfileHeader{
+        Version: version,
+        NumCounters: (cnts.len() / cnts_width) as u64,
+        ..profile.header
+    };
+    debug_log!("{:#?}", header);
+    assert_eq!(profile.data.len() as u64, header.NumData * PRF_DATA_ENTRY_SIZE);
+    assert_eq!(profile.names.len() as u64, header.NamesSize);
+
+    let mut f = std::fs::File::create(output_path)?;
+    f.write_all(header.as_bytes())?;
+    f.write_all(&profile.data)?;
+    f.write_all(&cnts)?;
+    f.write_all(&profile.names)?;
+
+    let size = f.seek(std::io::SeekFrom::Current(0))?;
+    if size % 8 != 0 {
+        let buf = [0; 8];
+        let pad: usize = (8 - (size % 8)) as usize;
+        f.write_all(&buf[..pad])?;
+    }
+
+    Ok(())
+}
+
 fn merge_profraw(profraw_files: &Vec<PathBuf>, profdata_file: &PathBuf) {
     let llvm_profdata = &env::var("LLVM_PROFDATA").unwrap();
     debug_log!("llvm_profdata: {llvm_profdata}");
@@ -329,6 +360,19 @@ fn convert_to_lcov(profdata_file: &PathBuf, objects: &Vec<String>, coverage_outp
     fs::remove_file(profdata_file).unwrap();
 }
 
+fn baseline_coverage(profile: &ProfileData, objects: &Vec<String>) -> Result<()> {
+    let coverage_dir = PathBuf::from(env::var("COVERAGE_DIR").unwrap());
+    let coverage_output_file = coverage_dir.join("coverage.dat");
+    let profdata_file = coverage_dir.join("coverage.profdata");
+    let profraw_file = coverage_dir.join("coverage.profraw");
+    let profraw_files = vec![profraw_file.clone();1];
+    baseline_profraw(&profile, &profraw_file)?;
+    merge_profraw(&profraw_files, &profdata_file);
+    convert_to_lcov(&profdata_file, &objects, &coverage_output_file);
+    fs::remove_file(&profraw_file).unwrap();
+    Ok(())
+}
+
 fn collect_objects() -> Vec<String> {
     let coverage_manifest = PathBuf::from(env::var("COVERAGE_MANIFEST").unwrap());
 
@@ -349,62 +393,21 @@ fn collect_objects() -> Vec<String> {
 
 fn main() -> Result<()> {
     let coverage_dir = PathBuf::from(env::var("COVERAGE_DIR").unwrap());
-    let execroot = PathBuf::from(env::var("ROOT").unwrap());
-    let mut runfiles_dir = PathBuf::from(env::var("RUNFILES_DIR").unwrap());
 
-    if !runfiles_dir.is_absolute() {
-        runfiles_dir = execroot.join(runfiles_dir);
-    }
-
-    debug_log!("ROOT: {}", execroot.display());
-    debug_log!("RUNFILES_DIR: {}", runfiles_dir.display());
-
-    let coverage_output_file = coverage_dir.join("coverage.dat");
-    let profdata_file = coverage_dir.join("coverage.profdata");
-
-
-    let profraw_files = search_by_extension(&coverage_dir, "profraw");
-    debug_log!("profraw_files: {:?}", profraw_files);
-
-    // Collect all elf files in the runfiles.
-    let runfiles_manifest = runfiles_dir.join("MANIFEST");
-    let elf_files: Vec<PathBuf> = fs::read_to_string(&runfiles_manifest)
-        .unwrap()
-        .lines()
-        .filter_map(|path| {
-            let pair = path
-                .split_once(' ')
-                .expect("manifest file contained unexpected content");
-            if pair.0.ends_with(".elf") {
-                Some(PathBuf::from(pair.1))
-            } else {
-                None
-            }
-        })
-        .collect();
-    debug_log!("elf_files: {:?}", elf_files);
+    // Get the elf file to be tested.
+    let elf = coverage_dir.join("elf");
+    debug_log!("elf: {elf:?}");
 
     let objects = collect_objects();
 
     // Index elf profile data with build id.
-    let mut profile_map = HashMap::new();
-    for path in &elf_files {
-        match process_elf(path) {
-            Ok(elf) => {
-                debug_log!("Loaded {:?} = {}", elf.file_name, elf.build_id);
-                profile_map.insert(elf.build_id.clone(), elf);
-            }
-            Err(err) => eprintln!("Skip {path:?}: {err:?}"),
+    match process_elf(&elf) {
+        Ok(elf) => {
+            debug_log!("Loaded {:?} = {}", elf.file_name, elf.build_id);
+            baseline_coverage(&elf, &objects)?;
         }
-    }
-
-    // Correlate profile data with counters from the device.
-    for path in &profraw_files {
-        process_profraw(path, &profile_map).unwrap();
-    }
-
-    merge_profraw(&profraw_files, &profdata_file);
-    convert_to_lcov(&profdata_file, &objects, &coverage_output_file);
+        Err(err) => eprintln!("Failed to parse {elf:?} for baseline coverage: {err:?}"),
+    };
 
     debug_log!("Success!");
     Ok(())

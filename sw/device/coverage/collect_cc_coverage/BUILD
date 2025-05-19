@@ -17,6 +17,17 @@ rust_binary(
     ],
 )
 
+rust_binary(
+    name = "baseline_coverage",
+    srcs = ["baseline_coverage.rs"],
+    deps = [
+        "@crate_index//:anyhow",
+        "@crate_index//:hex",
+        "@crate_index//:object",
+        "@crate_index//:zerocopy",
+    ],
+)
+
 rust_test(
     name = "collect_cc_coverage_test",
     crate = ":collect_cc_coverage",
