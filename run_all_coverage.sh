@@ -347,9 +347,7 @@ CRYPTO_TESTS=(
 //sw/device/tests/crypto/cryptotest:sha512_kat_fpga_cw310_sival_rom_ext
 //sw/device/tests/crypto/cryptotest:shake128_kat_fpga_cw310_sival_rom_ext
 //sw/device/tests/crypto/cryptotest:shake256_kat_fpga_cw310_sival_rom_ext
-
-# Timeout: SPX
-# //sw/device/tests/crypto/cryptotest:sphincsplus_kat_fpga_cw310_sival_rom_ext
+//sw/device/tests/crypto/cryptotest:sphincsplus_kat_fpga_cw310_sival_rom_ext
 )
 
 CW310_SIVAL_ROMEXT_TESTS=(
@@ -538,28 +536,28 @@ CW310_SIVAL_ROMEXT_TESTS=(
 //sw/device/tests/crypto:sha512_functest_fpga_cw310_sival_rom_ext
 //sw/device/tests/crypto:symmetric_keygen_functest_fpga_cw310_sival_rom_ext
 
+//sw/device/silicon_creator/lib/sigverify/sphincsplus/test:fors_test_fpga_cw310_sival_rom_ext
+//sw/device/silicon_creator/lib/sigverify/sphincsplus/test:mgf1_test_fpga_cw310_sival_rom_ext
+//sw/device/silicon_creator/lib/sigverify/sphincsplus/test:thash_test_fpga_cw310_sival_rom_ext
+//sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_hardcoded_fpga_cw310_sival_rom_ext
+//sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat0_fpga_cw310_sival_rom_ext
+//sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat1_fpga_cw310_sival_rom_ext
+//sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat2_fpga_cw310_sival_rom_ext
+//sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat3_fpga_cw310_sival_rom_ext
+//sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat4_fpga_cw310_sival_rom_ext
+//sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat5_fpga_cw310_sival_rom_ext
+//sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat6_fpga_cw310_sival_rom_ext
+//sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat7_fpga_cw310_sival_rom_ext
+//sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat8_fpga_cw310_sival_rom_ext
+//sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat9_fpga_cw310_sival_rom_ext
+//sw/device/silicon_creator/lib/sigverify/sphincsplus/test:wots_test_fpga_cw310_sival_rom_ext
+//sw/device/silicon_creator/lib/sigverify:spx_verify_functest_fpga_cw310_sival_rom_ext
+//sw/device/silicon_creator/lib/drivers:hmac_functest_fpga_cw310_sival_rom_ext
+
 # CE: OpenOCD
 # //sw/device/tests:crt_test_fpga_cw310_sival_rom_ext
 # //sw/device/tests:rv_core_ibex_isa_test_test_unlocked0_fpga_cw310_sival_rom_ext
 # //sw/device/tests:rv_core_ibex_mem_test_test_unlocked0_fpga_cw310_sival_rom_ext
-
-# ?: SPX
-# //sw/device/silicon_creator/lib/sigverify/sphincsplus/test:fors_test_fpga_cw310_sival_rom_ext
-# //sw/device/silicon_creator/lib/sigverify/sphincsplus/test:mgf1_test_fpga_cw310_sival_rom_ext
-# //sw/device/silicon_creator/lib/sigverify/sphincsplus/test:thash_test_fpga_cw310_sival_rom_ext
-# //sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_hardcoded_fpga_cw310_sival_rom_ext
-# //sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat0_fpga_cw310_sival_rom_ext
-# //sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat1_fpga_cw310_sival_rom_ext
-# //sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat2_fpga_cw310_sival_rom_ext
-# //sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat3_fpga_cw310_sival_rom_ext
-# //sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat4_fpga_cw310_sival_rom_ext
-# //sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat5_fpga_cw310_sival_rom_ext
-# //sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat6_fpga_cw310_sival_rom_ext
-# //sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat7_fpga_cw310_sival_rom_ext
-# //sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat8_fpga_cw310_sival_rom_ext
-# //sw/device/silicon_creator/lib/sigverify/sphincsplus/test:verify_test_kat9_fpga_cw310_sival_rom_ext
-# //sw/device/silicon_creator/lib/sigverify/sphincsplus/test:wots_test_fpga_cw310_sival_rom_ext
-# //sw/device/silicon_creator/lib/sigverify:spx_verify_functest_fpga_cw310_sival_rom_ext
 
 # ?: USBDEV
 # //sw/device/tests:usbdev_config_host_test_fpga_cw310_sival_rom_ext
@@ -583,7 +581,6 @@ CW310_SIVAL_ROMEXT_TESTS=(
 # //sw/device/tests:uart_baud_rate_test_fpga_cw310_sival_rom_ext
 # //sw/device/tests:uart_loopback_test_fpga_cw310_sival_rom_ext
 # //sw/device/tests:uart_parity_break_test_fpga_cw310_sival_rom_ext
-# //sw/device/silicon_creator/lib/drivers:hmac_functest_fpga_cw310_sival_rom_ext
 # //sw/device/tests:sigverify_parallel_test_fpga_cw310_sival_rom_ext
 # //sw/device/tests:csrng_edn_concurrency_test_fpga_cw310_sival_rom_ext
 # //sw/device/tests:example_concurrency_test_fpga_cw310_sival_rom_ext
@@ -797,9 +794,8 @@ HYPER310_ROMEXT_TESTS=(
 //sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_rom_ext_slot_a_update_slot_a_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_rom_ext_slot_b_update_slot_b_fpga_hyper310_rom_ext
 
-# SPX freeze
-# //sw/device/silicon_creator/rom_ext/e2e/verified_boot:key_dev_hybrid_spx_prehashed_fpga_hyper310_rom_ext
-# //sw/device/silicon_creator/rom_ext/e2e/verified_boot:key_prod_hybrid_spx_pure_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/verified_boot:key_dev_hybrid_spx_prehashed_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/verified_boot:key_prod_hybrid_spx_pure_fpga_hyper310_rom_ext
 
 # Report regex
 # //sw/device/silicon_creator/rom_ext/e2e/handoff:epmp_test_fpga_hyper310_rom_ext
