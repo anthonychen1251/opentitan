@@ -797,24 +797,24 @@ HYPER310_ROMEXT_TESTS=(
 //sw/device/silicon_creator/rom_ext/e2e/verified_boot:key_dev_hybrid_spx_prehashed_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/verified_boot:key_prod_hybrid_spx_pure_fpga_hyper310_rom_ext
 
+//sw/device/silicon_creator/rom_ext/e2e/ownership:flash_permission_test_slot_bb_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/ownership:flash_permission_test_slot_aa_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/ownership:flash_permission_test_slot_ab_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/ownership:flash_permission_test_slot_ba_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/ownership:transfer_ecdsa_to_pq_test_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/ownership:transfer_keymgr_test_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/ownership:transfer_pq_to_pq_test_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_firmware_slot_a_spidfu_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_firmware_slot_b_spidfu_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/ownership:newversion_pq_to_pq_update_test_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/ownership:rescue_limit_test_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/ownership:rescue_permission_test_fpga_hyper310_rom_ext
+
 # Report regex
 # //sw/device/silicon_creator/rom_ext/e2e/handoff:epmp_test_fpga_hyper310_rom_ext
 
-# Failed
-# //sw/device/silicon_creator/rom_ext/e2e/ownership:flash_permission_test_slot_bb_fpga_hyper310_rom_ext
-# //sw/device/silicon_creator/rom_ext/e2e/ownership:newversion_pq_to_pq_update_test_fpga_hyper310_rom_ext
-# //sw/device/silicon_creator/rom_ext/e2e/ownership:rescue_limit_test_fpga_hyper310_rom_ext
-# //sw/device/silicon_creator/rom_ext/e2e/ownership:rescue_permission_test_fpga_hyper310_rom_ext
-# //sw/device/silicon_creator/rom_ext/e2e/ownership:transfer_ecdsa_to_pq_test_fpga_hyper310_rom_ext
-# //sw/device/silicon_creator/rom_ext/e2e/ownership:transfer_keymgr_test_fpga_hyper310_rom_ext
-# //sw/device/silicon_creator/rom_ext/e2e/ownership:flash_permission_test_slot_aa_fpga_hyper310_rom_ext
-# //sw/device/silicon_creator/rom_ext/e2e/ownership:flash_permission_test_slot_ab_fpga_hyper310_rom_ext
-# //sw/device/silicon_creator/rom_ext/e2e/ownership:flash_permission_test_slot_ba_fpga_hyper310_rom_ext
-# //sw/device/silicon_creator/rom_ext/e2e/ownership:transfer_pq_to_pq_test_fpga_hyper310_rom_ext
-# //sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_firmware_slot_a_spidfu_fpga_hyper310_rom_ext
-# //sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_firmware_slot_b_spidfu_fpga_hyper310_rom_ext
 
-# Timeout
+# Timeout: the prebuilt protocol 0 uses an incompatible layout. (i.e. 64K boundary)
 # //sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_firmware_protocol_0_fpga_hyper310_rom_ext
 )
 
