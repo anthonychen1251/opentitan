@@ -404,22 +404,22 @@ _FLASH_PERMISSION_TESTS = {
     "aa": {
         "rom_ext_slot": "SlotA",
         "owner_slot": "SlotA",
-        "rom_ext_offset": "0",
+        "rom_ext_offset": "{rom_ext_slot_a}",
     },
     "ab": {
         "rom_ext_slot": "SlotA",
         "owner_slot": "SlotB",
-        "rom_ext_offset": "0",
+        "rom_ext_offset": "{rom_ext_slot_a}",
     },
     "ba": {
         "rom_ext_slot": "SlotB",
         "owner_slot": "SlotA",
-        "rom_ext_offset": "0x80000",
+        "rom_ext_offset": "{rom_ext_slot_b}",
     },
     "bb": {
         "rom_ext_slot": "SlotB",
         "owner_slot": "SlotB",
-        "rom_ext_offset": "0x80000",
+        "rom_ext_offset": "{rom_ext_slot_b}",
     },
 }
 

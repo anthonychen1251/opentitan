@@ -251,6 +251,16 @@ impl HybridPair {
     }
 }
 
+pub const OWNER_FLASH_ROM_EXT_START: u16 = 0;
+#[cfg(not(feature = "ot_coverage_build"))]
+pub const OWNER_FLASH_ROM_EXT_SIZE: u16 = 32;
+#[cfg(feature = "ot_coverage_build")]
+pub const OWNER_FLASH_ROM_EXT_SIZE: u16 = 128;
+pub const OWNER_FLASH_FILE_START: u16 = 224;
+pub const OWNER_FLASH_FILE_SIZE: u16 = 32;
+pub const OWNER_FLASH_OWNER_START: u16 = OWNER_FLASH_ROM_EXT_START + OWNER_FLASH_ROM_EXT_SIZE;
+pub const OWNER_FLASH_OWNER_SIZE: u16 = OWNER_FLASH_FILE_START - OWNER_FLASH_OWNER_START;
+
 /// Prepares an OwnerBlock and sends it to the chip.
 #[allow(clippy::too_many_arguments)]
 pub fn create_owner<F>(
@@ -300,22 +310,22 @@ where
 
             // Side A: 0-64K romext, 64-448K firmware, 448-512K filesystem.
             vec![
-                OwnerFlashRegion::new(0, 32, config.rom_ext()),
-                OwnerFlashRegion::new(32, 192, config.firmware()),
-                OwnerFlashRegion::new(224, 32, config.filesystem()),
+                OwnerFlashRegion::new(OWNER_FLASH_ROM_EXT_START, OWNER_FLASH_ROM_EXT_SIZE, config.rom_ext()),
+                OwnerFlashRegion::new(OWNER_FLASH_OWNER_START, OWNER_FLASH_OWNER_SIZE, config.firmware()),
+                OwnerFlashRegion::new(OWNER_FLASH_FILE_START, OWNER_FLASH_FILE_SIZE, config.filesystem()),
                 // Side B: 0-64K romext, 64-448K firmware, 448-512K filesystem.
-                OwnerFlashRegion::new(256, 32, config.rom_ext()),
-                OwnerFlashRegion::new(256 + 32, 192, config.firmware()),
-                OwnerFlashRegion::new(256 + 224, 32, config.filesystem()),
+                OwnerFlashRegion::new(256 + OWNER_FLASH_ROM_EXT_START, OWNER_FLASH_ROM_EXT_SIZE, config.rom_ext()),
+                OwnerFlashRegion::new(256 + OWNER_FLASH_OWNER_START, OWNER_FLASH_OWNER_SIZE, config.firmware()),
+                OwnerFlashRegion::new(256 + OWNER_FLASH_FILE_START, OWNER_FLASH_FILE_SIZE, config.filesystem()),
             ]
         } else {
             vec![
                 // Side A: 64-448K firmware, 448-512K filesystem.
-                OwnerFlashRegion::new(32, 192, config.firmware()),
-                OwnerFlashRegion::new(224, 32, config.filesystem()),
+                OwnerFlashRegion::new(OWNER_FLASH_OWNER_START, OWNER_FLASH_OWNER_SIZE, config.firmware()),
+                OwnerFlashRegion::new(OWNER_FLASH_FILE_START, OWNER_FLASH_FILE_SIZE, config.filesystem()),
                 // Side B: 64-448K firmware, 448-512K filesystem.
-                OwnerFlashRegion::new(256 + 32, 192, config.firmware()),
-                OwnerFlashRegion::new(256 + 224, 32, config.filesystem()),
+                OwnerFlashRegion::new(256 + OWNER_FLASH_OWNER_START, OWNER_FLASH_OWNER_SIZE, config.firmware()),
+                OwnerFlashRegion::new(256 + OWNER_FLASH_FILE_START, OWNER_FLASH_FILE_SIZE, config.filesystem()),
             ]
         };
         owner
@@ -336,8 +346,8 @@ where
     }
     if cfg & CFG_RESCUE1 != 0 {
         let mut rescue = OwnerRescueConfig::all();
-        rescue.start = 32;
-        rescue.size = 192;
+        rescue.start = OWNER_FLASH_OWNER_START;
+        rescue.size = OWNER_FLASH_OWNER_SIZE;
         if cfg & CFG_RESCUE_RESTRICT != 0 {
             // Restrict one of the boot_svc commands in "restrict" mode.
             rescue
