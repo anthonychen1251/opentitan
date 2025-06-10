@@ -9,10 +9,12 @@
 #include "sw/device/lib/base/memory.h"
 #include "sw/device/lib/base/status.h"
 #include "sw/device/lib/dif/dif_aes.h"
+#include "sw/device/lib/dif/dif_hmac.h"
 #include "sw/device/lib/dif/dif_kmac.h"
 #include "sw/device/lib/dif/dif_rv_core_ibex.h"
 #include "sw/device/lib/runtime/log.h"
 #include "sw/device/lib/testing/aes_testutils.h"
+#include "sw/device/lib/testing/hmac_testutils.h"
 #include "sw/device/lib/testing/test_framework/ottf_test_config.h"
 #include "sw/device/lib/testing/test_framework/ujson_ottf.h"
 #include "sw/device/lib/ujson/ujson.h"
@@ -22,11 +24,6 @@
 #include "aes_regs.h"
 #include "hw/top_earlgrey/sw/autogen/top_earlgrey.h"
 #include "kmac_regs.h"
-
-// NOP macros.
-#define NOP1 "addi x0, x0, 0\n"
-#define NOP10 NOP1 NOP1 NOP1 NOP1 NOP1 NOP1 NOP1 NOP1 NOP1 NOP1
-#define NOP30 NOP10 NOP10 NOP10
 
 #define SHADOW_REG_ACCESS(shadow_reg_addr, tmp)    \
   abs_mmio_write32_shadowed(shadow_reg_addr, tmp); \
@@ -53,11 +50,17 @@ enum {
 
 static dif_aes_t aes;
 static dif_kmac_t kmac;
+static dif_hmac_t hmac;
 // Interface to Ibex.
 static dif_rv_core_ibex_t rv_core_ibex;
 
 static dif_aes_key_share_t aes_key_shares;
 static dif_aes_data_t aes_plaintext;
+
+static const dif_hmac_transaction_t kHmacTransactionConfig = {
+    .digest_endianness = kDifHmacEndiannessLittle,
+    .message_endianness = kDifHmacEndiannessLittle,
+};
 
 /**
  * KMAC test description.
@@ -156,6 +159,8 @@ status_t handle_crypto_fi_aes(ujson_t *uj) {
   TRY(ujson_deserialize_crypto_fi_aes_mode_t(uj, &uj_data));
   // Clear registered alerts in alert handler.
   pentest_registered_alerts_t reg_alerts = pentest_get_triggered_alerts();
+  // Clear the AST recoverable alerts.
+  pentest_clear_sensor_recov_alerts();
 
   // Write the key into the AES block. Set and unset the trigger when
   // key_trigger is true.
@@ -214,6 +219,8 @@ status_t handle_crypto_fi_aes(ujson_t *uj) {
 
   // Get registered alerts from alert handler.
   reg_alerts = pentest_get_triggered_alerts();
+  // Get fatal and recoverable AST alerts from sensor controller.
+  pentest_sensor_alerts_t sensor_alerts = pentest_get_sensor_alerts();
 
   // Read ERR_STATUS register.
   dif_rv_core_ibex_error_status_t codes;
@@ -224,22 +231,34 @@ status_t handle_crypto_fi_aes(ujson_t *uj) {
   uj_output.err_status = codes;
   memcpy(uj_output.ciphertext, ciphertext.data, 16);
   memcpy(uj_output.alerts, reg_alerts.alerts, sizeof(reg_alerts.alerts));
+  memcpy(uj_output.ast_alerts, sensor_alerts.alerts,
+         sizeof(sensor_alerts.alerts));
   RESP_OK(ujson_serialize_crypto_fi_aes_ciphertext_t, uj, &uj_output);
   return OK_STATUS();
 }
 
 status_t handle_crypto_fi_init(ujson_t *uj) {
+  penetrationtest_cpuctrl_t uj_data;
+  TRY(ujson_deserialize_penetrationtest_cpuctrl_t(uj, &uj_data));
+
   pentest_select_trigger_type(kPentestTriggerTypeSw);
   pentest_init(kPentestTriggerSourceAes,
                kPentestPeripheralIoDiv4 | kPentestPeripheralAes |
                    kPentestPeripheralKmac | kPentestPeripheralEdn |
-                   kPentestPeripheralCsrng | kPentestPeripheralEntropy);
+                   kPentestPeripheralCsrng | kPentestPeripheralEntropy |
+                   kPentestPeripheralHmac);
   // Configure the alert handler. Alerts triggered by IP blocks are captured
   // and reported to the test.
   pentest_configure_alert_handler();
 
-  // Disable the instruction cache and dummy instructions for FI attacks.
-  pentest_configure_cpu();
+  // Configure the CPU for the pentest.
+  penetrationtest_device_info_t uj_output;
+  TRY(pentest_configure_cpu(
+      uj_data.icache_disable, uj_data.dummy_instr_disable,
+      uj_data.enable_jittery_clock, uj_data.enable_sram_readback,
+      &uj_output.clock_jitter_locked, &uj_output.clock_jitter_en,
+      &uj_output.sram_main_readback_locked, &uj_output.sram_ret_readback_locked,
+      &uj_output.sram_main_readback_en, &uj_output.sram_ret_readback_en));
 
   // Init the AES block.
   TRY(dif_aes_init(mmio_region_from_addr(TOP_EARLGREY_AES_BASE_ADDR), &aes));
@@ -272,15 +291,21 @@ status_t handle_crypto_fi_init(ujson_t *uj) {
 
   TRY(dif_kmac_configure(&kmac, config));
 
+  // Init the HMAC block.
+  mmio_region_t base_addr = mmio_region_from_addr(TOP_EARLGREY_HMAC_BASE_ADDR);
+  TRY(dif_hmac_init(base_addr, &hmac));
+
   // Configure Ibex to allow reading ERR_STATUS register.
   TRY(dif_rv_core_ibex_init(
       mmio_region_from_addr(TOP_EARLGREY_RV_CORE_IBEX_CFG_BASE_ADDR),
       &rv_core_ibex));
 
   // Read device ID and return to host.
-  penetrationtest_device_id_t uj_output;
   TRY(pentest_read_device_id(uj_output.device_id));
-  RESP_OK(ujson_serialize_penetrationtest_device_id_t, uj, &uj_output);
+  RESP_OK(ujson_serialize_penetrationtest_device_info_t, uj, &uj_output);
+
+  // Read different SKU config fields and return to host.
+  TRY(pentest_send_sku_config(uj));
 
   return OK_STATUS();
 }
@@ -291,6 +316,8 @@ status_t handle_crypto_fi_kmac(ujson_t *uj) {
   TRY(ujson_deserialize_crypto_fi_kmac_mode_t(uj, &uj_data));
   // Clear registered alerts in alert handler.
   pentest_registered_alerts_t reg_alerts = pentest_get_triggered_alerts();
+  // Clear the AST recoverable alerts.
+  pentest_clear_sensor_recov_alerts();
 
   // Configure and write key to the KMAC block. Set and unset the trigger when
   // key_trigger is true.
@@ -349,6 +376,8 @@ status_t handle_crypto_fi_kmac(ujson_t *uj) {
 
   // Get registered alerts from alert handler.
   reg_alerts = pentest_get_triggered_alerts();
+  // Get fatal and recoverable AST alerts from sensor controller.
+  pentest_sensor_alerts_t sensor_alerts = pentest_get_sensor_alerts();
 
   TRY(dif_kmac_end(&kmac, &kmac_operation_state));
 
@@ -362,16 +391,17 @@ status_t handle_crypto_fi_kmac(ujson_t *uj) {
   memcpy(uj_output.digest, (uint8_t *)digest, 8);
   memcpy(uj_output.digest_2nd, (uint8_t *)digest_2nd, 8);
   memcpy(uj_output.alerts, reg_alerts.alerts, sizeof(reg_alerts.alerts));
+  memcpy(uj_output.ast_alerts, sensor_alerts.alerts,
+         sizeof(sensor_alerts.alerts));
   RESP_OK(ujson_serialize_crypto_fi_kmac_digest_t, uj, &uj_output);
   return OK_STATUS();
 }
 
 status_t handle_crypto_fi_kmac_state(ujson_t *uj) {
-  // Get the test mode.
-  crypto_fi_kmac_mode_t uj_data;
-  TRY(ujson_deserialize_crypto_fi_kmac_mode_t(uj, &uj_data));
   // Clear registered alerts in alert handler.
   pentest_registered_alerts_t reg_alerts = pentest_get_triggered_alerts();
+  // Clear the AST recoverable alerts.
+  pentest_clear_sensor_recov_alerts();
 
   // Configure and write key to the KMAC block.
   dif_kmac_operation_state_t kmac_operation_state;
@@ -397,6 +427,8 @@ status_t handle_crypto_fi_kmac_state(ujson_t *uj) {
 
   // Get registered alerts from alert handler.
   reg_alerts = pentest_get_triggered_alerts();
+  // Get fatal and recoverable AST alerts from sensor controller.
+  pentest_sensor_alerts_t sensor_alerts = pentest_get_sensor_alerts();
 
   // Read ERR_STATUS register.
   dif_rv_core_ibex_error_status_t codes;
@@ -417,6 +449,8 @@ status_t handle_crypto_fi_kmac_state(ujson_t *uj) {
   uj_output.err_status = codes;
   memcpy(uj_output.digest, (uint8_t *)digest, 8);
   memcpy(uj_output.alerts, reg_alerts.alerts, sizeof(reg_alerts.alerts));
+  memcpy(uj_output.ast_alerts, sensor_alerts.alerts,
+         sizeof(sensor_alerts.alerts));
 
   RESP_OK(ujson_serialize_crypto_fi_kmac_state_t, uj, &uj_output);
 
@@ -424,9 +458,71 @@ status_t handle_crypto_fi_kmac_state(ujson_t *uj) {
   return OK_STATUS();
 }
 
+status_t handle_crypto_fi_sha256(ujson_t *uj) {
+  // Get the message.
+  crypto_fi_hmac_message_t uj_msg;
+  TRY(ujson_deserialize_crypto_fi_hmac_message_t(uj, &uj_msg));
+  // Get the test mode.
+  crypto_fi_hmac_mode_t uj_data;
+  TRY(ujson_deserialize_crypto_fi_hmac_mode_t(uj, &uj_data));
+  // Clear registered alerts in alert handler.
+  pentest_registered_alerts_t reg_alerts = pentest_get_triggered_alerts();
+
+  if (uj_data.start_trigger) {
+    pentest_set_trigger_high();
+  }
+  TRY(dif_hmac_mode_sha256_start(&hmac, kHmacTransactionConfig));
+  if (uj_data.start_trigger) {
+    pentest_set_trigger_low();
+  }
+
+  if (uj_data.msg_trigger) {
+    pentest_set_trigger_high();
+  }
+  TRY(hmac_testutils_push_message(&hmac, (char *)uj_msg.message,
+                                  sizeof(uj_msg.message)));
+  if (uj_data.msg_trigger) {
+    pentest_set_trigger_low();
+  }
+
+  if (uj_data.process_trigger) {
+    pentest_set_trigger_high();
+  }
+  TRY(dif_hmac_process(&hmac));
+  if (uj_data.process_trigger) {
+    pentest_set_trigger_low();
+  }
+
+  dif_hmac_digest_t digest;
+  if (uj_data.finish_trigger) {
+    pentest_set_trigger_high();
+  }
+  TRY(hmac_testutils_finish_polled(&hmac, &digest));
+  if (uj_data.finish_trigger) {
+    pentest_set_trigger_low();
+  }
+
+  // Get registered alerts from alert handler.
+  reg_alerts = pentest_get_triggered_alerts();
+
+  // Read ERR_STATUS register.
+  dif_rv_core_ibex_error_status_t codes;
+  TRY(dif_rv_core_ibex_get_error_status(&rv_core_ibex, &codes));
+
+  // Send the digest and the alerts back to the host.
+  crypto_fi_hmac_tag_t uj_output;
+  uj_output.err_status = codes;
+  memcpy(uj_output.tag, digest.digest, sizeof(uj_output.tag));
+  memcpy(uj_output.alerts, reg_alerts.alerts, sizeof(reg_alerts.alerts));
+  RESP_OK(ujson_serialize_crypto_fi_hmac_tag_t, uj, &uj_output);
+  return OK_STATUS();
+}
+
 status_t handle_crypto_fi_shadow_reg_access(ujson_t *uj) {
   // Clear registered alerts in alert handler.
   pentest_registered_alerts_t reg_alerts = pentest_get_triggered_alerts();
+  // Clear the AST recoverable alerts.
+  pentest_clear_sensor_recov_alerts();
 
   crypto_fi_test_result_mult_t uj_output;
 
@@ -460,6 +556,8 @@ status_t handle_crypto_fi_shadow_reg_access(ujson_t *uj) {
 
   // Get registered alerts from alert handler.
   reg_alerts = pentest_get_triggered_alerts();
+  // Get fatal and recoverable AST alerts from sensor controller.
+  pentest_sensor_alerts_t sensor_alerts = pentest_get_sensor_alerts();
 
   // Read ERR_STATUS register.
   dif_rv_core_ibex_error_status_t codes;
@@ -475,6 +573,8 @@ status_t handle_crypto_fi_shadow_reg_access(ujson_t *uj) {
 
   uj_output.err_status = codes;
   memcpy(uj_output.alerts, reg_alerts.alerts, sizeof(reg_alerts.alerts));
+  memcpy(uj_output.ast_alerts, sensor_alerts.alerts,
+         sizeof(sensor_alerts.alerts));
   RESP_OK(ujson_serialize_crypto_fi_test_result_mult_t, uj, &uj_output);
 
   return OK_STATUS();
@@ -483,6 +583,8 @@ status_t handle_crypto_fi_shadow_reg_access(ujson_t *uj) {
 status_t handle_crypto_fi_shadow_reg_read(ujson_t *uj) {
   // Clear registered alerts in alert handler.
   pentest_registered_alerts_t reg_alerts = pentest_get_triggered_alerts();
+  // Clear the AST recoverable alerts.
+  pentest_clear_sensor_recov_alerts();
 
   crypto_fi_test_result_mult_t uj_output;
 
@@ -539,6 +641,8 @@ status_t handle_crypto_fi_shadow_reg_read(ujson_t *uj) {
 
   // Get registered alerts from alert handler.
   reg_alerts = pentest_get_triggered_alerts();
+  // Get fatal and recoverable AST alerts from sensor controller.
+  pentest_sensor_alerts_t sensor_alerts = pentest_get_sensor_alerts();
 
   // Read ERR_STATUS register.
   dif_rv_core_ibex_error_status_t codes;
@@ -559,6 +663,8 @@ status_t handle_crypto_fi_shadow_reg_read(ujson_t *uj) {
 
   uj_output.err_status = codes;
   memcpy(uj_output.alerts, reg_alerts.alerts, sizeof(reg_alerts.alerts));
+  memcpy(uj_output.ast_alerts, sensor_alerts.alerts,
+         sizeof(sensor_alerts.alerts));
   RESP_OK(ujson_serialize_crypto_fi_test_result_mult_t, uj, &uj_output);
 
   return OK_STATUS();
@@ -576,6 +682,8 @@ status_t handle_crypto_fi(ujson_t *uj) {
       return handle_crypto_fi_kmac(uj);
     case kCryptoFiSubcommandKmacState:
       return handle_crypto_fi_kmac_state(uj);
+    case kCryptoFiSubcommandSha256:
+      return handle_crypto_fi_sha256(uj);
     case kCryptoFiSubcommandShadowRegAccess:
       return handle_crypto_fi_shadow_reg_access(uj);
     case kCryptoFiSubcommandShadowRegRead:

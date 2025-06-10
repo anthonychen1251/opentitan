@@ -105,13 +105,14 @@ fn run_sphincsplus_testcase(
     .send(spi_console)?;
 
     // Get verification output
-    let success = match CryptotestSphincsPlusVerifyOutput::recv(spi_console, opts.timeout, false)? {
-        CryptotestSphincsPlusVerifyOutput::Success => true,
-        CryptotestSphincsPlusVerifyOutput::Failure => false,
-        CryptotestSphincsPlusVerifyOutput::IntValue(i) => {
-            panic!("Invalid SPHINCS+ verify result: {}", i)
-        }
-    };
+    let success =
+        match CryptotestSphincsPlusVerifyOutput::recv(spi_console, opts.timeout, false, false)? {
+            CryptotestSphincsPlusVerifyOutput::Success => true,
+            CryptotestSphincsPlusVerifyOutput::Failure => false,
+            CryptotestSphincsPlusVerifyOutput::IntValue(i) => {
+                panic!("Invalid SPHINCS+ verify result: {}", i)
+            }
+        };
     if test_case.result != success {
         log::info!(
             "FAILED test #{}: expected = {}, actual = {}",
@@ -126,7 +127,7 @@ fn run_sphincsplus_testcase(
 
 fn test_sphincsplus(opts: &Opts, transport: &TransportWrapper) -> Result<()> {
     let spi = transport.spi("BOOTSTRAP")?;
-    let spi_console_device = SpiConsoleDevice::new(&*spi, None)?;
+    let spi_console_device = SpiConsoleDevice::new(&*spi, None, /*ignore_frame_num=*/ false)?;
     let _ = UartConsole::wait_for(&spi_console_device, r"Running [^\r\n]*", opts.timeout)?;
 
     let mut test_counter = 0u32;

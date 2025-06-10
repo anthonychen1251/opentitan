@@ -112,6 +112,20 @@ cc_library(
 )
 
 cc_library(
+    name = "hkdf",
+    srcs = ["hkdf.c"],
+    hdrs = ["//sw/device/lib/crypto/include:hkdf.h"],
+    deps = [
+        ":hmac",
+        ":integrity",
+        ":keyblob",
+        ":status",
+        "//sw/device/lib/base:math",
+        "//sw/device/lib/crypto/include:datatypes",
+    ],
+)
+
+cc_library(
     name = "integrity",
     srcs = ["integrity.c"],
     hdrs = ["integrity.h"],
@@ -122,16 +136,15 @@ cc_library(
 )
 
 cc_library(
-    name = "kdf",
-    srcs = ["kdf.c"],
-    hdrs = ["//sw/device/lib/crypto/include:kdf.h"],
+    name = "kdf_ctr",
+    srcs = ["kdf_ctr.c"],
+    hdrs = ["//sw/device/lib/crypto/include:kdf_ctr.h"],
     deps = [
+        ":hmac",
         ":integrity",
         ":keyblob",
-        ":mac",
         ":status",
         "//sw/device/lib/base:math",
-        "//sw/device/lib/crypto/drivers:kmac",
         "//sw/device/lib/crypto/include:datatypes",
     ],
 )
@@ -179,6 +192,20 @@ cc_test(
     deps = [
         ":key_transport",
         "@googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "kmac_kdf",
+    srcs = ["kmac_kdf.c"],
+    hdrs = ["//sw/device/lib/crypto/include:kmac_kdf.h"],
+    deps = [
+        ":integrity",
+        ":keyblob",
+        ":status",
+        "//sw/device/lib/base:math",
+        "//sw/device/lib/crypto/drivers:kmac",
+        "//sw/device/lib/crypto/include:datatypes",
     ],
 )
 
@@ -236,10 +263,10 @@ cc_test(
 )
 
 cc_library(
-    name = "mac",
-    srcs = ["mac.c"],
+    name = "hmac",
+    srcs = ["hmac.c"],
     hdrs = [
-        "//sw/device/lib/crypto/include:mac.h",
+        "//sw/device/lib/crypto/include:hmac.h",
     ],
     deps = [
         ":hash",
@@ -248,6 +275,20 @@ cc_library(
         "//sw/device/lib/base:hardened",
         "//sw/device/lib/base:hardened_memory",
         "//sw/device/lib/crypto/drivers:hmac",
+    ],
+)
+
+cc_library(
+    name = "kmac",
+    srcs = ["kmac.c"],
+    hdrs = [
+        "//sw/device/lib/crypto/include:kmac.h",
+    ],
+    deps = [
+        ":integrity",
+        ":keyblob",
+        "//sw/device/lib/base:hardened",
+        "//sw/device/lib/base:hardened_memory",
         "//sw/device/lib/crypto/drivers:kmac",
     ],
 )

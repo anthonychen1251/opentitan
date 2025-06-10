@@ -98,7 +98,7 @@ fn run_drbg_testcase(
     .send(spi_console)?;
 
     // Get output
-    let drbg_output = CryptotestDrbgOutput::recv(spi_console, opts.timeout, false)?;
+    let drbg_output = CryptotestDrbgOutput::recv(spi_console, opts.timeout, false, false)?;
     // The expected output is in a mixed-endian format (32-bit words
     // are in little-endian order, but the bytes within the words are
     // in big-endian order). Convert the actual output to match this
@@ -128,7 +128,7 @@ fn run_drbg_testcase(
 
 fn test_drbg(opts: &Opts, transport: &TransportWrapper) -> Result<()> {
     let spi = transport.spi("BOOTSTRAP")?;
-    let spi_console_device = SpiConsoleDevice::new(&*spi, None)?;
+    let spi_console_device = SpiConsoleDevice::new(&*spi, None, /*ignore_frame_num=*/ false)?;
     let _ = UartConsole::wait_for(&spi_console_device, r"Running [^\r\n]*", opts.timeout)?;
 
     let mut test_counter = 0u32;

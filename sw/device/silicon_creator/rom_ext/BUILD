@@ -15,8 +15,23 @@ load(
     "SLOTS",
     "TEST_OWNER_CONFIGS",
 )
+load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
 
 package(default_visibility = ["//visibility:public"])
+
+string_flag(
+    name = "secver_write",
+    build_setting_default = "false",
+    values = [
+        "false",
+        "true",
+    ],
+)
+
+config_setting(
+    name = "secver_write_true",
+    flag_values = {":secver_write": "true"},
+)
 
 cc_library(
     name = "rom_ext_manifest",
@@ -188,7 +203,9 @@ ld_library(
             "//sw/device/silicon_creator/lib/drivers:retention_sram",
             "//sw/device/silicon_creator/lib/drivers:rnd",
             "//sw/device/silicon_creator/lib/drivers:uart",
+            "//sw/device/silicon_creator/lib/drivers:watchdog",
             "//sw/device/silicon_creator/lib/ownership",
+            "//sw/device/silicon_creator/lib/ownership:isfb",
             "//sw/device/silicon_creator/lib/ownership:owner_verify",
             "//sw/device/silicon_creator/lib/ownership:ownership_activate",
             "//sw/device/silicon_creator/lib/ownership:ownership_unlock",
@@ -259,6 +276,7 @@ manifest(d = {
         testonly = True,
         ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:prod_key_0_ecdsa_p256": "prod_key_0"},
         exec_env = [
+            "//hw/top_earlgrey:fpga_cw340",
             "//hw/top_earlgrey:fpga_cw310",
         ],
         extra_bazel_features = [

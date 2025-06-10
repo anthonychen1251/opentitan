@@ -35,9 +35,11 @@
 #include "sw/device/silicon_creator/lib/drivers/rnd.h"
 #include "sw/device/silicon_creator/lib/drivers/rstmgr.h"
 #include "sw/device/silicon_creator/lib/drivers/uart.h"
+#include "sw/device/silicon_creator/lib/drivers/watchdog.h"
 #include "sw/device/silicon_creator/lib/epmp_state.h"
 #include "sw/device/silicon_creator/lib/manifest.h"
 #include "sw/device/silicon_creator/lib/manifest_def.h"
+#include "sw/device/silicon_creator/lib/ownership/isfb.h"
 #include "sw/device/silicon_creator/lib/ownership/owner_verify.h"
 #include "sw/device/silicon_creator/lib/ownership/ownership.h"
 #include "sw/device/silicon_creator/lib/ownership/ownership_activate.h"
@@ -93,6 +95,10 @@ uint32_t flash_ecc_exc_handler_en;
 
 // Owner configuration details parsed from the onwer info pages.
 owner_config_t owner_config;
+
+// The number of strike words and product extensions parsed from the ISFB
+// configuration. Used to implement redundancy in the ISFB checks.
+uint32_t isfb_check_count;
 
 // Owner application keys.
 owner_application_keyring_t keyring;
@@ -255,11 +261,34 @@ static rom_error_t rom_ext_verify(const manifest_t *manifest,
                 "Unexpected BL0 digest size.");
   memcpy(&boot_measurements.bl0, &act_digest, sizeof(boot_measurements.bl0));
 
-  return owner_verify(
+  RETURN_IF_ERROR(owner_verify(
       key_alg, &keyring.key[verify_key]->data, &manifest->ecdsa_signature,
       &ext_spx_signature->signature, &usage_constraints_from_hw,
       sizeof(usage_constraints_from_hw), NULL, 0, digest_region.start,
-      digest_region.length, &act_digest, flash_exec);
+      digest_region.length, &act_digest, flash_exec));
+
+  // Perform ISFB checks if the extension is present.
+  if ((hardened_bool_t)owner_config.isfb != kHardenedBoolFalse) {
+    const manifest_ext_isfb_t *ext_isfb;
+    rom_error_t error = manifest_ext_get_isfb(manifest, &ext_isfb);
+    if (error == kErrorOk) {
+      isfb_check_count = kHardenedBoolFalse;
+      RETURN_IF_ERROR(isfb_boot_request_process(ext_isfb, &owner_config,
+                                                &isfb_check_count));
+      // The previous function returns `kErrorOwnershipISFBFailed` if the strike
+      // check or product expression check fails. The following check is to
+      // detect any faults.
+      HARDENED_CHECK_EQ(isfb_check_count, isfb_expected_count_get(ext_isfb));
+    } else {
+      HARDENED_CHECK_NE(error, kErrorOk);
+    }
+  }
+
+  // This is given that we are expected to perform redundant checks on
+  // `flash_exec` and `isfb_check_count`. This is also the reason why don't use
+  // `HARDENED_RETURN_IF_ERROR` in the `owner_verify` and `isfb_boot_request`
+  // calls.
+  return kErrorOk;
 }
 
 /**
@@ -391,6 +420,37 @@ static rom_error_t rom_ext_boot(boot_data_t *boot_data, boot_log_t *boot_log,
   // Lock the address translation windows.
   ibex_addr_remap_lockdown(0);
   ibex_addr_remap_lockdown(1);
+
+  if (launder32((hardened_bool_t)owner_config.isfb) != kHardenedBoolFalse) {
+    hardened_bool_t node_locked = manifest->usage_constraints.selector_bits
+                                      ? kHardenedBoolTrue
+                                      : kHardenedBoolFalse;
+
+    const manifest_ext_isfb_erase_t *ext_isfb_erase;
+    rom_error_t ext_error =
+        manifest_ext_get_isfb_erase(manifest, &ext_isfb_erase);
+
+    hardened_bool_t erase_en = kHardenedBoolFalse;
+    HARDENED_RETURN_IF_ERROR(isfb_info_flash_erase_policy_get(
+        &owner_config, keyring.key[verify_key]->key_domain, node_locked,
+        (ext_error == kErrorOk) ? ext_isfb_erase : NULL, &erase_en));
+
+    if (launder32(erase_en) == kHardenedBoolTrue) {
+      HARDENED_RETURN_IF_ERROR(
+          owner_block_info_isfb_erase_enable(boot_data, &owner_config));
+      HARDENED_CHECK_EQ(erase_en, kHardenedBoolTrue);
+    }
+
+    // Redundant check to ensure that the ISFB check was performed earlier in
+    // the boot process.
+    const manifest_ext_isfb_t *ext_isfb;
+    rom_error_t error = manifest_ext_get_isfb(manifest, &ext_isfb);
+    if (error == kErrorOk) {
+      HARDENED_CHECK_EQ(isfb_check_count, isfb_expected_count_get(ext_isfb));
+    } else {
+      HARDENED_CHECK_NE(error, kErrorOk);
+    }
+  }
 
   // Lock the flash according to the ownership configuration.
   HARDENED_RETURN_IF_ERROR(
@@ -647,6 +707,29 @@ static void rom_ext_rescue_lockdown(boot_data_t *boot_data) {
   flash_ctrl_creator_info_pages_lockdown();
   // Set the OWNER_CONFIG pages for rescue mode (page0=ro, page1=rw).
   ownership_pages_lockdown(boot_data, /*rescue=*/kHardenedBoolTrue);
+  // Lock access to owner-level INFO pages.  During normal boot, this
+  // is performed by `ownership_flash_lockdown`, but we can't call that
+  // function when entering rescue because rescue needs the flash DATA
+  // segments to be writable.  Rescue has no need to access the INFO
+  // pages, so we want to lock them for safety.
+  owner_block_info_lockdown(owner_config.info);
+}
+
+static rom_error_t rom_ext_advance_secver(boot_data_t *boot_data,
+                                          const manifest_t *manifest) {
+  const manifest_ext_secver_write_t *secver;
+  rom_error_t error;
+  error = manifest_ext_get_secver_write(manifest, &secver);
+  if (error == kErrorOk) {
+    if (secver->write == kHardenedBoolTrue &&
+        manifest->security_version > boot_data->min_security_version_rom_ext) {
+      // If our security version is greater than the minimum security version
+      // advance the minimum version to our version.
+      boot_data->min_security_version_rom_ext = manifest->security_version;
+      return boot_data_write(boot_data);
+    }
+  }
+  return kErrorOk;
 }
 
 static rom_error_t rom_ext_start(boot_data_t *boot_data, boot_log_t *boot_log) {
@@ -670,6 +753,9 @@ static rom_error_t rom_ext_start(boot_data_t *boot_data, boot_log_t *boot_log) {
     //   //sw/device/silicon_creator/rom_ext/imm_section/defs.bzl
     dbg_printf("info: imm_section hash unenforced\r\n");
   }
+
+  // Maybe advance the security version.
+  HARDENED_RETURN_IF_ERROR(rom_ext_advance_secver(boot_data, self));
 
   // Prepare dice chain builder for CDI_1.
   HARDENED_RETURN_IF_ERROR(dice_chain_init());
@@ -711,8 +797,12 @@ static rom_error_t rom_ext_start(boot_data_t *boot_data, boot_log_t *boot_log) {
 
   // Handle any pending boot_svc commands.
   uint32_t reset_reasons = retention_sram_get()->creator.reset_reasons;
-  uint32_t skip_boot_svc = reset_reasons & (1 << kRstmgrReasonLowPowerExit);
-  if (skip_boot_svc == 0) {
+  hardened_bool_t waking_from_low_power =
+      reset_reasons & (1 << kRstmgrReasonLowPowerExit) ? kHardenedBoolTrue
+                                                       : kHardenedBoolFalse;
+
+  // We don't want to execute boot_svc requests if this is a low-power wakeup.
+  if (waking_from_low_power != kHardenedBoolTrue) {
     error = handle_boot_svc(boot_data, boot_log);
     if (error == kErrorWriteBootdataThenReboot) {
       // Boot services reports errors by writing a status code into the reply
@@ -735,7 +825,10 @@ static rom_error_t rom_ext_start(boot_data_t *boot_data, boot_log_t *boot_log) {
   // needed.
   HARDENED_RETURN_IF_ERROR(ownership_seal_clear());
 
-  hardened_bool_t want_rescue = rescue_detect_entry(owner_config.rescue);
+  // We don't want to enter rescue mode if this is a low-power wakeup.
+  hardened_bool_t want_rescue = waking_from_low_power != kHardenedBoolTrue
+                                    ? rescue_detect_entry(owner_config.rescue)
+                                    : kHardenedBoolFalse;
   hardened_bool_t boot_attempted = kHardenedBoolFalse;
 
   if (want_rescue == kHardenedBoolFalse) {
@@ -753,6 +846,8 @@ static rom_error_t rom_ext_start(boot_data_t *boot_data, boot_log_t *boot_log) {
       dbg_printf("BFV:%x\r\n", error);
     }
 
+    // Disable the watchdog timer when entering rescue mode.
+    watchdog_disable();
     error = rescue_protocol(boot_data, boot_log, owner_config.rescue);
 
     // If rescue timed out and we didn't attempt to boot, request skipping
@@ -761,7 +856,7 @@ static rom_error_t rom_ext_start(boot_data_t *boot_data, boot_log_t *boot_log) {
     if (error == kErrorRescueInactivity &&
         boot_attempted == kHardenedBoolFalse) {
       rescue_skip_next_boot();
-      rstmgr_reset();
+      rstmgr_reboot();
     }
   }
 

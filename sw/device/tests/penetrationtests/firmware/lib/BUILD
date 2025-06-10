@@ -27,6 +27,7 @@ cc_library(
     deps = [
         "//hw/ip/aes:model",
         "//sw/device/lib/arch:device",
+        "//sw/device/lib/base:abs_mmio",
         "//sw/device/lib/base:bitfield",
         "//sw/device/lib/base:csr",
         "//sw/device/lib/base:macros",
@@ -44,6 +45,8 @@ cc_library(
         "//sw/device/lib/dif:rv_core_ibex",
         "//sw/device/lib/dif:rv_plic",
         "//sw/device/lib/dif:rv_timer",
+        "//sw/device/lib/dif:sensor_ctrl",
+        "//sw/device/lib/dif:sram_ctrl",
         "//sw/device/lib/dif:uart",
         "//sw/device/lib/runtime:hart",
         "//sw/device/lib/runtime:irq",
@@ -61,6 +64,11 @@ cc_library(
         "//conditions:default": [
             "//sw/device/lib/crypto/drivers:otbn",
             "//sw/device/lib/testing:entropy_testutils",
+            "//sw/device/lib/testing:rstmgr_testutils",
+            "//sw/device/silicon_creator/lib/base:boot_measurements",
+            "//sw/device/silicon_creator/lib/drivers:flash_ctrl",
+            "//sw/device/silicon_creator/lib/drivers:retention_sram",
+            "//sw/device/silicon_creator/lib/ownership",
         ],
     }),
 )

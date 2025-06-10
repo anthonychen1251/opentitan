@@ -22,6 +22,7 @@ where
 {
     fn send(&self, device: &T) -> Result<String>;
     fn send_with_crc(&self, device: &T) -> Result<String>;
+    fn send_with_padding(&self, device: &T, max_size: usize) -> Result<String>;
 }
 
 impl<T, U> ConsoleSend<T> for U
@@ -46,13 +47,22 @@ where
         let crc_s = actual_crc.send(device)?;
         Ok(s + &crc_s)
     }
+
+    fn send_with_padding(&self, device: &T, max_size: usize) -> Result<String> {
+        let mut s = serde_json::to_string(self)?;
+        let pad_len = max_size - s.len();
+        let pad_str = ' '.to_string().repeat(pad_len);
+        s.insert_str(s.len() - 1, &pad_str);
+        device.console_write(s.as_bytes())?;
+        Ok(s)
+    }
 }
 
 pub trait ConsoleRecv<T>
 where
     T: ConsoleDevice + ?Sized,
 {
-    fn recv(device: &T, timeout: Duration, quiet: bool) -> Result<Self>
+    fn recv(device: &T, timeout: Duration, quiet: bool, skip_crc: bool) -> Result<Self>
     where
         Self: Sized;
 }
@@ -62,7 +72,7 @@ where
     T: ConsoleDevice + ?Sized,
     U: DeserializeOwned,
 {
-    fn recv(device: &T, timeout: Duration, quiet: bool) -> Result<Self>
+    fn recv(device: &T, timeout: Duration, quiet: bool, skip_crc: bool) -> Result<Self>
     where
         Self: Sized,
     {
@@ -90,7 +100,9 @@ where
                     .expect("RESP_OK capture");
                 let json_str = cap.get(1).expect("RESP_OK group").as_str();
                 let crc_str = cap.get(2).expect("CRC group").as_str();
-                check_crc(json_str, crc_str)?;
+                if !skip_crc {
+                    check_crc(json_str, crc_str)?;
+                }
                 Ok(serde_json::from_str::<Self>(json_str)?)
             }
             ExitStatus::ExitFailure => {

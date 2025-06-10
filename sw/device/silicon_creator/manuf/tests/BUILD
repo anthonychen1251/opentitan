@@ -13,6 +13,7 @@ load(
     "OTP_SIGVERIFY_FAKE_KEYS",
     "otp_image",
 )
+load("//rules/opentitan:cc.bzl", "opentitan_binary_assemble")
 load(
     "//rules/opentitan:defs.bzl",
     "ecdsa_key_for_lc_state",
@@ -21,6 +22,10 @@ load(
     "opentitan_test",
     "silicon_params",
     "spx_key_for_lc_state",
+)
+load(
+    "//sw/device/silicon_creator/rom/e2e:defs.bzl",
+    "SLOTS",
 )
 
 package(default_visibility = ["//visibility:public"])
@@ -76,6 +81,7 @@ _MANUF_TEST_LOCKED_KEY = None
         srcs = ["empty_functest.c"],
         ecdsa_key = _MANUF_TEST_LOCKED_KEY if (lc_state, lc_val) in _TEST_LOCKED_LC_ITEMS else ecdsa_key_for_lc_state(ECDSA_SPX_KEY_STRUCTS, lc_val),
         exec_env = {
+            "//hw/top_earlgrey:sim_dv": None,
             "//hw/top_earlgrey:fpga_cw340_sival": None,
             "//hw/top_earlgrey:fpga_hyper310_rom_with_fake_keys": None,
         },
@@ -505,5 +511,86 @@ opentitan_test(
         "//sw/device/silicon_creator/lib/drivers:lifecycle",
         "//sw/device/silicon_creator/lib/drivers:otp",
         "//sw/device/silicon_creator/lib/sigverify:spx_verify",
+    ],
+)
+
+[
+    opentitan_binary(
+        name = "empty_test_{}".format(slot),
+        testonly = True,
+        srcs = ["empty_functest.c"],
+        exec_env = {
+            "//hw/top_earlgrey:sim_dv": None,
+            "//hw/top_earlgrey:silicon_creator": None,
+        },
+        linker_script = "//sw/device/lib/testing/test_framework:ottf_ld_silicon_creator_slot_{}".format(slot),
+        deps = [
+            "//sw/device/lib/runtime:log",
+            "//sw/device/lib/testing/test_framework:ottf_main",
+        ],
+    )
+    for slot in SLOTS.keys()
+]
+
+opentitan_binary_assemble(
+    name = "multislot_empty_test",
+    testonly = True,
+    bins = {
+        ":empty_test_a": SLOTS["a"],
+        ":empty_test_b": SLOTS["b"],
+    },
+    exec_env = [
+        "//hw/top_earlgrey:sim_dv",
+        "//hw/top_earlgrey:silicon_creator",
+    ],
+)
+
+# The below alias is needed to run the multislot_empty_test in DV.
+alias(
+    name = "multislot_empty_test_sim_dv",
+    actual = "multislot_empty_test",
+)
+
+opentitan_test(
+    name = "ujson_msg_size_functest",
+    srcs = ["ujson_msg_size_functest.c"],
+    exec_env = {
+        "//hw/top_earlgrey:fpga_cw340_sival": None,
+        "//hw/top_earlgrey:fpga_hyper310_rom_with_fake_keys": None,
+    },
+    fpga = fpga_params(
+        tags = ["manuf"],
+        test_cmd = """
+            --bootstrap={firmware}
+        """,
+        test_harness = "//sw/host/tests/manuf/manuf_ujson_msg_size",
+    ),
+    deps = [
+        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/testing/json:provisioning_data",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+        "//sw/device/lib/testing/test_framework:ujson_ottf",
+    ],
+)
+
+opentitan_test(
+    name = "ujson_msg_padding_functest",
+    srcs = ["ujson_msg_padding_functest.c"],
+    exec_env = {
+        "//hw/top_earlgrey:fpga_cw340_sival": None,
+        "//hw/top_earlgrey:fpga_hyper310_rom_with_fake_keys": None,
+    },
+    fpga = fpga_params(
+        tags = ["manuf"],
+        test_cmd = """
+            --bootstrap={firmware}
+        """,
+        test_harness = "//sw/host/tests/manuf/manuf_ujson_msg_padding",
+    ),
+    deps = [
+        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/testing/json:provisioning_data",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+        "//sw/device/lib/testing/test_framework:ujson_ottf",
     ],
 )

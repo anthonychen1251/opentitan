@@ -20,6 +20,7 @@ cc_library(
         "//sw/device/sca/lib:prng",
         "//sw/device/tests/penetrationtests/firmware/lib:pentest_lib",
         "//sw/device/tests/penetrationtests/json:aes_sca_commands",
+        "//sw/device/tests/penetrationtests/json:commands",
     ],
 )
 
@@ -92,10 +93,8 @@ cc_library(
     deps = [
         "//sw/device/lib/base:memory",
         "//sw/device/lib/base:status",
-        "//sw/device/lib/crypto/impl:keyblob",
-        "//sw/device/lib/crypto/impl:mac",
-        "//sw/device/lib/crypto/include:datatypes",
         "//sw/device/lib/runtime:log",
+        "//sw/device/lib/testing:hmac_testutils",
         "//sw/device/lib/testing/test_framework:ujson_ottf",
         "//sw/device/lib/ujson",
         "//sw/device/sca/lib:prng",
@@ -109,11 +108,15 @@ cc_library(
     srcs = ["ibex_sca.c"],
     hdrs = ["ibex_sca.h"],
     deps = [
+        ":ecc256_keygen_sca",
         "//sw/device/lib/base:memory",
         "//sw/device/lib/base:status",
+        "//sw/device/lib/dif:aes",
         "//sw/device/lib/dif:keymgr",
         "//sw/device/lib/dif:kmac",
+        "//sw/device/lib/dif:otbn",
         "//sw/device/lib/runtime:log",
+        "//sw/device/lib/testing:hmac_testutils",
         "//sw/device/lib/testing:keymgr_testutils",
         "//sw/device/lib/testing/test_framework:ujson_ottf",
         "//sw/device/lib/ujson",
@@ -136,6 +139,7 @@ cc_library(
         "//sw/device/lib/ujson",
         "//sw/device/sca/lib:prng",
         "//sw/device/tests/penetrationtests/firmware/lib:pentest_lib",
+        "//sw/device/tests/penetrationtests/json:commands",
         "//sw/device/tests/penetrationtests/json:kmac_sca_commands",
     ],
 )
@@ -194,6 +198,7 @@ cc_library(
         "//sw/device/lib/ujson",
         "//sw/device/sca/lib:prng",
         "//sw/device/tests/penetrationtests/firmware/lib:pentest_lib",
+        "//sw/device/tests/penetrationtests/json:commands",
         "//sw/device/tests/penetrationtests/json:sha3_sca_commands",
     ],
 )

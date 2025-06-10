@@ -31,6 +31,7 @@ opentitan_binary(
     },
     exec_env = {
         "//hw/top_earlgrey:fpga_cw310_rom_ext": None,
+        "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
     },
     deps = [
         "//sw/device/lib/base:status",
@@ -51,12 +52,14 @@ opentitan_binary(
     },
     exec_env = {
         "//hw/top_earlgrey:fpga_cw310_rom_ext": None,
+        "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
     },
     linker_script = "//sw/device/lib/testing/test_framework:ottf_ld_silicon_owner_slot_virtual",
     deps = [
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
         "//sw/device/lib/base:status",
         "//sw/device/lib/dif:flash_ctrl",
+        "//sw/device/lib/testing:flash_ctrl_testutils",
         "//sw/device/lib/testing/test_framework:ottf_main",
         "//sw/device/silicon_creator/lib:boot_log",
         "//sw/device/silicon_creator/lib/drivers:retention_sram",
@@ -432,6 +435,7 @@ _FLASH_PERMISSION_TESTS = {
             binaries = {
                 ":flash_regions": "flash_regions",
             },
+            changes_otp = True,
             owner_slot = param["owner_slot"],
             rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_dice_x509_slot_virtual",
             rom_ext_offset = param["rom_ext_offset"],
@@ -457,6 +461,7 @@ _FLASH_PERMISSION_TESTS = {
             "//hw/top_earlgrey/sw/autogen:top_earlgrey",
             "//sw/device/lib/base:status",
             "//sw/device/lib/dif:flash_ctrl",
+            "//sw/device/lib/testing:flash_ctrl_testutils",
             "//sw/device/lib/testing/test_framework:ottf_main",
             "//sw/device/silicon_creator/lib:boot_log",
             "//sw/device/silicon_creator/lib/drivers:retention_sram",
@@ -626,6 +631,7 @@ opentitan_binary(
     },
     exec_env = {
         "//hw/top_earlgrey:fpga_cw310_rom_ext": None,
+        "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
     },
     deps = [
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",

@@ -4,10 +4,6 @@
 
 load("@//rules:manuf.bzl", "device_id_header")
 load("@//rules:signing.bzl", "offline_presigning_artifacts", "offline_signature_attach")
-load(
-    "@provisioning_exts//:cfg.bzl",
-    "EXT_SIGNED_PERSO_BINS",
-)
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 load("//rules:const.bzl", "CONST", "hex")
 load("//rules:manifest.bzl", "manifest")
@@ -21,6 +17,7 @@ load(
 load(
     "//sw/device/silicon_creator/manuf/base:provisioning_inputs.bzl",
     "EARLGREY_SKUS",
+    "disqualified_for_signing",
 )
 load(
     "//sw/device/silicon_creator/rom/e2e:defs.bzl",
@@ -76,11 +73,9 @@ opentitan_binary(
         "//sw/device/lib/dif:lc_ctrl",
         "//sw/device/lib/dif:otp_ctrl",
         "//sw/device/lib/dif:pinmux",
-        "//sw/device/lib/runtime:log",
         "//sw/device/lib/testing:flash_ctrl_testutils",
         "//sw/device/lib/testing:lc_ctrl_testutils",
         "//sw/device/lib/testing:otp_ctrl_testutils",
-        "//sw/device/lib/testing:pinmux_testutils",
         "//sw/device/lib/testing/json:provisioning_data",
         "//sw/device/lib/testing/test_framework:check",
         "//sw/device/lib/testing/test_framework:ottf_console",
@@ -113,6 +108,7 @@ opentitan_binary(
         "//sw/device/lib/arch:device",
         "//sw/device/lib/base:macros",
         "//sw/device/lib/dif:flash_ctrl",
+        "//sw/device/lib/dif:gpio",
         "//sw/device/lib/dif:lc_ctrl",
         "//sw/device/lib/dif:otp_ctrl",
         "//sw/device/lib/dif:pinmux",
@@ -120,7 +116,6 @@ opentitan_binary(
         "//sw/device/lib/testing:flash_ctrl_testutils",
         "//sw/device/lib/testing:lc_ctrl_testutils",
         "//sw/device/lib/testing:otp_ctrl_testutils",
-        "//sw/device/lib/testing:pinmux_testutils",
         "//sw/device/lib/testing/json:provisioning_data",
         "//sw/device/lib/testing/test_framework:check",
         "//sw/device/lib/testing/test_framework:ottf_console",
@@ -160,7 +155,6 @@ opentitan_test(
 [
     device_id_header(
         name = "ft_device_id_{}".format(sku),
-        ast_cfg_version = 0,
         headers = ["ft_device_id.h"],
         mode = "ft",
         sku_config = config["orchestrator_cfg"],
@@ -196,6 +190,7 @@ opentitan_test(
             "//sw/device/lib/dif:gpio",
             "//sw/device/lib/dif:otp_ctrl",
             "//sw/device/lib/dif:pinmux",
+            "//sw/device/lib/runtime:print",
             "//sw/device/lib/testing:pinmux_testutils",
             "//sw/device/lib/testing/json:provisioning_data",
             "//sw/device/lib/testing/test_framework:check",
@@ -220,8 +215,12 @@ filegroup(
     name = "sram_ft_individualize_all",
     testonly = True,
     srcs = [
-        ":sram_ft_individualize_{}".format(sku)
+        ":sram_ft_individualize_{}{}".format(sku, variant)
         for sku in EARLGREY_SKUS.keys()
+        for variant in [
+            "",
+            "_ate",
+        ]
     ],
 )
 
@@ -243,7 +242,7 @@ cc_library(
     deps = [
         ":personalize_ext",
         "//sw/device/lib/dif:flash_ctrl",
-        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/runtime:print",
         "//sw/device/lib/testing/test_framework:status",
         "//sw/device/lib/testing/test_framework:ujson_ottf",
         "//sw/device/silicon_creator/lib:attestation",
@@ -290,7 +289,7 @@ manifest(d = {
     "visibility": ["//visibility:private"],
     "version_major": ROM_EXT_VERSION.MAJOR,
     "version_minor": ROM_EXT_VERSION.MINOR,
-    "security_version": ROM_EXT_VERSION.SECURITY,
+    "security_version": "0xFFFFFFFF",
 })
 
 [
@@ -381,18 +380,25 @@ manifest(d = {
 filegroup(
     name = "ft_personalize_all",
     testonly = True,
-    srcs = [
-               ":ft_personalize_{}".format(sku)
-               for sku in EARLGREY_SKUS.keys()
-           ] +
-           [
-               ":ft_fw_bundle_{}".format(sku)
-               for sku in EARLGREY_SKUS.keys()
-           ] + ["//sw/device/silicon_creator/manuf/base/binaries:ft_personalize_sival"] +
-           EXT_SIGNED_PERSO_BINS,
+    # The depset(...).to_list() syntax removes duplicate bazel targets. Some
+    # SKUs have duplicate "staging" versions that are identical to their
+    # production counterparts, including the perso binaries used, except for CA
+    # keys, so we need to remove duplicates.
+    srcs = depset([
+                      # Select pre-signed / checked-in perso binaries over ones
+                      # built on the fly with fake keys if a pre-signed one
+                      # exists.
+                      config.get(
+                          "perso_bin",
+                          ":ft_personalize_{}".format(sku),
+                      )
+                      for sku, config in EARLGREY_SKUS.items()
+                  ] +
+                  [
+                      ":ft_fw_bundle_{}".format(sku)
+                      for sku in EARLGREY_SKUS.keys()
+                  ]).to_list(),
 )
-
-_DISQUALIFIED_FOR_SIGNING = ["em00"]
 
 [
     offline_presigning_artifacts(
@@ -405,7 +411,7 @@ _DISQUALIFIED_FOR_SIGNING = ["em00"]
         tags = ["manual"],
     )
     for sku, data in EARLGREY_SKUS.items()
-    if data["otp"] not in _DISQUALIFIED_FOR_SIGNING
+    if not disqualified_for_signing(sku, data)
 ]
 
 pkg_tar(
@@ -414,7 +420,7 @@ pkg_tar(
     srcs = [
         ":provisioning_{}".format(sku)
         for sku, data in EARLGREY_SKUS.items()
-        if data["otp"] not in _DISQUALIFIED_FOR_SIGNING
+        if not disqualified_for_signing(sku, data)
     ],
     mode = "0644",
     tags = ["manual"],
@@ -426,21 +432,21 @@ offline_signature_attach(
     srcs = [
         ":provisioning_{}".format(sku)
         for sku, data in EARLGREY_SKUS.items()
-        if data["otp"] not in _DISQUALIFIED_FOR_SIGNING
+        if not disqualified_for_signing(sku, data)
     ],
     ecdsa_signatures = [
         "//sw/device/silicon_creator/manuf/base/signatures:ecdsa_signatures",
     ] + depset([
         "{}:ecdsa_signatures".format(data["signature_prefix"])
         for sku, data in EARLGREY_SKUS.items()
-        if data["signature_prefix"] and data["otp"] not in _DISQUALIFIED_FOR_SIGNING
+        if data["signature_prefix"] and not disqualified_for_signing(sku, data)
     ]).to_list(),
     spx_signatures = [
         "//sw/device/silicon_creator/manuf/base/signatures:spx_signatures",
     ] + depset([
         "{}:spx_signatures".format(data["signature_prefix"])
         for sku, data in EARLGREY_SKUS.items()
-        if data["signature_prefix"] and data["otp"] not in _DISQUALIFIED_FOR_SIGNING
+        if data["signature_prefix"] and not disqualified_for_signing(sku, data)
     ]).to_list(),
     tags = ["manual"],
 )

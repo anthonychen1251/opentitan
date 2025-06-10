@@ -83,12 +83,19 @@ class DeviceIdentificationNumber:
 
     @staticmethod
     def from_int(din: int) -> "DeviceIdentificationNumber":
-        year = util.bcd_decode(din & 0xF)
-        week = util.bcd_decode((din >> 4) & 0xFF)
-        lot = util.bcd_decode((din >> 12) & 0xFFF)
-        wafer = util.bcd_decode((din >> 24) & 0xFF)
-        wafer_x_coord = util.bcd_decode((din >> 32) & 0xFFF)
-        wafer_y_coord = util.bcd_decode((din >> 44) & 0xFFF)
+        year = -1
+        week = -1
+        lot = -1
+        wafer = -1
+        wafer_x_coord = -1
+        wafer_y_coord = -1
+        if din != 0xFFFFFFFFFFFFFFFF:
+            year = util.bcd_decode(din & 0xF)
+            week = util.bcd_decode((din >> 4) & 0xFF)
+            lot = util.bcd_decode((din >> 12) & 0xFFF)
+            wafer = util.bcd_decode((din >> 24) & 0xFF)
+            wafer_x_coord = util.bcd_decode((din >> 32) & 0xFFF)
+            wafer_y_coord = util.bcd_decode((din >> 44) & 0xFFF)
         return DeviceIdentificationNumber(year=year,
                                           week=week,
                                           lot=lot,
@@ -175,6 +182,33 @@ class DeviceId():
             ))
 
         # Build full device ID.
+        self.device_id = (self.sku_specific << 128) | self.base_uid
+
+    def update_ast_cfg_version(self, other: int) -> None:
+        """Updates the AST Config Version component of the device ID.
+
+        Args:
+            other: The other AST configuration version to update with.
+        """
+        if other < 0 or other > 255:
+            raise ValueError("AST config version should be in range [0, 256).")
+        self.ast_cfg_version = other
+
+        # Rebuild SKU-specific portion of the device ID.
+        self.sku_specific = util.bytes_to_int(
+            struct.pack(
+                "<BBHBBHIHBB",
+                self.package_id,
+                self.ast_cfg_version,
+                self.otp_id,
+                self.otp_version,
+                _RESERVED_VALUE,
+                _RESERVED_VALUE,
+                self.sku_id,
+                _RESERVED_VALUE,
+                _RESERVED_VALUE,
+                self.sku_specific_version,
+            ))
         self.device_id = (self.sku_specific << 128) | self.base_uid
 
     def update_din(self, other: "DeviceIdentificationNumber") -> None:

@@ -20,7 +20,7 @@ pub struct SpiConsoleDevice<'a> {
     rx_buf: RefCell<VecDeque<u8>>,
     next_read_address: Cell<u32>,
     device_tx_ready_pin: Option<&'a Rc<dyn GpioPin>>,
-    device_tx_ready: Cell<bool>,
+    ignore_frame_num: bool,
 }
 
 impl<'a> SpiConsoleDevice<'a> {
@@ -35,6 +35,7 @@ impl<'a> SpiConsoleDevice<'a> {
     pub fn new(
         spi: &'a dyn Target,
         device_tx_ready_pin: Option<&'a Rc<dyn GpioPin>>,
+        ignore_frame_num: bool,
     ) -> Result<Self> {
         let flash = SpiFlash {
             ..Default::default()
@@ -46,8 +47,13 @@ impl<'a> SpiConsoleDevice<'a> {
             console_next_frame_number: Cell::new(0),
             next_read_address: Cell::new(0),
             device_tx_ready_pin,
-            device_tx_ready: Cell::new(false),
+            ignore_frame_num,
         })
+    }
+
+    pub fn reset_frame_counter(&self) {
+        self.console_next_frame_number.set(0);
+        self.next_read_address.set(0);
     }
 
     fn check_device_boot_up(&self, buf: &[u8]) -> Result<usize> {
@@ -59,8 +65,7 @@ impl<'a> SpiConsoleDevice<'a> {
         }
         // Set busy bit and wait for the device to clear the boot magic.
         self.flash.program(self.spi, 0, buf)?;
-        self.console_next_frame_number.set(0);
-        self.next_read_address.set(0);
+        self.reset_frame_counter();
         Ok(0)
     }
 
@@ -74,7 +79,7 @@ impl<'a> SpiConsoleDevice<'a> {
         let frame_number: u32 = u32::from_le_bytes(header[4..8].try_into().unwrap());
         let data_len_bytes: usize = u32::from_le_bytes(header[8..12].try_into().unwrap()) as usize;
         if magic_number != SpiConsoleDevice::SPI_FRAME_MAGIC_NUMBER
-            || frame_number != self.console_next_frame_number.get()
+            || (!self.ignore_frame_num && frame_number != self.console_next_frame_number.get())
             || data_len_bytes > SpiConsoleDevice::SPI_MAX_DATA_LENGTH
         {
             if self.get_tx_ready_pin()?.is_none() {
@@ -93,11 +98,19 @@ impl<'a> SpiConsoleDevice<'a> {
             % SpiConsoleDevice::SPI_FLASH_READ_BUFFER_SIZE;
         self.read_data(data_address, &mut data)?;
 
-        let next_read_address: u32 = (read_address
-            + u32::try_from(SpiConsoleDevice::SPI_FRAME_HEADER_SIZE + data_len_bytes_w_pad)
-                .unwrap())
-            % SpiConsoleDevice::SPI_FLASH_READ_BUFFER_SIZE;
-        self.next_read_address.set(next_read_address);
+        if self.get_tx_ready_pin()?.is_some() {
+            // When using the TX-indicator pin feature, we always write each SPI frame at the
+            // beginning of the flash buffer, and wait for the host to ready it out before writing
+            // another frame.
+            self.next_read_address.set(0);
+        } else {
+            let next_read_address: u32 = (read_address
+                + u32::try_from(SpiConsoleDevice::SPI_FRAME_HEADER_SIZE + data_len_bytes_w_pad)
+                    .unwrap())
+                % SpiConsoleDevice::SPI_FLASH_READ_BUFFER_SIZE;
+            self.next_read_address.set(next_read_address);
+        }
+
         // Copy data to the internal data queue.
         self.rx_buf.borrow_mut().extend(&data[..data_len_bytes]);
         Ok(data_len_bytes)
@@ -127,15 +140,14 @@ impl<'a> ConsoleDevice for SpiConsoleDevice<'a> {
     fn console_read(&self, buf: &mut [u8], _timeout: Duration) -> Result<usize> {
         if self.rx_buf.borrow().is_empty() {
             if let Some(ready_pin) = self.get_tx_ready_pin()? {
-                if !self.device_tx_ready.get() && ready_pin.read()? {
-                    self.device_tx_ready.set(true);
+                if ready_pin.read()? {
                     if self.read_from_spi()? == 0 {
                         // If we are gated by the TX-ready pin, only perform the SPI console read if
                         // the ready pin is high.
                         return Ok(0);
                     }
-                } else if self.device_tx_ready.get() && !ready_pin.read()? {
-                    self.device_tx_ready.set(false);
+                } else {
+                    return Ok(0);
                 }
             } else if self.read_from_spi()? == 0 {
                 return Ok(0);

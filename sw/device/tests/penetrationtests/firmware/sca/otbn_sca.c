@@ -29,11 +29,6 @@ static dif_otbn_t otbn;
 static dif_keymgr_t keymgr;
 static dif_kmac_t kmac;
 
-// NOP macros.
-#define NOP1 "addi x0, x0, 0\n"
-#define NOP10 NOP1 NOP1 NOP1 NOP1 NOP1 NOP1 NOP1 NOP1 NOP1 NOP1
-#define NOP30 NOP10 NOP10 NOP10
-
 enum {
   kKeySideloadNumIt = 16,
   /**
@@ -222,6 +217,8 @@ static status_t p256_ecdsa_sign(const uint32_t *msg,
 status_t handle_otbn_sca_ecdsa_p256_sign(ujson_t *uj) {
   // Get masks off or on.
   penetrationtest_otbn_sca_en_masks_t uj_data_masks;
+  TRY(ujson_deserialize_penetrationtest_otbn_sca_en_masks_t(uj,
+                                                            &uj_data_masks));
 
   // Get message and key.
   penetrationtest_otbn_sca_ecdsa_p256_sign_t uj_data;
@@ -473,6 +470,9 @@ status_t handle_otbn_sca_ecdsa_p256_sign_fvsr_batch(ujson_t *uj) {
 }
 
 status_t handle_otbn_pentest_init(ujson_t *uj) {
+  penetrationtest_cpuctrl_t uj_data;
+  TRY(ujson_deserialize_penetrationtest_cpuctrl_t(uj, &uj_data));
+
   // Configure the entropy complex for OTBN. Set the reseed interval to max
   // to avoid a non-constant trigger window.
   TRY(pentest_configure_entropy_source_max_reseed_interval());
@@ -491,14 +491,21 @@ status_t handle_otbn_pentest_init(ujson_t *uj) {
     return ABORTED();
   }
 
-  // Disable the instruction cache and dummy instructions for better SCA
-  // measurements.
-  pentest_configure_cpu();
+  // Configure the CPU for the pentest.
+  penetrationtest_device_info_t uj_output;
+  TRY(pentest_configure_cpu(
+      uj_data.icache_disable, uj_data.dummy_instr_disable,
+      uj_data.enable_jittery_clock, uj_data.enable_sram_readback,
+      &uj_output.clock_jitter_locked, &uj_output.clock_jitter_en,
+      &uj_output.sram_main_readback_locked, &uj_output.sram_ret_readback_locked,
+      &uj_output.sram_main_readback_en, &uj_output.sram_ret_readback_en));
 
   // Read device ID and return to host.
-  penetrationtest_device_id_t uj_output;
   TRY(pentest_read_device_id(uj_output.device_id));
-  RESP_OK(ujson_serialize_penetrationtest_device_id_t, uj, &uj_output);
+  RESP_OK(ujson_serialize_penetrationtest_device_info_t, uj, &uj_output);
+
+  // Read different SKU config fields and return to host.
+  TRY(pentest_send_sku_config(uj));
 
   return OK_STATUS();
 }
@@ -629,7 +636,6 @@ status_t handle_otbn_sca_rsa512_decrypt(ujson_t *uj) {
   // Get RSA256 parameters.
   penetrationtest_otbn_sca_rsa512_dec_t uj_data;
   TRY(ujson_deserialize_penetrationtest_otbn_sca_rsa512_dec_t(uj, &uj_data));
-
   otbn_load_app(kOtbnAppRsa);
 
   uint32_t mode = 2;  // Decrypt.
@@ -639,8 +645,8 @@ status_t handle_otbn_sca_rsa512_decrypt(ujson_t *uj) {
   // Write data into OTBN DMEM.
   TRY(dif_otbn_dmem_write(&otbn, kOtbnVarRsaMode, &mode, sizeof(mode)));
   TRY(dif_otbn_dmem_write(&otbn, kOtbnVarRsaNLimbs, &n_limbs, sizeof(n_limbs)));
-  TRY(dif_otbn_dmem_write(&otbn, kOtbnVarRsaModulus, uj_data.mod,
-                          sizeof(uj_data.mod)));
+  TRY(dif_otbn_dmem_write(&otbn, kOtbnVarRsaModulus, uj_data.modu,
+                          sizeof(uj_data.modu)));
   TRY(dif_otbn_dmem_write(&otbn, kOtbnVarRsaExp, uj_data.exp,
                           sizeof(uj_data.exp)));
   TRY(dif_otbn_dmem_write(&otbn, kOtbnVarRsaInOut, uj_data.msg,

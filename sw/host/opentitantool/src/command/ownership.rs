@@ -4,8 +4,10 @@
 
 use anyhow::{anyhow, ensure, Result};
 use clap::{Args, Subcommand, ValueEnum};
+use serde_annotate::Annotate;
 use std::any::Any;
 use std::fs::{File, OpenOptions};
+use std::io::Write;
 use std::path::PathBuf;
 
 use opentitanlib::app::command::CommandDispatch;
@@ -13,7 +15,10 @@ use opentitanlib::app::TransportWrapper;
 use opentitanlib::chip::helper::{OwnershipActivateParams, OwnershipUnlockParams};
 use opentitanlib::crypto::ecdsa::{EcdsaPrivateKey, EcdsaPublicKey, EcdsaRawSignature};
 use opentitanlib::crypto::sha256::Sha256Digest;
-use opentitanlib::ownership::{GlobalFlags, KeyMaterial, OwnerBlock, OwnershipKeyAlg, TlvHeader};
+use opentitanlib::ownership::{
+    DetachedSignature, DetachedSignatureCommand, GlobalFlags, KeyMaterial, OwnerBlock,
+    OwnershipKeyAlg, TlvHeader,
+};
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq)]
 enum Format {
@@ -88,7 +93,11 @@ impl CommandDispatch for OwnershipConfigCommand {
         }
 
         if let Some(output) = &self.output {
-            let mut f = OpenOptions::new().write(true).create(true).open(output)?;
+            let mut f = OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open(output)?;
             config.write(&mut f)?;
             Ok(None)
         } else {
@@ -255,10 +264,82 @@ impl CommandDispatch for OwnershipVerifyCommand {
     }
 }
 
+/// Compute digest command.
+#[derive(Debug, Args)]
+pub struct OwnershipDigestCommand {
+    #[arg(help = "binary ownership config block")]
+    input: PathBuf,
+    /// Filename for an output bin file.
+    #[arg(short, long)]
+    bin: Option<PathBuf>,
+}
+
+/// Response format for the digest command.
+#[derive(serde::Serialize, Annotate)]
+pub struct OwnershipDigestResponse {
+    #[annotate(comment = "SHA256 Digest excluding the signature and seal bytes", format = hexstr)]
+    pub digest: Sha256Digest,
+}
+
+impl CommandDispatch for OwnershipDigestCommand {
+    fn run(
+        &self,
+        _context: &dyn Any,
+        _transport: &TransportWrapper,
+    ) -> Result<Option<Box<dyn erased_serde::Serialize>>> {
+        let input = std::fs::read(&self.input)?;
+        let digest = Sha256Digest::hash(&input[..OwnerBlock::SIGNATURE_OFFSET]);
+
+        if let Some(bin) = &self.bin {
+            let mut file = File::create(bin)?;
+            file.write_all(digest.as_ref())?;
+        }
+        Ok(Some(Box::new(OwnershipDigestResponse { digest })))
+    }
+}
+
+#[derive(Debug, Args)]
+pub struct OwnershipDetachedSignatureCommand {
+    #[arg(short, long)]
+    command: DetachedSignatureCommand,
+    #[arg(long)]
+    key_alg: OwnershipKeyAlg,
+    #[arg(short, long)]
+    nonce: u64,
+    #[arg(long)]
+    ecdsa_sig: Option<PathBuf>,
+    #[arg(long)]
+    spx_sig: Option<PathBuf>,
+    /// Filename for an output detached signature bin file.
+    output: PathBuf,
+}
+
+impl CommandDispatch for OwnershipDetachedSignatureCommand {
+    fn run(
+        &self,
+        _context: &dyn Any,
+        _transport: &TransportWrapper,
+    ) -> Result<Option<Box<dyn erased_serde::Serialize>>> {
+        let detatch_sig = DetachedSignature::from_raw_signatures(
+            self.command.into(),
+            self.key_alg,
+            self.nonce,
+            self.ecdsa_sig.as_deref(),
+            self.spx_sig.as_deref(),
+        )?;
+
+        let mut file = File::create(&self.output)?;
+        detatch_sig.write(&mut file)?;
+        Ok(None)
+    }
+}
+
 #[derive(Debug, Subcommand, CommandDispatch)]
 pub enum OwnershipCommand {
     Config(OwnershipConfigCommand),
     Activate(OwnershipActivateCommand),
     Unlock(OwnershipUnlockCommand),
     Verify(OwnershipVerifyCommand),
+    Digest(OwnershipDigestCommand),
+    DetachedSignature(OwnershipDetachedSignatureCommand),
 }

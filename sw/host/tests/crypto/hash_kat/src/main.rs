@@ -114,7 +114,7 @@ fn run_hash_testcase(
     .send(spi_console)?;
 
     // Get hash output
-    let hash_output = CryptotestHashOutput::recv(spi_console, opts.timeout, false)?;
+    let hash_output = CryptotestHashOutput::recv(spi_console, opts.timeout, false, false)?;
     // Stepwise hashing is currently supported by SHA2 only.
     let mut failed = false;
     match test_case.algorithm.as_str() {
@@ -158,7 +158,7 @@ fn run_hash_testcase(
 
 fn test_hash(opts: &Opts, transport: &TransportWrapper) -> Result<()> {
     let spi = transport.spi("BOOTSTRAP")?;
-    let spi_console_device = SpiConsoleDevice::new(&*spi, None)?;
+    let spi_console_device = SpiConsoleDevice::new(&*spi, None, /*ignore_frame_num=*/ false)?;
     let _ = UartConsole::wait_for(&spi_console_device, r"Running [^\r\n]*", opts.timeout)?;
 
     let mut test_counter = 0u32;

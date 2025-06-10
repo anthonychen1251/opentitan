@@ -96,7 +96,7 @@ fn strap_pattern(value: u8) -> String {
         let v = (value >> (2 * i)) & 3;
         buf[2 - i] = bits[v as usize];
     }
-    return std::str::from_utf8(&buf).unwrap().into();
+    std::str::from_utf8(&buf).unwrap().into()
 }
 
 fn test_sw_strap_values(opts: &Opts, transport: &TransportWrapper) -> Result<()> {
@@ -122,7 +122,7 @@ fn test_sw_strap_values(opts: &Opts, transport: &TransportWrapper) -> Result<()>
             sw_strap_set_verilator(transport, value)?;
         }
         TestCommand::SwStrapRead.send(&*uart)?;
-        let response = Status::recv(&*uart, opts.timeout, false)?;
+        let response = Status::recv(&*uart, opts.timeout, false, false)?;
         assert_eq!(value, u8::try_from(response)?);
     }
     Ok(())

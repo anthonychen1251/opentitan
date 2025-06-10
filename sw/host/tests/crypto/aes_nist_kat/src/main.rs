@@ -120,7 +120,7 @@ fn run_aes_testcase(
     }
     .send(spi_console)?;
 
-    let aes_output = CryptotestAesOutput::recv(spi_console, opts.timeout, false)?;
+    let aes_output = CryptotestAesOutput::recv(spi_console, opts.timeout, false, false)?;
     assert_eq!(
         aes_output.output[0..input_len],
         expected_output[0..input_len]
@@ -130,7 +130,7 @@ fn run_aes_testcase(
 
 fn test_aes(opts: &Opts, transport: &TransportWrapper) -> Result<()> {
     let spi = transport.spi("BOOTSTRAP")?;
-    let spi_console_device = SpiConsoleDevice::new(&*spi, None)?;
+    let spi_console_device = SpiConsoleDevice::new(&*spi, None, /*ignore_frame_num=*/ false)?;
     let _ = UartConsole::wait_for(&spi_console_device, r"Running [^\r\n]*", opts.timeout)?;
 
     let mut test_counter = 0u32;

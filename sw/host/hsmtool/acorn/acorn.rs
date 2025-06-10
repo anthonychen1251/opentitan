@@ -209,8 +209,8 @@ impl Acorn {
         // free function.
         unsafe {
             let public_key = acorn_bindgen::acorn_buffer {
-                // Transmute because the acorn API wants a mut ptr (but it wont mutate).
-                ptr: std::mem::transmute(public_key.as_ptr()),
+                // The acorn API wants a mut ptr (but it wont mutate).
+                ptr: public_key.as_ptr().cast_mut(),
                 len: public_key.len() as u32,
             };
             let mut rsp = acorn_bindgen::acorn_response_getPublicHash::default();
@@ -297,6 +297,7 @@ impl SpxInterface for Acorn {
                 Ok(KeyInfo {
                     hash: rust_string(rsp.hash),
                     algorithm: rust_string(rsp.algorithm),
+                    domain: None,
                     public_key: pkey.to_vec(),
                     private_blob: blob.to_vec(),
                 })
@@ -315,6 +316,7 @@ impl SpxInterface for Acorn {
         &self,
         alias: &str,
         algorithm: &str,
+        _domain: SpxDomain,
         token: &str,
         flags: GenerateFlags,
     ) -> Result<KeyEntry> {
@@ -352,6 +354,7 @@ impl SpxInterface for Acorn {
                     alias: rust_string(rsp.alias),
                     hash: Some(rust_string(rsp.hash)),
                     algorithm: algorithm.to_string(),
+                    domain: None,
                     private_blob,
                     private_key,
                 })
@@ -370,6 +373,7 @@ impl SpxInterface for Acorn {
         &self,
         alias: &str,
         algorithm: &str,
+        _domain: SpxDomain,
         token: &str,
         overwrite: bool,
         public_key: &[u8],
@@ -383,13 +387,13 @@ impl SpxInterface for Acorn {
         // free function.
         unsafe {
             let public_key = acorn_bindgen::acorn_buffer {
-                // Transmute because the acorn API wants a mut ptr (but it wont mutate).
-                ptr: std::mem::transmute(public_key.as_ptr()),
+                // The acorn API wants a mut ptr (but it wont mutate).
+                ptr: public_key.as_ptr().cast_mut(),
                 len: public_key.len() as u32,
             };
             let private_key = acorn_bindgen::acorn_buffer {
-                // Transmute because the acorn API wants a mut ptr (but it wont mutate).
-                ptr: std::mem::transmute(private_key.as_ptr()),
+                // The acorn API wants a mut ptr (but it wont mutate).
+                ptr: private_key.as_ptr().cast_mut(),
                 len: private_key.len() as u32,
             };
 
@@ -415,6 +419,7 @@ impl SpxInterface for Acorn {
                     alias: rust_string(rsp.alias),
                     hash: Some(rust_string(rsp.hash)),
                     algorithm: algorithm.to_string(),
+                    domain: None,
                     ..Default::default()
                 })
             } else {
@@ -445,7 +450,7 @@ impl SpxInterface for Acorn {
         // free function.
         unsafe {
             let message = acorn_bindgen::acorn_buffer {
-                ptr: std::mem::transmute(message.as_ptr()),
+                ptr: message.as_ptr().cast_mut(),
                 len: message.len() as u32,
             };
             let mut rsp = acorn_bindgen::acorn_response_sign::default();
@@ -491,11 +496,11 @@ impl SpxInterface for Acorn {
         // free function.
         unsafe {
             let message = acorn_bindgen::acorn_buffer {
-                ptr: std::mem::transmute(message.as_ptr()),
+                ptr: message.as_ptr().cast_mut(),
                 len: message.len() as u32,
             };
             let signature = acorn_bindgen::acorn_buffer {
-                ptr: std::mem::transmute(signature.as_ptr()),
+                ptr: signature.as_ptr().cast_mut(),
                 len: signature.len() as u32,
             };
             let mut rsp = acorn_bindgen::acorn_response_verify::default();

@@ -26,7 +26,7 @@ use opentitanlib::image::manifest_def::ManifestSpec;
 use opentitanlib::image::manifest_ext::{ManifestExtEntry, ManifestExtId};
 use opentitanlib::util::file::{FromReader, ToWriter};
 use opentitanlib::util::parse_int::ParseInt;
-use sphincsplus::{DecodeKey, SpxDomain, SpxPublicKey, SpxSecretKey};
+use sphincsplus::{DecodeKey, SphincsPlus, SpxDomain, SpxPublicKey, SpxRawSignature, SpxSecretKey};
 
 /// Bootstrap the target device.
 #[derive(Debug, Args)]
@@ -144,6 +144,9 @@ pub struct ManifestUpdateCommand {
     /// The signature domain (None, Pure, PreHashedSha256)
     #[arg(long, default_value_t = SpxDomain::default())]
     domain: SpxDomain,
+    /// The signature algorithm (Shake128sSimple, Sha2128sSimple)
+    #[arg(long, default_value_t = SphincsPlus::Sha2128sSimple)]
+    spx_algorithm: SphincsPlus,
     /// Set to true if the firmware uses a byte-reversed representation of the hash.
     #[arg(long, action = clap::ArgAction::Set, default_value = "false")]
     spx_hash_reversal_bug: bool,
@@ -273,7 +276,12 @@ impl CommandDispatch for ManifestUpdateCommand {
             .iter()
             .filter(|entry_spec| entry_spec.is_signed())
             .map(|e| e.id())
-            .chain(vec![ManifestExtId::spx_key.into()])
+            .chain(vec![
+                ManifestExtId::spx_key.into(),
+                ManifestExtId::secver_write.into(),
+                ManifestExtId::isfb.into(),
+                ManifestExtId::isfb_erase.into(),
+            ])
             .collect::<HashSet<u32>>();
         image.update_signed_region(&signed_ids)?;
 
@@ -329,8 +337,10 @@ impl CommandDispatch for ManifestUpdateCommand {
         }
         // Attach SPX+ signature.
         if let Some(spx_signature) = &self.spx_signature {
-            let signature = std::fs::read(spx_signature)?;
-            image.add_manifest_extension(ManifestExtEntry::new_spx_signature_entry(&signature)?)?;
+            let signature = SpxRawSignature::read_from_file(spx_signature, self.spx_algorithm)?;
+            image.add_manifest_extension(ManifestExtEntry::new_spx_signature_entry(
+                signature.as_bytes(),
+            )?)?;
         }
 
         image.write_to_file(self.output.as_ref().unwrap_or(&self.image))?;
@@ -371,13 +381,14 @@ impl CommandDispatch for ManifestVerifyCommand {
 
         if self.spx {
             image.map_signed_region(|b| {
-                sigverify_params.spx_verify(b, self.domain).map_err(|x| {
-                    eprintln!(
-                        "SPX+ signature verification for domain '{}' failed",
-                        self.domain
-                    );
-                    x
-                })
+                sigverify_params
+                    .spx_verify(b, self.domain)
+                    .inspect_err(|_| {
+                        eprintln!(
+                            "SPX+ signature verification for domain '{}' failed",
+                            self.domain
+                        );
+                    })
             })??;
         }
 

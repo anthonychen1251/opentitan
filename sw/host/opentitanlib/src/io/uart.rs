@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::io::{self, Read};
+use std::os::fd::BorrowedFd;
 use std::rc::Rc;
 use std::time::Duration;
 
@@ -22,15 +23,15 @@ use crate::transport::TransportError;
 pub struct UartParams {
     /// UART instance.
     #[arg(long, default_value = "CONSOLE")]
-    uart: String,
+    pub uart: String,
 
     /// UART baudrate.
     #[arg(long)]
-    baudrate: Option<u32>,
+    pub baudrate: Option<u32>,
 
     /// Enable software flow control.
     #[arg(long)]
-    flow_control: bool,
+    pub flow_control: bool,
 }
 
 impl UartParams {
@@ -120,6 +121,10 @@ pub trait Uart {
     /// Get the same single `NonblockingHelp` object as from top level `Transport.nonblocking_help()`.
     fn nonblocking_help(&self) -> Result<Rc<dyn NonblockingHelp>> {
         Ok(Rc::new(NoNonblockingHelp))
+    }
+
+    fn borrow_fd(&self) -> Result<BorrowedFd> {
+        Err(TransportError::UnsupportedOperation.into())
     }
 }
 

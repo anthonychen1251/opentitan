@@ -104,6 +104,9 @@ pub fn run_sram_cp_provision(
     response: &mut CpResponse,
     timeout: Duration,
 ) -> Result<()> {
+    // Reset the SPI console before loading the target firmware.
+    spi_console.reset_frame_counter();
+
     // Set CPU TAP straps, reset, and connect to the JTAG interface.
     transport.pin_strapping("PINMUX_TAP_RISCV")?.apply()?;
     transport.reset_target(reset_delay, true)?;
@@ -132,7 +135,7 @@ pub fn run_sram_cp_provision(
 
     // Wait to receive CP device ID, and encode in big-endian in response.
     let _ = UartConsole::wait_for(spi_console, r"Exporting CP device ID ...", timeout)?;
-    response.cp_device_id = ManufCpProvisioningDataOut::recv(spi_console, timeout, true)?
+    response.cp_device_id = ManufCpProvisioningDataOut::recv(spi_console, timeout, true, false)?
         .cp_device_id
         .iter()
         .rev()

@@ -196,7 +196,7 @@ fn run_ecdh_testcase(
     }
     .send(spi_console)?;
 
-    let ecdh_output = CryptotestEcdhDeriveOutput::recv(spi_console, opts.timeout, false)?;
+    let ecdh_output = CryptotestEcdhDeriveOutput::recv(spi_console, opts.timeout, false, false)?;
     let out_len = ecdh_output.shared_secret_len;
     if out_len > ecdh_output.shared_secret.len() {
         panic!("ECDH returned shared secret was too long for device firmware configuration.");
@@ -220,7 +220,7 @@ fn run_ecdh_testcase(
 
 fn test_ecdh(opts: &Opts, transport: &TransportWrapper) -> Result<()> {
     let spi = transport.spi("BOOTSTRAP")?;
-    let spi_console_device = SpiConsoleDevice::new(&*spi, None)?;
+    let spi_console_device = SpiConsoleDevice::new(&*spi, None, /*ignore_frame_num=*/ false)?;
     let _ = UartConsole::wait_for(&spi_console_device, r"Running [^\r\n]*", opts.timeout)?;
 
     let mut test_counter = 0u32;
