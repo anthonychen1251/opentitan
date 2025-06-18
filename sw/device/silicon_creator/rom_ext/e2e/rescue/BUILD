@@ -609,13 +609,11 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
     },
     fpga = fpga_params(
-        assemble = "{romext}@{romext_offset} {firmware}@{owner_offset}",
+        assemble = "{romext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
         binaries = {
             "//sw/device/silicon_creator/rom_ext:rom_ext_xmodem_rescue_disability": "romext",
             "//sw/device/silicon_creator/rom_ext/e2e/attestation:print_certs": "firmware",
         },
-        owner_offset = "0x10000",
-        romext_offset = "0",
         test_cmd = """
         --clear-bitstream
         --bootstrap={firmware}
@@ -632,14 +630,12 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
     },
     fpga = fpga_params(
-        assemble = "{romext}@{romext_offset} {firmware}@{owner_offset}",
+        assemble = "{romext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
         binaries = {
             "//sw/device/silicon_creator/rom_ext:rom_ext_spidfu_rescue_disability": "romext",
             "//sw/device/silicon_creator/rom_ext/e2e/attestation:print_certs": "firmware",
         },
-        owner_offset = "0x10000",
         params = "-p spi-dfu -t gpio -v +Ioa2",
-        romext_offset = "0",
         test_cmd = """
         --clear-bitstream
         --bootstrap={firmware}
