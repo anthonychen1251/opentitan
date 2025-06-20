@@ -669,3 +669,29 @@ opentitan_test(
         test_harness = "//sw/host/tests/rescue:rescue_test",
     ),
 )
+
+
+opentitan_test(
+    name = "rescue_user_error",
+    exec_env = {
+        "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
+        "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
+    },
+    fpga = fpga_params(
+        assemble = "",
+        rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_dice_x509_slot_a",
+        test_cmd = """
+            --exec="transport init"
+            --exec="fpga clear-bitstream"
+            --exec="fpga load-bitstream {bitstream}"
+            --exec="bootstrap --clear-uart=true {rom_ext}"
+            # Trigger rescue and make sure we can get the device ID.
+            --exec="rescue get-device-id --reboot=false"
+            # Send Invalid rescue command.
+            --exec="console --non-interactive --send='XYZ\r' --exit-success='error: unrecognized mode'"
+            # Try the `REBO` mode and make sure we reboot without crash.
+            --exec="console --non-interactive --send='REBO\r' --exit-success='ROM:' --exit-failure='BFV:.*\r\n'"
+            no-op
+        """,
+    ),
+)
