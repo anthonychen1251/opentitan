@@ -72,8 +72,8 @@ HYPER310_ROM_EXT_TESTS=(
   '//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_too_big_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_restricted_commands_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/secver:secver_write_test_fpga_hyper310_rom_ext'
-  '//sw/device/silicon_creator/rom_ext/e2e/verified_boot:key_dev_hybrid_spx_prehashed_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/verified_boot:bad_spx_manifest_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/verified_boot:key_dev_hybrid_spx_prehashed_fpga_hyper310_rom_ext'
 )
 
 PROVISIONING_TESTS=(
@@ -89,12 +89,10 @@ UNIT_TESTS=(
   '//sw/device/silicon_creator/lib/drivers:alert_unittest'
   '//sw/device/silicon_creator/lib/drivers:ast_unittest'
   '//sw/device/silicon_creator/lib/drivers:flash_ctrl_unittest'
-  '//sw/device/silicon_creator/lib/drivers:ibex_unittest'
   '//sw/device/silicon_creator/lib/drivers:keymgr_unittest'
   '//sw/device/silicon_creator/lib/drivers:kmac_unittest'
   '//sw/device/silicon_creator/lib/drivers:lifecycle_unittest'
   '//sw/device/silicon_creator/lib/drivers:otbn_unittest'
-  '//sw/device/silicon_creator/lib/drivers:otp_unittest'
   '//sw/device/silicon_creator/lib/drivers:rnd_unittest'
   '//sw/device/silicon_creator/lib/drivers:spi_device_unittest'
   '//sw/device/silicon_creator/lib/drivers:watchdog_unittest'

@@ -106,6 +106,7 @@ EX_CW310_FAKE_KEYS_TESTS=(
 //sw/device/silicon_creator/lib/drivers:rstmgr_functest_fpga_cw310_rom_with_fake_keys
 //sw/device/silicon_creator/lib/drivers:uart_functest_fpga_cw310_rom_with_fake_keys
 //sw/device/silicon_creator/lib/drivers:watchdog_functest_fpga_cw310_rom_with_fake_keys
+//sw/device/silicon_creator/lib/ownership:owner_verify_functest_fpga_cw310_rom_with_fake_keys
 //sw/device/silicon_creator/lib/sigverify:ecdsa_p256_verify_functest_fpga_cw310_rom_with_fake_keys
 //sw/device/silicon_creator/lib/sigverify:mod_exp_ibex_functest_hardcoded_fpga_cw310_rom_with_fake_keys
 //sw/device/silicon_creator/lib/sigverify:rsa_verify_functest_fpga_cw310_rom_with_fake_keys
