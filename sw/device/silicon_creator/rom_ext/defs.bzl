@@ -203,6 +203,18 @@ TEST_OWNER_CONFIGS = {
         ],
         "rescue_module": ["//sw/device/silicon_creator/lib/rescue:rescue_spidfu"],
     },
+    "rescue_config_module_mismatch": {
+        "owner_defines": [
+            # 0x58 is 'X'modem.
+            "WITH_RESCUE_PROTOCOL=0x58",
+            "WITH_RESCUE_TRIGGER=0",
+            # Timeout: 0x80=enter_on_fail, 0x05 = 5 seconds.
+            "WITH_RESCUE_TIMEOUT=0x85",
+            # Disallow all the rescue commands.
+            "WITH_RESCUE_COMMAND_ALLOW=kRescueModeOwnerBlock",
+        ],
+        "rescue_module": ["//sw/device/silicon_creator/lib/rescue:rescue_spidfu"],
+    },
     "isfb": {
         "owner_defines": [
             "WITH_ISFB=1",

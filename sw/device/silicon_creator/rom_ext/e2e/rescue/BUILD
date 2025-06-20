@@ -717,3 +717,28 @@ opentitan_test(
         test_harness = "//sw/host/tests/rescue:rescue_test",
     ),
 )
+
+
+opentitan_test(
+    name = "rescue_config_module_mismatch",
+    exec_env = {
+        "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
+        "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
+    },
+    fpga = fpga_params(
+        assemble = "{romext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
+        binaries = {
+            "//sw/device/silicon_creator/rom_ext:rom_ext_rescue_config_module_mismatch": "romext",
+            "//sw/device/silicon_creator/rom_ext/e2e/attestation:print_certs": "firmware",
+        },
+        test_cmd = """
+            --exec="transport init"
+            --exec="fpga clear-bitstream"
+            --exec="fpga load-bitstream {bitstream}"
+            --exec="bootstrap --clear-uart=true {firmware}"
+            # --exec="rescue no-op"
+            --exec="console --non-interactive --exit-success='OWNER_PAGE_0:' --timeout=10s"
+            no-op
+        """,
+    ),
+)
