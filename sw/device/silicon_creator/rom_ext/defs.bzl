@@ -184,6 +184,25 @@ TEST_OWNER_CONFIGS = {
         ],
         "rescue_module": ["//sw/device/silicon_creator/lib/rescue:rescue_spidfu"],
     },
+    "spidfu_rescue_owner_block_invalid_state": {
+        "owner_defines": [
+            # 0x53 is 'S'pi.
+            "WITH_RESCUE_PROTOCOL=0x53",
+            # Trigger 3 is GPIO pin.
+            "WITH_RESCUE_TRIGGER=3",
+            # When the trigger is GPIO, the index is the MuxedPad to us as the sense
+            # input. Index 2 is kTopEarlgreyMuxedPadsIoa2.
+            "WITH_RESCUE_INDEX=2",
+            # GPIO param 3 means enable the internal pull resistor and trigger
+            # rescue when the GPIO is high.
+            "WITH_RESCUE_GPIO_PARAM=3",
+            # Timeout: 0x80=enter_on_fail, 0x05 = 5 seconds.
+            "WITH_RESCUE_TIMEOUT=0x85",
+            # Disallow all the rescue commands.
+            "WITH_RESCUE_COMMAND_ALLOW=kRescueModeOwnerBlock",
+        ],
+        "rescue_module": ["//sw/device/silicon_creator/lib/rescue:rescue_spidfu"],
+    },
     "isfb": {
         "owner_defines": [
             "WITH_ISFB=1",
