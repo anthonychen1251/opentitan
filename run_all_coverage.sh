@@ -858,6 +858,11 @@ HYPER310_ROMEXT_TESTS=(
 //sw/device/silicon_creator/rom_ext/e2e/handoff:sram_exec_disabled_test_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/handoff:sram_exec_enabled_test_fpga_hyper310_rom_ext
 
+//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_config_module_mismatch_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_user_error_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_rescue_boot_svc_req_disability_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_rescue_owner_block_invalid_state_fpga_hyper310_rom_ext
+
 # FAILED
 # //sw/device/silicon_creator/rom_ext/e2e/rescue/std_utils:usbdfu_protocol_fpga_hyper310_rom_ext
 

@@ -655,6 +655,11 @@ EX_CW340_ROM_EXT_TESTS=(
 //sw/device/silicon_creator/rom_ext/e2e/handoff:sram_exec_disabled_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/handoff:sram_exec_enabled_test_fpga_cw340_rom_ext
 
+//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_config_module_mismatch_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_user_error_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_rescue_boot_svc_req_disability_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_rescue_owner_block_invalid_state_fpga_cw340_rom_ext
+
 # //sw/device/silicon_creator/rom_ext/e2e/handoff:epmp_test_fpga_cw340_rom_ext
 )
 
