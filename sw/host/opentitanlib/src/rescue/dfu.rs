@@ -64,6 +64,7 @@ pub enum DfuRequestType {
     Out = 0x21,    // direction=out, type=class, recipient=interface.
     In = 0xA1,     // direction=in, type=class, recipient=interface.
     Vendor = 0x40, // direction=out, type=vendor, recipient=device.
+    Interface = 0x01, // Fake.
 }
 
 impl From<DfuRequestType> for u8 {

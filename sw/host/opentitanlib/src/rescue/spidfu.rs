@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
@@ -37,6 +37,7 @@ pub struct SpiDfu {
 
 impl SpiDfu {
     const SET_INTERFACE: u8 = 0x0b;
+    const INVALID_INTERFACE: u8 = 0xff;
 
     pub fn new(spi: Rc<dyn Target>, params: RescueParams) -> Self {
         SpiDfu {
@@ -60,6 +61,26 @@ impl SpiDfu {
                     } else {
                         return Err(e);
                     }
+                }
+            }
+        }
+    }
+
+    fn expect_usb_bad_mode_write_control(
+        &self,
+        request_type: u8,
+        request: u8,
+        value: u16,
+        index: u16,
+    ) -> Result<()> {
+        let result = self.write_control(request_type, request, value, index, &[]);
+        match result {
+            Ok(_) => Err(anyhow!("Invalid write control should fail")),
+            Err(e) => {
+                if e.to_string().contains("UsbBadSetup") {
+                    Ok(())
+                } else {
+                    Err(anyhow!("Unexpected error: {}", e.to_string()))
                 }
             }
         }
@@ -106,6 +127,59 @@ impl Rescue for SpiDfu {
     }
 
     fn set_mode(&self, mode: RescueMode) -> Result<()> {
+        // Use RescueMode::EraseOwner to trigger special test case.
+        if mode == RescueMode::EraseOwner {
+            let setting = u32::from(mode);
+            // dfu invalid rescue mode
+            self.expect_usb_bad_mode_write_control(
+                DfuRequestType::Vendor.into(),
+                Self::SET_INTERFACE,
+                (setting >> 16) as u16,
+                setting as u16,
+            )?;
+            // dfu vendor request invalid mode
+            self.expect_usb_bad_mode_write_control(
+                DfuRequestType::Vendor.into(),
+                Self::INVALID_INTERFACE,
+                (setting >> 16) as u16,
+                setting as u16,
+            )?;
+            // dfu kUsbSetupReqSetInterface invalid mode
+            self.expect_usb_bad_mode_write_control(
+                DfuRequestType::Interface.into(),
+                // kUsbSetupReqSetInterface
+                11 as u8,
+                (setting >> 16) as u16,
+                setting as u16,
+            )?;
+
+            // dfu interface request invalid mode
+            self.expect_usb_bad_mode_write_control(
+                DfuRequestType::Interface.into(),
+                0 as u8,
+                (setting >> 16) as u16,
+                setting as u16,
+            )?;
+            // dfu control invalid request
+            self.expect_usb_bad_mode_write_control(
+                DfuRequestType::Out.into(),
+                7 as u8,
+                (setting >> 16) as u16,
+                setting as u16,
+            )?;
+
+            // dfu kUsbSetupReqGetInterface
+            let _ = self.write_control(
+                DfuRequestType::Interface.into(),
+                // kUsbSetupReqGetInterface
+                10 as u8,
+                (setting >> 16) as u16,
+                setting as u16,
+                &[],
+            )?;
+
+            return Ok(());
+        }
         let setting = match mode {
             // FIXME: Remap "send" modes to their corresponding "recv" mode.
             // The firmware will stage the recv data, then enter the send mode.
