@@ -70,6 +70,25 @@ pub enum RescueTestActions {
     GetBootLog,
     GetOwnerPage,
     Disability,
+    SpiDfuInvalidCmd,
+}
+
+fn spi_dfu_invalid_commands(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
+    if params.protocol == RescueProtocol::SpiDfu {
+        let rescue = params.create(transport)?;
+        rescue.enter(transport, EntryMode::Reset)?;
+        rescue.set_mode(RescueMode::EraseOwner)?;
+        #[cfg(feature = "ot_coverage_build")]
+        {
+            rescue.reboot()?;
+
+            let uart = transport.uart("console")?;
+            UartConsole::wait_for(&*uart, r"CDI_0:", Duration::from_secs(5))?;
+            UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
+        }
+    }
+
+    Ok(())
 }
 
 fn get_device_id_test(
@@ -534,6 +553,9 @@ fn main() -> Result<()> {
             RescueTestActions::Disability => {
                 let mut owner_block = load_owner_block(opts.owner_block.as_deref(), &transport)?;
                 disability_test(&mut owner_block, &rescue.params, &transport)?;
+            }
+            RescueTestActions::SpiDfuInvalidCmd => {
+                spi_dfu_invalid_commands(&rescue.params, &transport)?;
             }
         },
     }
