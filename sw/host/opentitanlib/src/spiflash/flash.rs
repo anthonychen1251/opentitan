@@ -525,6 +525,27 @@ impl SpiFlash {
         Ok(self)
     }
 
+    pub fn invalid_program(&self, spi: &dyn Target, address: u32, buffer: &[u8]) -> Result<&Self> {
+        spi.run_eeprom_transactions(&mut [
+            Transaction::Command(MODE_111.cmd(SpiFlash::WRITE_ENABLE)),
+            Transaction::Write(
+                MODE_111.cmd_addr(SpiFlash::PAGE_PROGRAM, address, self.address_mode),
+                buffer,
+            ),
+            Transaction::WaitForBusyClear,
+        ])?;
+        Ok(self)
+    }
+
+    /// Send invalid flash command opcode.
+    pub fn send_invalid_flash_command(spi: &dyn Target) -> Result<()> {
+        spi.run_eeprom_transactions(&mut [
+            Transaction::Command(MODE_111.cmd(SpiFlash::RESET_ENABLE)),
+            Transaction::Command(MODE_111.cmd(SpiFlash::CHIP_ERASE)),
+        ])?;
+        Ok(())
+    }
+
     /// Send the software reset sequence to the `spi` target.
     pub fn chip_reset(spi: &dyn Target) -> Result<()> {
         spi.run_eeprom_transactions(&mut [
