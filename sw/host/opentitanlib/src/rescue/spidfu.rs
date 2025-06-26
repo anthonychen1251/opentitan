@@ -127,7 +127,7 @@ impl Rescue for SpiDfu {
     }
 
     fn set_mode(&self, mode: RescueMode) -> Result<()> {
-        // Use RescueMode::EraseOwner to trigger special test case.
+        // Use RescueMode::EraseOwner to trigger special test cases.
         if mode == RescueMode::EraseOwner {
             let setting = u32::from(mode);
             // dfu invalid rescue mode
@@ -177,6 +177,28 @@ impl Rescue for SpiDfu {
                 setting as u16,
                 &[],
             )?;
+
+            // spi dfu unsupported setupdata request
+            self.expect_usb_bad_mode_write_control(
+                0 as u8,
+                // kUsbSetupReqGetInterface
+                10 as u8,
+                (setting >> 16) as u16,
+                setting as u16,
+            )?;
+
+            // spi dfu invalid flash opcode command
+            SpiFlash::send_invalid_flash_command(&*self.spi)?;
+
+            // dfu packet truncated
+            let payload = [0u8; 256];
+            let flash = self.flash.borrow();
+            flash.invalid_program(&*self.spi, 2040, &payload)?;
+
+            // spi dfu payload overflow.
+            // This test is intentionally disabled for now.
+            let payload_overflow = [0u8; 300];
+            let _ = flash.invalid_program(&*self.spi, 0, &payload_overflow);
 
             return Ok(());
         }
