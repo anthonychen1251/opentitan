@@ -287,6 +287,20 @@ impl UsbBackend {
             .context("USB error")
     }
 
+    /// Issue a USB control request with minimal timeout to cancel the transaction.
+    pub fn read_control_timeout_immediately(
+        &self,
+        request_type: u8,
+        request: u8,
+        value: u16,
+        index: u16,
+        buf: &mut [u8],
+    ) -> Result<usize> {
+        self.handle
+            .read_control(request_type, request, value, index, buf, Duration::from_millis(1))
+            .context("USB error")
+    }
+
     /// Read bulk data bytes to given USB endpoint.
     pub fn read_bulk(&self, endpoint: u8, data: &mut [u8]) -> Result<usize> {
         let len = self
