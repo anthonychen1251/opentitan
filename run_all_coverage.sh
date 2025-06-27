@@ -147,6 +147,9 @@ UNIT_TESTS=(
 //sw/device/silicon_creator/manuf/base:perso_tlv_data_unittest
 //sw/device/silicon_creator/lib/ownership:ownership_unittest
 
+# ???
+# //sw/device/silicon_creator/rom_ext:rom_ext_boot_services_unittest
+
 # CE: variable-sized object may not be initialized
 # //sw/device/lib/crypto/impl:keyblob_unittest
 
@@ -864,6 +867,8 @@ HYPER310_ROMEXT_TESTS=(
 //sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_rescue_boot_svc_req_disability_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_rescue_owner_block_invalid_state_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_invalid_cmd_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_dfu_control_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/rescue:usbdfu_in_cancel_fpga_hyper310_rom_ext
 
 //sw/device/silicon_creator/rom_ext/e2e/ownership:invalid_device_id_request_test_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/ownership:newversion_noupdate_with_bad_owner_block_test_fpga_hyper310_rom_ext

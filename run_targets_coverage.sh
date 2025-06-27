@@ -11,7 +11,8 @@ BASELINES=(
     "//sw/device/silicon_creator/rom:instrumented_mask_rom_baseline_coverage"
 )
 
-TARGETS=()
+TARGETS=(
+)
 
 EXTRA_TESTS=(
 )
