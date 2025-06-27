@@ -72,6 +72,7 @@ pub enum RescueTestActions {
     Disability,
     SpiDfuInvalidCmd,
     SpiDfuControl,
+    UsbDfuInCancel,
 }
 
 fn spi_dfu_invalid_commands(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
@@ -97,6 +98,25 @@ fn spi_dfu_control(params: &RescueParams, transport: &TransportWrapper) -> Resul
         let rescue = params.create(transport)?;
         rescue.enter(transport, EntryMode::Reset)?;
         rescue.set_mode(RescueMode::GetOwnerPage1)?;
+        #[cfg(feature = "ot_coverage_build")]
+        {
+            rescue.reboot()?;
+
+            let uart = transport.uart("console")?;
+            UartConsole::wait_for(&*uart, r"CDI_0:", Duration::from_secs(5))?;
+            UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
+        }
+    }
+
+    Ok(())
+}
+
+fn usb_dfu_in_transaction_cancel(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
+    if params.protocol == RescueProtocol::UsbDfu {
+        let rescue = params.create(transport)?;
+        rescue.enter(transport, EntryMode::Reset)?;
+        rescue.set_mode(RescueMode::DeviceId)?;
+        rescue.set_mode(RescueMode::EraseOwner)?;
         #[cfg(feature = "ot_coverage_build")]
         {
             rescue.reboot()?;
@@ -578,6 +598,9 @@ fn main() -> Result<()> {
             }
             RescueTestActions::SpiDfuControl => {
                 spi_dfu_control(&rescue.params, &transport)?;
+            }
+            RescueTestActions::UsbDfuInCancel => {
+                usb_dfu_in_transaction_cancel(&rescue.params, &transport)?;
             }
         },
     }

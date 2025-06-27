@@ -85,6 +85,19 @@ impl Rescue for UsbDfu {
     }
 
     fn set_mode(&self, mode: RescueMode) -> Result<()> {
+        // Use RescueMode::EraseOwner to trigger a special test case.
+        if mode == RescueMode::EraseOwner {
+            let mut data = vec![0u8; 2048];
+            let _ = UsbBackend::read_control_timeout_immediately(
+                &self.device(),
+                DfuRequestType::In.into(),
+                DfuRequest::UpLoad.into(),
+                0,
+                self.interface.get() as u16,
+                &mut data,
+            );
+            return Ok(());
+        }
         let setting = match mode {
             // FIXME: the RescueMode to AltSetting values either need to be permanently fixed, or
             // the alt interfaces need to describe themselves via a string descriptor.
