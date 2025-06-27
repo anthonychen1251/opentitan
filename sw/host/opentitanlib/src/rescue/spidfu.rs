@@ -85,6 +85,26 @@ impl SpiDfu {
             }
         }
     }
+    fn expect_usb_bad_mode_read_control(
+        &self,
+        request_type: u8,
+        request: u8,
+        value: u16,
+        index: u16,
+        data: &mut [u8],
+    ) -> Result<()> {
+        let result = self.read_control(request_type, request, value, index, data);
+        match result {
+            Ok(_) => Err(anyhow!("Invalid read control should fail")),
+            Err(e) => {
+                if e.to_string().contains("UsbBadSetup") {
+                    Ok(())
+                } else {
+                    Err(anyhow!("Unexpected error: {}", e.to_string()))
+                }
+            }
+        }
+    }
 }
 
 impl Rescue for SpiDfu {
@@ -199,6 +219,88 @@ impl Rescue for SpiDfu {
             // This test is intentionally disabled for now.
             let payload_overflow = [0u8; 300];
             let _ = flash.invalid_program(&*self.spi, 0, &payload_overflow);
+
+            return Ok(());
+        }
+        // Use RescueMode::GetOwnerPage1 to trigger another set of special test cases.
+        if mode == RescueMode::GetOwnerPage1 {
+            let setting = u32::from(mode);
+            // dfu control - kDfuActionNone
+            // state transition: kDfuStateIdle -> kDfuStateIdle
+            self.write_control(
+                DfuRequestType::Out.into(),
+                // kDfuReqAbort
+                6 as u8,
+                (setting >> 16) as u16,
+                setting as u16,
+                &[],
+            )?;
+
+            // dfu control - kDfuActionStateResponse
+            // state transition: kDfuStateIdle -> kDfuStateUpLoadIdle
+            self.write_control(
+                DfuRequestType::Out.into(),
+                // kDfuReqGetState
+                5 as u8,
+                (setting >> 16) as u16,
+                setting as u16,
+                &[],
+            )?;
+
+            // dfu control - kDfuActionClearError
+            // state transition: kDfuStateUpLoadIdle -> kDfuStateError
+            self.expect_usb_bad_mode_write_control(
+                DfuRequestType::Out.into(),
+                // kDfuReqClrStatus
+                4 as u8,
+                (setting >> 16) as u16,
+                setting as u16,
+            )?;
+            // state transition: kDfuStateError -> kDfuStateIdle
+            self.write_control(
+                DfuRequestType::Out.into(),
+                // kDfuReqClrStatus
+                4 as u8,
+                (setting >> 16) as u16,
+                setting as u16,
+                &[],
+            )?;
+
+            // dfu control - kDfuActionDataXfer bad length
+            // state transition: kDfuStateIdle -> kDfuStateError
+            let mut payload = [0u8; 2050];
+            self.expect_usb_bad_mode_read_control(
+                DfuRequestType::Out.into(),
+                // kDfuReqDnLoad
+                1 as u8,
+                (setting >> 16) as u16,
+                setting as u16,
+                // setup->length > sizeof(ctx->state.data)
+                &mut payload,
+            )?;
+
+            // state transition: kDfuStateError -> kDfuStateIdle
+            self.write_control(
+                DfuRequestType::Out.into(),
+                // kDfuReqClrStatus
+                4 as u8,
+                (setting >> 16) as u16,
+                setting as u16,
+                &[],
+            )?;
+
+            // dfu control - kDfuActionDataXfer invalid download
+            // state transition: kDfuStateIdle -> kDfuStateError
+            let mut payload2 = [0u8; 1];
+            self.expect_usb_bad_mode_read_control(
+                DfuRequestType::Out.into(),
+                // kDfuReqDnLoad
+                1 as u8,
+                (setting >> 16) as u16,
+                setting as u16,
+                // ctx->state.offset > ctx->state.flash_limit
+                &mut payload2,
+            )?;
 
             return Ok(());
         }
