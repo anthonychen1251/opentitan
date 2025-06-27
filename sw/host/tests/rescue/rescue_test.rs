@@ -71,6 +71,7 @@ pub enum RescueTestActions {
     GetOwnerPage,
     Disability,
     SpiDfuInvalidCmd,
+    SpiDfuControl,
 }
 
 fn spi_dfu_invalid_commands(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
@@ -78,6 +79,24 @@ fn spi_dfu_invalid_commands(params: &RescueParams, transport: &TransportWrapper)
         let rescue = params.create(transport)?;
         rescue.enter(transport, EntryMode::Reset)?;
         rescue.set_mode(RescueMode::EraseOwner)?;
+        #[cfg(feature = "ot_coverage_build")]
+        {
+            rescue.reboot()?;
+
+            let uart = transport.uart("console")?;
+            UartConsole::wait_for(&*uart, r"CDI_0:", Duration::from_secs(5))?;
+            UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
+        }
+    }
+
+    Ok(())
+}
+
+fn spi_dfu_control(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
+    if params.protocol == RescueProtocol::SpiDfu {
+        let rescue = params.create(transport)?;
+        rescue.enter(transport, EntryMode::Reset)?;
+        rescue.set_mode(RescueMode::GetOwnerPage1)?;
         #[cfg(feature = "ot_coverage_build")]
         {
             rescue.reboot()?;
@@ -556,6 +575,9 @@ fn main() -> Result<()> {
             }
             RescueTestActions::SpiDfuInvalidCmd => {
                 spi_dfu_invalid_commands(&rescue.params, &transport)?;
+            }
+            RescueTestActions::SpiDfuControl => {
+                spi_dfu_control(&rescue.params, &transport)?;
             }
         },
     }

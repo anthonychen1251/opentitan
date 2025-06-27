@@ -148,6 +148,12 @@
       kBootSvcMinBl0SecVerReqType, kBootSvcOwnershipActivateReqType,         \
       kBootSvcOwnershipUnlockReqType,
 #endif
+#ifndef WITH_RESCUE_START
+#define WITH_RESCUE_START (kRomExtSizeInPages)
+#endif
+#ifndef WITH_RESCUE_SIZE
+#define WITH_RESCUE_SIZE (256 - kRomExtSizeInPages)
+#endif
 
 enum {
   kRomExtSizeInPages = CHIP_ROM_EXT_SIZE_MAX / FLASH_CTRL_PARAM_BYTES_PER_PAGE,
@@ -299,8 +305,8 @@ rom_error_t sku_creator_owner_init(boot_data_t *bootdata) {
       .gpio = WITH_RESCUE_GPIO_PARAM,
       .timeout = WITH_RESCUE_TIMEOUT,
       .detect = (WITH_RESCUE_TRIGGER << 6) | WITH_RESCUE_INDEX,
-      .start = kRomExtSizeInPages,
-      .size = 256 - kRomExtSizeInPages,
+      .start = WITH_RESCUE_START,
+      .size = WITH_RESCUE_SIZE,
   };
   const uint32_t commands[] = {WITH_RESCUE_COMMAND_ALLOW};
   memcpy(&rescue->command_allow, commands, sizeof(commands));
@@ -342,10 +348,12 @@ rom_error_t sku_creator_owner_init(boot_data_t *bootdata) {
                (uintptr_t)end;
   memset((void *)end, 0x5a, len);
 
+#ifndef TEST_OWNER_DISABLE_OWNER_BLOCK_CHECK
   // Check that the owner_block will parse correctly.
   RETURN_IF_ERROR(owner_block_parse(&owner_page[0],
                                     /*check_only=*/kHardenedBoolTrue, NULL,
                                     NULL));
+#endif
   ownership_seal_page(/*page=*/0);
 
   // Since this module should only get linked in to FPGA builds, we can simply
