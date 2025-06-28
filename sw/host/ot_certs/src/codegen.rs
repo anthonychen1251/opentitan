@@ -20,7 +20,7 @@ use crate::template::{
 use crate::x509;
 
 /// The amount of test cases to generate for covering more corner cases.
-const TEST_CASE_COUNT: u32 = 100;
+const TEST_CASE_COUNT: u32 = 1000;
 
 pub struct Codegen {
     /// Header.
