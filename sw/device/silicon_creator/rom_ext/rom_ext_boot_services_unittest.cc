@@ -252,7 +252,11 @@ TEST_F(RomExtBootServicesTest, BootSvcMinBl0SecVer) {
   EXPECT_CALL(mock_manifest_, SpxSignature).WillOnce(Return(kErrorOk));
 
   EXPECT_CALL(mock_rnd_, Uint32);
-  EXPECT_CALL(mock_hmac_, sha256_init);
+
+  // EXPECT_CALL(mock_hmac_, sha256_init);
+  EXPECT_CALL(mock_hmac_, sha256_configure);
+  EXPECT_CALL(mock_hmac_, sha256_start);
+
   EXPECT_CALL(mock_lifecycle_, DeviceId);
   EXPECT_CALL(mock_otp_, read32);
   EXPECT_CALL(mock_otp_, read32);
@@ -261,7 +265,9 @@ TEST_F(RomExtBootServicesTest, BootSvcMinBl0SecVer) {
   EXPECT_CALL(mock_manifest_, DigestRegion);
   EXPECT_CALL(mock_hmac_, sha256_update);
   EXPECT_CALL(mock_hmac_, sha256_process);
-  EXPECT_CALL(mock_hmac_, sha256_final);
+
+  // EXPECT_CALL(mock_hmac_, sha256_final);
+  EXPECT_CALL(mock_hmac_, sha256_final_truncated);
 
   EXPECT_CALL(mock_owner_verify_, verify).WillOnce(Return(kErrorOk));
 
@@ -272,7 +278,11 @@ TEST_F(RomExtBootServicesTest, BootSvcMinBl0SecVer) {
   EXPECT_CALL(mock_manifest_, SpxSignature).WillOnce(Return(kErrorOk));
 
   EXPECT_CALL(mock_rnd_, Uint32);
-  EXPECT_CALL(mock_hmac_, sha256_init);
+
+  // EXPECT_CALL(mock_hmac_, sha256_init);
+  EXPECT_CALL(mock_hmac_, sha256_configure);
+  EXPECT_CALL(mock_hmac_, sha256_start);
+
   EXPECT_CALL(mock_lifecycle_, DeviceId);
   EXPECT_CALL(mock_otp_, read32);
   EXPECT_CALL(mock_otp_, read32);
@@ -281,7 +291,9 @@ TEST_F(RomExtBootServicesTest, BootSvcMinBl0SecVer) {
   EXPECT_CALL(mock_manifest_, DigestRegion);
   EXPECT_CALL(mock_hmac_, sha256_update);
   EXPECT_CALL(mock_hmac_, sha256_process);
-  EXPECT_CALL(mock_hmac_, sha256_final);
+
+  // EXPECT_CALL(mock_hmac_, sha256_final);
+  EXPECT_CALL(mock_hmac_, sha256_final_truncated);
 
   EXPECT_CALL(mock_owner_verify_, verify).WillOnce(Return(kErrorOk));
 
@@ -318,7 +330,8 @@ TEST_F(RomExtBootServicesTest, BootSvcOwnershipUnlock) {
   boot_svc_msg.ownership_unlock_req.signature = {{100, 101, 102, 103, 104, 105,
                                                   106, 107, 108, 109, 110, 111,
                                                   112, 113, 114, 115}};
-
+  memset(&boot_svc_msg.ownership_unlock_req.din, 0,
+         sizeof(boot_svc_msg.ownership_unlock_req.din));
   EXPECT_CALL(mock_hmac_, sha256)
       .WillOnce(SetArgPointee<2>(hmac_digest_t{0x1234}));
 
