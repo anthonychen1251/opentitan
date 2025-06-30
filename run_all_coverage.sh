@@ -142,13 +142,11 @@ UNIT_TESTS=(
 //sw/device/silicon_creator/rom:boot_policy_unittest
 //sw/device/silicon_creator/rom:bootstrap_unittest
 //sw/device/silicon_creator/rom_ext:rom_ext_boot_policy_unittest
+//sw/device/silicon_creator/rom_ext:rom_ext_boot_services_unittest
 //sw/device/silicon_creator/lib/ownership:owner_block_unittest
 //sw/device/lib/ujson/rust:roundtrip_test
 //sw/device/silicon_creator/manuf/base:perso_tlv_data_unittest
 //sw/device/silicon_creator/lib/ownership:ownership_unittest
-
-# ???
-# //sw/device/silicon_creator/rom_ext:rom_ext_boot_services_unittest
 
 # CE: variable-sized object may not be initialized
 # //sw/device/lib/crypto/impl:keyblob_unittest
