@@ -77,6 +77,38 @@ impl Xmodem {
         Ok(())
     }
 
+    pub fn send_crc_error(&self, uart: &dyn Uart, data: impl Read) -> Result<()> {
+        self.send_start(uart)?;
+        let _ = self.send_data_crc_error_and_cancel(uart, data);
+        Ok(())
+    }
+
+    pub fn send_packet_timeout(&self, uart: &dyn Uart) -> Result<()> {
+        self.send_start(uart)?;
+        uart.write(&[Self::STX])?;
+        Ok(())
+    }
+
+    pub fn send_data_timeout(&self, uart: &dyn Uart) -> Result<()> {
+        self.send_start(uart)?;
+        uart.write(&[Self::STX, 1, 254])?;
+        Ok(())
+    }
+
+    pub fn send_crc_timeout(&self, uart: &dyn Uart) -> Result<()> {
+        self.send_start(uart)?;
+        let mut buf = vec![self.pad_byte; self.block_len as usize + 3];
+
+        buf[0] = match self.block_len {
+            XmodemBlock::Block128 => Self::SOH,
+            XmodemBlock::Block1k => Self::STX,
+        };
+        buf[1] = 1;
+        buf[2] = 255 - buf[1];
+        uart.write(&buf)?;
+        Ok(())
+    }
+
     fn send_start(&self, uart: &dyn Uart) -> Result<()> {
         let mut ch = 0u8;
         let mut cancels = 0usize;
@@ -152,6 +184,61 @@ impl Xmodem {
                 }
                 if errors >= self.max_errors {
                     return Err(XmodemError::ExhaustedRetries(errors).into());
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn send_data_crc_error_and_cancel(&self, uart: &dyn Uart, mut data: impl Read) -> Result<()> {
+        let mut block = 0usize;
+        let mut errors = 0usize;
+        loop {
+            block += 1;
+            let mut buf = vec![self.pad_byte; self.block_len as usize + 3];
+            let n = data.read(&mut buf[3..])?;
+            if n == 0 {
+                break;
+            }
+
+            buf[0] = match self.block_len {
+                XmodemBlock::Block128 => Self::SOH,
+                XmodemBlock::Block1k => Self::STX,
+            };
+            buf[1] = block as u8;
+            buf[2] = 255 - buf[1];
+            let crc = Self::crc16(&buf[3..]);
+            buf.push((crc >> 8) as u8);
+            buf.push((crc & 0x0F) as u8);
+            log::info!("Sending block {block}");
+
+            let mut cancels = 0usize;
+            loop {
+                uart.write(&buf)?;
+                let mut ch = 0u8;
+                uart.read(std::slice::from_mut(&mut ch))?;
+
+                match ch {
+                    Self::ACK => break,
+                    Self::NAK => {
+                        log::info!("XMODEM send got NAK.  Retrying.");
+                        errors += 1;
+                    }
+                    Self::CAN => {
+                        cancels += 1;
+                        if cancels >= 2 {
+                            return Err(XmodemError::Cancelled.into());
+                        }
+                    }
+                    _ => {
+                        log::info!("Expected ACK. Got {ch:#x}.");
+                        errors += 1;
+                    }
+                }
+                if errors == self.max_errors {
+                    buf[1] = buf[2]
+                } else if errors > self.max_errors {
+                    return Ok(());
                 }
             }
         }
