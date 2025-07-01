@@ -73,6 +73,7 @@ pub enum RescueTestActions {
     SpiDfuInvalidCmd,
     SpiDfuControl,
     UsbDfuInCancel,
+    XmodemUnsupportedRate,
 }
 
 fn spi_dfu_invalid_commands(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
@@ -111,12 +112,37 @@ fn spi_dfu_control(params: &RescueParams, transport: &TransportWrapper) -> Resul
     Ok(())
 }
 
-fn usb_dfu_in_transaction_cancel(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
+fn usb_dfu_in_transaction_cancel(
+    params: &RescueParams,
+    transport: &TransportWrapper,
+) -> Result<()> {
     if params.protocol == RescueProtocol::UsbDfu {
         let rescue = params.create(transport)?;
         rescue.enter(transport, EntryMode::Reset)?;
         rescue.set_mode(RescueMode::DeviceId)?;
         rescue.set_mode(RescueMode::EraseOwner)?;
+        #[cfg(feature = "ot_coverage_build")]
+        {
+            rescue.reboot()?;
+
+            let uart = transport.uart("console")?;
+            UartConsole::wait_for(&*uart, r"CDI_0:", Duration::from_secs(5))?;
+            UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
+        }
+    }
+
+    Ok(())
+}
+
+fn xmodem_unsupported_rate(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
+    if params.protocol == RescueProtocol::Xmodem {
+        let rescue = params.create(transport)?;
+        rescue.enter(transport, EntryMode::Reset)?;
+        expect_err_from_rescue_result(rescue.set_speed(460800), "error: unsupported baudrate")?;
+        expect_err_from_rescue_result(rescue.set_speed(921600), "error: unsupported baudrate")?;
+        expect_err_from_rescue_result(rescue.set_speed(1333333), "error: unsupported baudrate")?;
+        expect_err_from_rescue_result(rescue.set_speed(1500000), "error: unsupported baudrate")?;
+        expect_err_from_rescue_result(rescue.set_speed(0), "error: unsupported baudrate")?;
         #[cfg(feature = "ot_coverage_build")]
         {
             rescue.reboot()?;
@@ -145,7 +171,6 @@ fn get_device_id_test(
             e
         )
     })?;
-
 
     #[cfg(feature = "ot_coverage_build")]
     {
@@ -601,6 +626,9 @@ fn main() -> Result<()> {
             }
             RescueTestActions::UsbDfuInCancel => {
                 usb_dfu_in_transaction_cancel(&rescue.params, &transport)?;
+            }
+            RescueTestActions::XmodemUnsupportedRate => {
+                xmodem_unsupported_rate(&rescue.params, &transport)?;
             }
         },
     }

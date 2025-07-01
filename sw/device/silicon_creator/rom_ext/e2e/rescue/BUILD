@@ -311,30 +311,56 @@ opentitan_test(
     for protocol, config in _CONFIGS.items()
 ]
 
+[
+    opentitan_test(
+        name = "rescue_rate_{}_test".format(rate),
+        exec_env = {
+            "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
+            "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
+        },
+        fpga = fpga_params(
+            assemble = "",
+            binaries = {
+                ":boot_test_slot_a": "payload",
+            },
+            changes_otp = True,
+            rate = rate,
+            test_cmd = """
+                --exec="transport init"
+                --exec="fpga load-bitstream {bitstream}"
+                --exec="bootstrap --clear-uart=true {rom_ext}"
+                # First make sure the ROM_EXT is faulting because there is no firmware
+                --exec="console --non-interactive --exit-success='BFV:' --exit-failure='PASS|FAIL'"
+                # Load firmware via rescue
+                --exec="rescue firmware --rate={rate} {payload:signed_bin}"
+                # Check for firmware execution
+                --exec="console --baudrate=115200 --non-interactive --exit-success='{exit_success}' --exit-failure='{exit_failure}'"
+                no-op
+            """,
+        ),
+    )
+    # FPGA CW310 and CW340 only support the baudrate up to 230K.
+    for rate in ["115200", "230400"]
+]
+
 opentitan_test(
-    name = "rescue_rate_test",
+    name = "xmodem_unsupported_rate_test",
     exec_env = {
         "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
         "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
     },
     fpga = fpga_params(
-        assemble = "",
+        assemble = "{romext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
         binaries = {
-            ":boot_test_slot_a": "payload",
+            "//sw/device/silicon_creator/rom_ext:rom_ext_dice_x509_slot_a": "romext",
+            "//sw/device/silicon_creator/rom_ext/e2e/attestation:print_certs": "firmware",
         },
-        changes_otp = True,
         test_cmd = """
-            --exec="transport init"
-            --exec="fpga load-bitstream {bitstream}"
-            --exec="bootstrap --clear-uart=true {rom_ext}"
-            # First make sure the ROM_EXT is faulting because there is no firmware
-            --exec="console --non-interactive --exit-success='BFV:' --exit-failure='PASS|FAIL'"
-            # Load firmware via rescue
-            --exec="rescue firmware --rate=115200 {payload:signed_bin}"
-            # Check for firmware execution
-            --exec="console --baudrate=115200 --non-interactive --exit-success='{exit_success}' --exit-failure='{exit_failure}'"
-            no-op
+        --clear-bitstream
+        --bootstrap={firmware}
+        rescue --action=xmodem-unsupported-rate
         """,
+        test_harness = "//sw/host/tests/rescue:rescue_test",
     ),
 )
 
