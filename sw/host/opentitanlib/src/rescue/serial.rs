@@ -36,6 +36,7 @@ impl RescueSerial {
     const BAUD_921K: [u8; 4] = *b"921K";
     const BAUD_1M33: [u8; 4] = *b"1M33";
     const BAUD_1M50: [u8; 4] = *b"1M50";
+    const BAUD_INVA: [u8; 4] = *b"INVA";
 
     pub fn new(uart: Rc<dyn Uart>) -> Self {
         RescueSerial {
@@ -107,6 +108,7 @@ impl Rescue for RescueSerial {
             921600 => Self::BAUD_921K,
             1333333 => Self::BAUD_1M33,
             1500000 => Self::BAUD_1M50,
+            0 => Self::BAUD_INVA,
             _ => return Err(RescueError::BadMode(format!("Unsupported badrate {baud}")).into()),
         };
 
