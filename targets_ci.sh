@@ -874,8 +874,10 @@ HYPER310_ROMEXT_TESTS=(
 )
 
 CW310_ROMEXT_TESTS=(
-//sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_dice_cwt_test_fpga_cw310_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_dice_x509_test_fpga_cw310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_dice_cwt_prod_key_test_fpga_cw310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_dice_cwt_test_key_test_fpga_cw310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_dice_x509_prod_key_test_fpga_cw310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_dice_x509_test_key_test_fpga_cw310_rom_ext
 //sw/device/silicon_owner/bare_metal:rom_ext_virtual_ottf_bl0_virtual_fpga_cw310_rom_ext
 //sw/device/tests:aes_smoketest_fpga_cw310_rom_ext
 //sw/device/tests/crypto:otcrypto_export_test_fpga_cw310_rom_ext
