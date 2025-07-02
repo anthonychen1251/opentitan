@@ -534,6 +534,10 @@ EX_CW340_ROM_EXT_TESTS=(
 //sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_restricted_commands_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_restricted_commands_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_unsupported_rate_test_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_crc_error_cancel_test_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_crc_timeout_test_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_data_timeout_test_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_packet_timeout_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_too_big_fpga_cw340_rom_ext
 
 //sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_inactivity_timeout_fpga_cw340_rom_ext

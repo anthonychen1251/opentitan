@@ -46,6 +46,7 @@ def main():
 
   listed = {}
   add_tests(listed, extract_tests('./run_all_coverage.sh'))
+  add_tests(listed, extract_tests('./targets_ci.sh'))
   add_tests(listed, extract_tests('./rom_targets.sh'))
 
   useful = extract_tests('./targets_useful_extra.sh')
