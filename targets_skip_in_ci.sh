@@ -83,6 +83,8 @@ EX_CW340_TEST_ROM_TESTS=(
 //sw/device/tests/crypto/cryptotest:shake128_kat_fpga_cw340_test_rom
 //sw/device/tests/crypto/cryptotest:shake256_kat_fpga_cw340_test_rom
 //sw/device/tests/crypto/cryptotest:sphincsplus_kat_fpga_cw340_test_rom
+//sw/device/silicon_creator/lib/drivers:hmac_functest_fpga_cw340_test_rom
+//sw/device/silicon_creator/lib/drivers:kmac_functest_fpga_cw340_test_rom
 
 # //sw/device/tests:coverage_test_fpga_cw340_test_rom
 
@@ -318,6 +320,9 @@ EX_CW310_FAKE_KEYS_TESTS=(
 //sw/device/tests:usbdev_vbus_test_fpga_cw310_rom_with_fake_keys
 //sw/device/silicon_creator/lib/drivers:usb_functest_fpga_cw310_rom_with_fake_keys
 
+//sw/device/silicon_creator/lib/drivers:hmac_functest_fpga_cw340_rom_with_fake_keys
+//sw/device/silicon_creator/lib/drivers:kmac_functest_fpga_cw340_rom_with_fake_keys
+
 # //sw/device/tests:usbdev_deep_disconnect_test_fpga_cw310_rom_with_fake_keys
 # //sw/device/tests:usbdev_suspend_resume_test_fpga_cw310_rom_with_fake_keys
 
@@ -361,6 +366,8 @@ EX_CW340_CRYPTO_TESTS=(
 //sw/device/tests/crypto/cryptotest:shake128_kat_fpga_cw340_sival_rom_ext
 //sw/device/tests/crypto/cryptotest:shake256_kat_fpga_cw340_sival_rom_ext
 //sw/device/tests/crypto/cryptotest:sphincsplus_kat_fpga_cw340_sival_rom_ext
+//sw/device/silicon_creator/lib/drivers:hmac_functest_fpga_cw340_sival_rom_ext
+//sw/device/silicon_creator/lib/drivers:kmac_functest_fpga_cw340_sival_rom_ext
 
 # //sw/device/tests/crypto/cryptotest:kmac_kat_fpga_cw340_sival_rom_ext
 )
@@ -453,6 +460,8 @@ EX_CW340_SIVAL_TESTS=(
 //sw/device/tests:rv_dm_lc_disabled_tl_prod_fpga_cw340_sival
 //sw/device/tests:rv_dm_lc_disabled_tl_rma_fpga_cw340_sival
 //sw/device/tests:rv_dm_lc_disabled_tl_test_unlocked1_fpga_cw340_sival
+//sw/device/silicon_creator/lib/drivers:hmac_functest_fpga_cw340_sival
+//sw/device/silicon_creator/lib/drivers:kmac_functest_fpga_cw340_sival
 
 # //sw/device/tests:rv_dm_csr_rw_dev_rv_dm_default_enabled_fpga_cw340_sival
 # //sw/device/tests:rv_dm_csr_rw_dev_rv_dm_delayed_enabled_fpga_cw340_sival
@@ -676,6 +685,9 @@ EX_CW340_ROM_EXT_TESTS=(
 //sw/device/silicon_creator/rom_ext/e2e/ownership:transfer_bl0_slot_b_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/ownership:invalid_nonce_request_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/ownership:unlock_when_recovery_state_test_fpga_cw340_rom_ext
+
+//sw/device/silicon_creator/lib/drivers:hmac_functest_fpga_cw340_rom_ext
+//sw/device/silicon_creator/lib/drivers:kmac_functest_fpga_cw340_rom_ext
 
 # //sw/device/silicon_creator/rom_ext/e2e/handoff:epmp_test_fpga_cw340_rom_ext
 )
