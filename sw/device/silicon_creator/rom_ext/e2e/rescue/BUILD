@@ -940,3 +940,150 @@ opentitan_test(
         test_harness = "//sw/host/tests/rescue:rescue_test",
     ),
 )
+
+opentitan_test(
+    name = "xmodem_host_data_timeout_test",
+    exec_env = {
+        "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
+        "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
+    },
+    fpga = fpga_params(
+        assemble = "{romext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
+        binaries = {
+            "//sw/device/silicon_creator/rom_ext:rom_ext_dice_x509_slot_a": "romext",
+            "//sw/device/silicon_creator/rom_ext/e2e/attestation:print_certs": "firmware",
+        },
+        test_cmd = """
+        --clear-bitstream
+        --bootstrap={firmware}
+        rescue --action=xmodem-host-data-timeout
+        """,
+        test_harness = "//sw/host/tests/rescue:rescue_test",
+    ),
+)
+
+opentitan_test(
+    name = "xmodem_host_data_cancel_test",
+    exec_env = {
+        "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
+        "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
+    },
+    fpga = fpga_params(
+        assemble = "{romext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
+        binaries = {
+            "//sw/device/silicon_creator/rom_ext:rom_ext_dice_x509_slot_a": "romext",
+            "//sw/device/silicon_creator/rom_ext/e2e/attestation:print_certs": "firmware",
+        },
+        test_cmd = """
+        --clear-bitstream
+        --bootstrap={firmware}
+        rescue --action=xmodem-host-data-cancel
+        """,
+        test_harness = "//sw/host/tests/rescue:rescue_test",
+    ),
+)
+
+opentitan_test(
+    name = "xmodem_host_data_nak_test",
+    exec_env = {
+        "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
+        "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
+    },
+    fpga = fpga_params(
+        assemble = "{romext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
+        binaries = {
+            "//sw/device/silicon_creator/rom_ext:rom_ext_dice_x509_slot_a": "romext",
+            "//sw/device/silicon_creator/rom_ext/e2e/attestation:print_certs": "firmware",
+        },
+        test_cmd = """
+        --clear-bitstream
+        --bootstrap={firmware}
+        rescue --action=xmodem-host-data-nak
+        """,
+        test_harness = "//sw/host/tests/rescue:rescue_test",
+    ),
+)
+
+opentitan_test(
+    name = "xmodem_host_start_timeout_test",
+    exec_env = {
+        "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
+        "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
+    },
+    fpga = fpga_params(
+        assemble = "{romext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
+        binaries = {
+            "//sw/device/silicon_creator/rom_ext:rom_ext_dice_x509_slot_a": "romext",
+            "//sw/device/silicon_creator/rom_ext/e2e/attestation:print_certs": "firmware",
+        },
+        test_cmd = """
+        --clear-bitstream
+        --bootstrap={firmware}
+        rescue --action=xmodem-host-start-timeout
+        """,
+        test_harness = "//sw/host/tests/rescue:rescue_test",
+    ),
+)
+
+opentitan_test(
+    name = "xmodem_host_start_cancel_test",
+    exec_env = {
+        "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
+        "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
+    },
+    fpga = fpga_params(
+        assemble = "{romext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
+        binaries = {
+            "//sw/device/silicon_creator/rom_ext:rom_ext_dice_x509_slot_a": "romext",
+            "//sw/device/silicon_creator/rom_ext/e2e/attestation:print_certs": "firmware",
+        },
+        test_cmd = """
+        --clear-bitstream
+        --bootstrap={firmware}
+        rescue --action=xmodem-host-start-cancel
+        """,
+        test_harness = "//sw/host/tests/rescue:rescue_test",
+    ),
+)
+
+opentitan_test(
+    name = "xmodem_host_start_nak_test",
+    exec_env = {
+        "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
+        "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
+    },
+    fpga = fpga_params(
+        assemble = "{romext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
+        binaries = {
+            "//sw/device/silicon_creator/rom_ext:rom_ext_dice_x509_slot_a": "romext",
+            "//sw/device/silicon_creator/rom_ext/e2e/attestation:print_certs": "firmware",
+        },
+        test_cmd = """
+        --clear-bitstream
+        --bootstrap={firmware}
+        rescue --action=xmodem-host-start-nak
+        """,
+        test_harness = "//sw/host/tests/rescue:rescue_test",
+    ),
+)
+
+opentitan_test(
+    name = "xmodem_host_finish_nak_test",
+    exec_env = {
+        "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
+        "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
+    },
+    fpga = fpga_params(
+        assemble = "{romext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
+        binaries = {
+            "//sw/device/silicon_creator/rom_ext:rom_ext_dice_x509_slot_a": "romext",
+            "//sw/device/silicon_creator/rom_ext/e2e/attestation:print_certs": "firmware",
+        },
+        test_cmd = """
+        --clear-bitstream
+        --bootstrap={firmware}
+        rescue --action=xmodem-host-finish-nak
+        """,
+        test_harness = "//sw/host/tests/rescue:rescue_test",
+    ),
+)

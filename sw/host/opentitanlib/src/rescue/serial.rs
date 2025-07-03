@@ -160,6 +160,35 @@ impl Rescue for RescueSerial {
         Ok(())
     }
 
+    fn xmodem_host_ack_err(&self, mode: RescueMode) -> Result<()> {
+        self.set_mode(RescueMode::BootLog)?;
+        let xm = Xmodem::new();
+        if mode == RescueMode::BootLog {
+            // Data Nak + kErrorXModemTooManyErrors
+            xm.receive_nak(&*self.uart)?;
+        } else if mode == RescueMode::RescueB {
+            // Data Cancel.
+            xm.receive_cancel(&*self.uart)?;
+        } else if mode == RescueMode::OwnerBlock {
+            // Data Timeout.
+            xm.receive_timeout(&*self.uart)?;
+        } else if mode == RescueMode::DeviceId {
+            // start nak.
+            xm.start_nak(&*self.uart)?;
+        } else if mode == RescueMode::Rescue {
+            // start cancel.
+            xm.start_cancel(&*self.uart)?;
+        } else if mode == RescueMode::EraseOwner {
+            // start Timeout.
+            xm.start_timeout(&*self.uart)?;
+        } else if mode == RescueMode::BootSvcReq {
+            let mut data = Vec::new();
+            xm.receive_finish_nak(&*self.uart, &mut data)?;
+        }
+
+        Ok(())
+    }
+
     fn set_mode(&self, mode: RescueMode) -> Result<()> {
         let mode = mode.0.to_be_bytes();
         self.uart.write(&mode)?;

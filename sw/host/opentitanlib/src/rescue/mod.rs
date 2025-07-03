@@ -216,6 +216,9 @@ pub trait Rescue {
     fn xmodem_invalid_transaction(&self, _mode: RescueMode) -> Result<()> {
         Ok(())
     }
+    fn xmodem_host_ack_err(&self, _mode: RescueMode) -> Result<()> {
+        Ok(())
+    }
     fn reboot(&self) -> Result<()>;
 
     fn get_raw(&self, mode: RescueMode) -> Result<Vec<u8>> {

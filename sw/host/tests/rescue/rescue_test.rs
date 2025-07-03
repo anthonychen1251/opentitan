@@ -78,6 +78,13 @@ pub enum RescueTestActions {
     XmodemPacketTimeout,
     XmodemDataTimeout,
     XmodemCrcTimeout,
+    XmodemHostDataNak,
+    XmodemHostDataTimeout,
+    XmodemHostDataCancel,
+    XmodemHostStartNak,
+    XmodemHostStartTimeout,
+    XmodemHostStartCancel,
+    XmodemHostFinishNak,
 }
 
 fn spi_dfu_invalid_commands(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
@@ -215,6 +222,119 @@ fn xmodem_crc_timeout(params: &RescueParams, transport: &TransportWrapper) -> Re
         rescue.xmodem_invalid_transaction(RescueMode::OwnerBlock)?;
         #[cfg(feature = "ot_coverage_build")]
         {
+            let uart = transport.uart("console")?;
+            UartConsole::wait_for(&*uart, r"CDI_0:", Duration::from_secs(5))?;
+            UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
+        }
+    }
+
+    Ok(())
+}
+
+fn xmodem_host_data_nak(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
+    let rescue = params.create(transport)?;
+    if params.protocol == RescueProtocol::Xmodem {
+        rescue.enter(transport, EntryMode::Reset)?;
+        rescue.xmodem_host_ack_err(RescueMode::BootLog)?;
+        #[cfg(feature = "ot_coverage_build")]
+        {
+            let uart = transport.uart("console")?;
+            UartConsole::wait_for(&*uart, r"CDI_0:", Duration::from_secs(5))?;
+            UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
+        }
+    }
+
+    Ok(())
+}
+
+fn xmodem_host_data_cancel(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
+    let rescue = params.create(transport)?;
+    if params.protocol == RescueProtocol::Xmodem {
+        rescue.enter(transport, EntryMode::Reset)?;
+        rescue.xmodem_host_ack_err(RescueMode::RescueB)?;
+        #[cfg(feature = "ot_coverage_build")]
+        {
+            let uart = transport.uart("console")?;
+            UartConsole::wait_for(&*uart, r"CDI_0:", Duration::from_secs(5))?;
+            UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
+        }
+    }
+
+    Ok(())
+}
+
+fn xmodem_host_data_timeout(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
+    let rescue = params.create(transport)?;
+    if params.protocol == RescueProtocol::Xmodem {
+        rescue.enter(transport, EntryMode::Reset)?;
+        rescue.xmodem_host_ack_err(RescueMode::OwnerBlock)?;
+        #[cfg(feature = "ot_coverage_build")]
+        {
+            let uart = transport.uart("console")?;
+            UartConsole::wait_for(&*uart, r"CDI_0:", Duration::from_secs(5))?;
+            UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
+        }
+    }
+
+    Ok(())
+}
+
+fn xmodem_host_start_nak(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
+    let rescue = params.create(transport)?;
+    if params.protocol == RescueProtocol::Xmodem {
+        rescue.enter(transport, EntryMode::Reset)?;
+        rescue.xmodem_host_ack_err(RescueMode::DeviceId)?;
+        #[cfg(feature = "ot_coverage_build")]
+        {
+            let uart = transport.uart("console")?;
+            UartConsole::wait_for(&*uart, r"CDI_0:", Duration::from_secs(5))?;
+            UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
+        }
+    }
+
+    Ok(())
+}
+
+fn xmodem_host_start_cancel(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
+    let rescue = params.create(transport)?;
+    if params.protocol == RescueProtocol::Xmodem {
+        rescue.enter(transport, EntryMode::Reset)?;
+        rescue.xmodem_host_ack_err(RescueMode::Rescue)?;
+        #[cfg(feature = "ot_coverage_build")]
+        {
+            let uart = transport.uart("console")?;
+            UartConsole::wait_for(&*uart, r"CDI_0:", Duration::from_secs(5))?;
+            UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
+        }
+    }
+
+    Ok(())
+}
+
+fn xmodem_host_start_timeout(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
+    let rescue = params.create(transport)?;
+    if params.protocol == RescueProtocol::Xmodem {
+        rescue.enter(transport, EntryMode::Reset)?;
+        rescue.xmodem_host_ack_err(RescueMode::EraseOwner)?;
+        #[cfg(feature = "ot_coverage_build")]
+        {
+            let uart = transport.uart("console")?;
+            UartConsole::wait_for(&*uart, r"CDI_0:", Duration::from_secs(60))?;
+            UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
+        }
+    }
+
+    Ok(())
+}
+
+fn xmodem_host_finish_nak(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
+    let rescue = params.create(transport)?;
+    if params.protocol == RescueProtocol::Xmodem {
+        rescue.enter(transport, EntryMode::Reset)?;
+        rescue.xmodem_host_ack_err(RescueMode::BootSvcReq)?;
+        #[cfg(feature = "ot_coverage_build")]
+        {
+            rescue.reboot()?;
             let uart = transport.uart("console")?;
             UartConsole::wait_for(&*uart, r"CDI_0:", Duration::from_secs(5))?;
             UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
@@ -709,6 +829,27 @@ fn main() -> Result<()> {
             }
             RescueTestActions::XmodemCrcTimeout => {
                 xmodem_crc_timeout(&rescue.params, &transport)?;
+            }
+            RescueTestActions::XmodemHostDataNak => {
+                xmodem_host_data_nak(&rescue.params, &transport)?;
+            }
+            RescueTestActions::XmodemHostDataTimeout => {
+                xmodem_host_data_timeout(&rescue.params, &transport)?;
+            }
+            RescueTestActions::XmodemHostDataCancel => {
+                xmodem_host_data_cancel(&rescue.params, &transport)?;
+            }
+            RescueTestActions::XmodemHostStartNak => {
+                xmodem_host_start_nak(&rescue.params, &transport)?;
+            }
+            RescueTestActions::XmodemHostStartTimeout => {
+                xmodem_host_start_timeout(&rescue.params, &transport)?;
+            }
+            RescueTestActions::XmodemHostStartCancel => {
+                xmodem_host_start_cancel(&rescue.params, &transport)?;
+            }
+            RescueTestActions::XmodemHostFinishNak => {
+                xmodem_host_finish_nak(&rescue.params, &transport)?;
             }
         },
     }
