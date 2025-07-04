@@ -1,7 +1,7 @@
 import subprocess
 import re
 
-base_commit = '4da7fb18'
+base_commit = '2808debba8'
 
 with open('./bazel-out/_coverage/view/all_views.dat') as f:
   files = re.findall(r'SF:(.*)\n', f.read())
