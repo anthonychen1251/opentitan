@@ -64,7 +64,7 @@ def main():
 
   # Keep asm coverage unmodified
   for key in original_coverage.keys():
-    if key.endswith('.S'):
+    if key.upper().endswith('.S'):
       coverage[key] = original_coverage[key]
 
   # Write the filtered coverage to the output file
