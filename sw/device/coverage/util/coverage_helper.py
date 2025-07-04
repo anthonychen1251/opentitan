@@ -399,9 +399,16 @@ def collect_test_vectors(view_path, lcov_files_path):
     view = merge_inlined_copies(view)
 
   sf_keys = sorted(view.keys())
+
   # ASM coverage are expanded after bazel coverage, and should be ignored
   # when calculate the min cover set.
   sf_keys = [k for k in sf_keys if not k.endswith('.S')]
+
+  # TODO: Remove this workaround once coverage for generated files is properly handled.
+  # The current lcov iterator does not load coverage for generated files,
+  # while the min set already has full coverage on them.
+  sf_keys = [k for k in sf_keys if not k.startswith('SF:bazel-out/')]
+
   view_keys, view_values = collect_single_vector(view, sf_keys)
 
   tests = {}
