@@ -155,6 +155,10 @@ impl Rescue for RescueSerial {
             // Trigger crc timeout test case
             let xm = Xmodem::new();
             xm.send_crc_timeout(&*self.uart)?;
+        } else if mode == RescueMode::EraseOwner {
+            // Trigeer packet bad length.
+            let xm = Xmodem::new();
+            xm.send_packet_bad_len(&*self.uart)?;
         }
 
         Ok(())

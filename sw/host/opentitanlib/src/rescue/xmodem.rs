@@ -89,6 +89,31 @@ impl Xmodem {
         Ok(())
     }
 
+    pub fn send_packet_bad_len(&self, uart: &dyn Uart) -> Result<()> {
+        self.send_start(uart)?;
+
+        let buf_1k = vec![self.pad_byte; 1024];
+        let buf_128 = vec![self.pad_byte; 128];
+
+        uart.write(&[Self::STX, 1, 254])?;
+        uart.write(&buf_1k)?;
+        let crc = Self::crc16(&buf_1k[..]);
+        uart.write(&[(crc >> 8) as u8, (crc & 0xFF) as u8])?;
+        let mut ch = 0u8;
+        uart.read(std::slice::from_mut(&mut ch))?;
+
+        uart.write(&[Self::SOH, 2, 253])?;
+        uart.write(&buf_128)?;
+        let crc = Self::crc16(&buf_128[..]);
+        uart.write(&[(crc >> 8) as u8, (crc & 0xFF) as u8])?;
+        uart.read(std::slice::from_mut(&mut ch))?;
+
+        uart.write(&[Self::STX, 3, 252])?;
+        uart.write(&buf_1k)?;
+
+        Ok(())
+    }
+
     pub fn send_data_timeout(&self, uart: &dyn Uart) -> Result<()> {
         self.send_start(uart)?;
         uart.write(&[Self::STX, 1, 254])?;

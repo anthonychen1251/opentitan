@@ -900,6 +900,27 @@ opentitan_test(
 )
 
 opentitan_test(
+    name = "xmodem_packet_bad_len_test",
+    exec_env = {
+        "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
+        "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
+    },
+    fpga = fpga_params(
+        assemble = "{romext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
+        binaries = {
+            "//sw/device/silicon_creator/rom_ext:rom_ext_dice_x509_slot_a": "romext",
+            "//sw/device/silicon_creator/rom_ext/e2e/attestation:print_certs": "firmware",
+        },
+        test_cmd = """
+        --clear-bitstream
+        --bootstrap={firmware}
+        rescue --action=xmodem-packet-bad-len
+        """,
+        test_harness = "//sw/host/tests/rescue:rescue_test",
+    ),
+)
+
+opentitan_test(
     name = "xmodem_data_timeout_test",
     exec_env = {
         "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
