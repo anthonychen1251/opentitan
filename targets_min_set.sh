@@ -93,6 +93,7 @@ HYPER310_ROM_EXT_TESTS=(
   '//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_host_start_nak_test_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_host_start_timeout_test_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_packet_timeout_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_packet_bad_len_test_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_restricted_commands_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_unsupported_rate_test_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/secver:secver_write_test_fpga_hyper310_rom_ext'

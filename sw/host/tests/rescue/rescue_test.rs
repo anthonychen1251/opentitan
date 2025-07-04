@@ -75,6 +75,7 @@ pub enum RescueTestActions {
     UsbDfuInCancel,
     XmodemUnsupportedRate,
     XmodemCrcErrorCancel,
+    XmodemPacketBadLen,
     XmodemPacketTimeout,
     XmodemDataTimeout,
     XmodemCrcTimeout,
@@ -188,6 +189,22 @@ fn xmodem_packet_timeout(params: &RescueParams, transport: &TransportWrapper) ->
         let rescue = params.create(transport)?;
         rescue.enter(transport, EntryMode::Reset)?;
         rescue.xmodem_invalid_transaction(RescueMode::BootLog)?;
+        #[cfg(feature = "ot_coverage_build")]
+        {
+            let uart = transport.uart("console")?;
+            UartConsole::wait_for(&*uart, r"CDI_0:", Duration::from_secs(5))?;
+            UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
+        }
+    }
+
+    Ok(())
+}
+
+fn xmodem_packet_bad_len(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
+    if params.protocol == RescueProtocol::Xmodem {
+        let rescue = params.create(transport)?;
+        rescue.enter(transport, EntryMode::Reset)?;
+        rescue.xmodem_invalid_transaction(RescueMode::EraseOwner)?;
         #[cfg(feature = "ot_coverage_build")]
         {
             let uart = transport.uart("console")?;
@@ -823,6 +840,9 @@ fn main() -> Result<()> {
             }
             RescueTestActions::XmodemPacketTimeout => {
                 xmodem_packet_timeout(&rescue.params, &transport)?;
+            }
+            RescueTestActions::XmodemPacketBadLen => {
+                xmodem_packet_bad_len(&rescue.params, &transport)?;
             }
             RescueTestActions::XmodemDataTimeout => {
                 xmodem_data_timeout(&rescue.params, &transport)?;
