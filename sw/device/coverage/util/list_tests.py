@@ -7,11 +7,11 @@ from coverage_helper import (
   add_tests,
 )
 
-def query_tests(extended=False):
+def query_tests(path, extended=False):
   skip_in_ci = 'skip_in_ci|' if not extended else ''
   proc = subprocess.run([
     './bazelisk.sh', 'query',
-      f'tests(//sw/device/...) ' +
+      f'tests({path}) ' +
       f'except attr("tags", "{skip_in_ci}manual|broken|sim|silicon", //sw/device/...) ' +
       f'',
   ], stdout=subprocess.PIPE, check=True)
@@ -61,8 +61,12 @@ def main():
   quick_5m = extract_tests('./targets_quick_5m.sh')
   quick_10m = extract_tests('./targets_quick_10m.sh')
 
-  available_ci = query_tests(False)
-  available = query_tests(True)
+  available_ci = query_tests('//sw/device/...', False)
+  available = query_tests('//sw/device/...', True)
+
+  otbn = query_tests('//sw/otbn/crypto/...', False)
+  add_tests(available, otbn)
+  add_tests(available_ci, otbn)
 
   test_groups_names = [
     'available', 'available_ci',

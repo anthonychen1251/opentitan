@@ -686,6 +686,7 @@ EX_CW340_ROM_EXT_TESTS=(
 //sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_host_start_cancel_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_host_start_nak_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_host_start_timeout_test_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_packet_bad_len_test_fpga_cw340_rom_ext
 
 //sw/device/silicon_creator/rom_ext/e2e/ownership:invalid_device_id_request_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/ownership:newversion_noupdate_with_bad_owner_block_test_fpga_cw340_rom_ext
