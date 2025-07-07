@@ -8,6 +8,7 @@ GENHTML_ARGS=(
     # --ignore-errors corrupt
     --exclude sw/device/coverage/
     --exclude sw/otbn/crypto/run_p256.s
+    --exclude sw/otbn/crypto/tests/
     --ignore-errors unused
     --html-epilog sw/device/coverage/report_epilog.html
 )

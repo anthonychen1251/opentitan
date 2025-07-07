@@ -7,6 +7,12 @@ from coverage_helper import parse_lcov
 
 path = './bazel-out/_coverage/view/all_views.dat'
 
+IGNORE = [
+  "sw/device/coverage/",
+  "sw/otbn/crypto/run_p256.s",
+  "sw/otbn/crypto/tests/",
+]
+
 def main():
   parser = argparse.ArgumentParser(description='List coverage ratio of each file in csv format.')
   parser.add_argument('--path', type=str, default=path, help='Path to the coverage file.')
@@ -16,9 +22,7 @@ def main():
     coverage = parse_lcov(f.read().splitlines())
 
   for sf, cov in sorted(coverage.items()):
-    if sf.endswith('/asm_counters.c'):
-      continue
-    if sf.endswith('sw/otbn/crypto/run_p256.s'):
+    if any(sf.startswith('SF:' + e) for e in IGNORE):
       continue
 
     fn_hit = sum(1 for count in cov.fnda.values() if count > 0)
