@@ -4,6 +4,7 @@ import bisect
 import itertools as it
 import sys
 import zipfile
+import multiprocessing as mp
 import numpy as np
 from collections import namedtuple, defaultdict
 from pathlib import Path
@@ -359,14 +360,18 @@ def iter_lcov_paths(lcov_files_path):
 
       yield TestLcov(test_name, path, duration, None)
 
+def _process_lcov_contents(lcov):
+  coverage = parse_lcov(lcov.coverage.decode().splitlines())
+  coverage = merge_inlined_copies(coverage)
+  return lcov._replace(coverage=coverage)
+
 def iter_lcov_files(lcov_files_path):
   for lcov in iter_lcov_paths(lcov_files_path):
-    with open(lcov.path) as f:
-      coverage = parse_lcov(f.readlines())
-    coverage = merge_inlined_copies(coverage)
-    yield lcov._replace(coverage=coverage)
+    with open(lcov.path, 'rb') as f:
+      lcov = lcov._replace(coverage=f.read())
+    yield _process_lcov_contents(lcov)
 
-def iter_raw_lcov_files(lcov_files_path):
+def _iter_raw_lcov_contents(lcov_files_path):
   for lcov in iter_lcov_paths(lcov_files_path):
     test_zip = lcov.path.parent / 'test.outputs/outputs.zip'
     if not test_zip.exists(): # e.g. unit tests
@@ -375,10 +380,13 @@ def iter_raw_lcov_files(lcov_files_path):
       for name in zip.namelist():
         if name.endswith('.dat'):
           with zip.open(name) as f:
-            lines = [l.decode('utf-8') for l in f.readlines()]
-            coverage = parse_lcov(lines)
-            coverage = merge_inlined_copies(coverage)
-            yield lcov._replace(coverage=coverage)
+            yield lcov._replace(coverage=f.read())
+
+def iter_raw_lcov_files(lcov_files_path):
+  with mp.Pool() as pool:
+    iterator = _iter_raw_lcov_contents(lcov_files_path)
+    for lcov in pool.imap_unordered(_process_lcov_contents, iterator):
+      yield lcov
 
 def collect_single_vector(coverage, sf_keys):
   keys, values = [], []
