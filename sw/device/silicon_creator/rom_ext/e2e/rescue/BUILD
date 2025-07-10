@@ -591,6 +591,7 @@ opentitan_test(
         },
         fpga = fpga_params(
             assemble = "",
+            changes_otp = True,
             params = config["params"],
             rom_ext = config["rom_ext"],
             test_cmd = """
@@ -613,6 +614,7 @@ opentitan_test(
         },
         fpga = fpga_params(
             assemble = "",
+            changes_otp = True,
             device_id = DEVICE_ID,
             params = config["params"],
             rom_ext = config["rom_ext"],
@@ -641,6 +643,7 @@ opentitan_test(
                 config["rom_ext"]: "romext",
                 "//sw/device/silicon_creator/rom_ext/e2e/attestation:print_certs": "firmware",
             },
+            changes_otp = True,
             params = config["params"],
             test_cmd = """
             --clear-bitstream
@@ -665,6 +668,7 @@ opentitan_test(
             "//sw/device/silicon_creator/rom_ext:rom_ext_xmodem_rescue_disability": "romext",
             "//sw/device/silicon_creator/rom_ext/e2e/attestation:print_certs": "firmware",
         },
+        changes_otp = True,
         test_cmd = """
         --clear-bitstream
         --bootstrap={firmware}
@@ -686,6 +690,7 @@ opentitan_test(
             "//sw/device/silicon_creator/rom_ext:rom_ext_spidfu_rescue_disability": "romext",
             "//sw/device/silicon_creator/rom_ext/e2e/attestation:print_certs": "firmware",
         },
+        changes_otp = True,
         params = "-p spi-dfu -t gpio -v +Ioa2",
         test_cmd = """
         --clear-bitstream

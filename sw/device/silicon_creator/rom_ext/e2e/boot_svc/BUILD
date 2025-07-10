@@ -68,6 +68,7 @@ opentitan_test(
         "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
     },
     fpga = fpga_params(
+        timeout = "moderate",
         assemble = "{rom_ext}@{rom_ext_slot_a} {firmware}@{owner_slot_a} {firmware}@{owner_slot_b}",
         exit_failure = "BFV|PASS|FAIL",
         exit_success = "mode: RESQ\r\n",
