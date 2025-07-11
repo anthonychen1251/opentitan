@@ -93,6 +93,8 @@ def main():
       pred_names.append(name)
 
   def label_group(name):
+    if name.startswith('//sw/otbn/'):
+      return 'OTBN_TESTS', name
     if name.startswith('//sw/host/provisioning/'):
       return 'PROVISIONING_TESTS', name
     if '_fpga_' in name:
