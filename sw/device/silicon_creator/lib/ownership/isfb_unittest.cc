@@ -221,8 +221,8 @@ TEST_F(IsfbTest, ErasePolicyOwnershipIsfbNotPreset) {
       .isfb = (owner_isfb_config_t *)kHardenedBoolFalse,
   };
   hardened_bool_t erase_en = kHardenedBoolFalse;
-  rom_error_t error =
-      isfb_info_flash_erase_policy_get(&owner_config, 0, kHardenedBoolTrue, &ext, &erase_en);
+  rom_error_t error = isfb_info_flash_erase_policy_get(
+      &owner_config, 0, kHardenedBoolTrue, &ext, &erase_en);
   EXPECT_EQ(error, kErrorOwnershipISFBNotPresent);
 }
 
@@ -236,8 +236,8 @@ TEST_F(IsfbTest, ErasePolicyDisableExpectedCheck) {
   };
   isfb_config_.erase_conditions = 0x99999999;
   hardened_bool_t erase_en = kHardenedBoolFalse;
-  rom_error_t error =
-      isfb_info_flash_erase_policy_get(&owner_config_, 0, kHardenedBoolTrue, &ext, &erase_en);
+  rom_error_t error = isfb_info_flash_erase_policy_get(
+      &owner_config_, 0, kHardenedBoolTrue, &ext, &erase_en);
   EXPECT_EQ(error, kErrorOk);
   EXPECT_EQ(erase_en, kHardenedBoolTrue);
 }

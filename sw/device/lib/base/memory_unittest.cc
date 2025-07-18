@@ -253,12 +253,12 @@ TEST_P(MemCmpTest, UnalignedHeadTest) {
   alignas(uint32_t) constexpr uint8_t ys[kLen] = {0, 1, 0, 0, 0, 0, 0, 0};
 
   // Reflexive property.
-  EXPECT_EQ(memcmp_func(xs+1, xs+1, kLen-1), 0);
-  EXPECT_EQ(memcmp_func(ys+1, ys+1, kLen-1), 0);
+  EXPECT_EQ(memcmp_func(xs + 1, xs + 1, kLen - 1), 0);
+  EXPECT_EQ(memcmp_func(ys + 1, ys + 1, kLen - 1), 0);
   // Transitive property for less-than result.
-  EXPECT_LT(memcmp_func(xs+1, ys+1, kLen-1), 0);
+  EXPECT_LT(memcmp_func(xs + 1, ys + 1, kLen - 1), 0);
   // Transitive property for greater-than result.
-  EXPECT_GT(memcmp_func(ys+1, xs+1, kLen-1), 0);
+  EXPECT_GT(memcmp_func(ys + 1, xs + 1, kLen - 1), 0);
 }
 
 TEST_P(MemCmpTest, UnalignedTailTest) {

@@ -44,8 +44,10 @@ TEST_F(InitTest, AlertConfigureAlertBadClass) {
 }
 
 TEST_F(InitTest, LocalAlertConfigureAlertBadIndex) {
-  EXPECT_EQ(alert_local_configure(ALERT_HANDLER_LOC_ALERT_CLASS_SHADOWED_MULTIREG_COUNT,
-                                  kAlertClassX, kAlertEnableNone), kErrorAlertBadIndex);
+  EXPECT_EQ(alert_local_configure(
+                ALERT_HANDLER_LOC_ALERT_CLASS_SHADOWED_MULTIREG_COUNT,
+                kAlertClassX, kAlertEnableNone),
+            kErrorAlertBadIndex);
 }
 
 TEST_F(InitTest, LocalAlertConfigureAlertBadClass) {
