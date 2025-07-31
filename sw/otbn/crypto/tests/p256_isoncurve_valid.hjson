@@ -1,3 +1,6 @@
+// Copyright lowRISC contributors (OpenTitan project).
+// Licensed under the Apache License, Version 2.0, see LICENSE for details.
+// SPDX-License-Identifier: Apache-2.0
 {
   "entrypoint": "p256_isoncurve",
   "input": {
@@ -6,7 +9,7 @@
       "y": "0x42a1c6971f31c14343dd09eab53a17fa7f7a11d0ab9c6924a87070589e008c2e"
     }
     "regs": {
-      "w31": "0"
+      "w31": "0x0"
     }
   }
   "output": {

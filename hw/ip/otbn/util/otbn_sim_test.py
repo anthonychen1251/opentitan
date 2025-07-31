@@ -9,17 +9,14 @@ import argparse
 import subprocess
 import sys
 from enum import IntEnum
-from typing import Dict, List
+from typing import List
 import tempfile
-
-from elftools.elf.elffile import ELFFile  # type: ignore
-from elftools.elf.sections import SymbolTableSection  # type: ignore
 
 from shared.check import CheckResult
 from shared.elf import read_elf
 from shared.reg_dump import parse_reg_dump
 from shared.dmem_dump import parse_dmem_exp, parse_actual_dmem
-from shared.testcase import parse_testcase
+from shared.testcase import OtbnTestCase
 
 # Names of special registers
 ERR_BITS = 'ERR_BITS'
@@ -79,11 +76,14 @@ def main() -> int:
     parser.add_argument('--testcase',
                         metavar='FILE',
                         type=argparse.FileType('r'),
-                        help='Path to the testcase hjson file.')
+                        help='Path to a testcase hjson file.')
     parser.add_argument('elf',
                         help='Path to the .elf file for the OTBN program.')
     parser.add_argument('-v', '--verbose', action='store_true')
     args = parser.parse_args()
+
+    if args.testcase and (args.expected_dmem or args.expected_regs):
+        parser.error("Cannot specify --testcase together with --expected_dmem or --expected_regs.")
 
     _, _, symbols = read_elf(args.elf)
 
@@ -92,9 +92,9 @@ def main() -> int:
 
     cmd_flags = []
 
-    testcase = {}
+    testcase = None
     if args.testcase:
-        testcase = parse_testcase(args.testcase.read(), symbols)
+        testcase = OtbnTestCase.from_hjson(args.testcase.read(), symbols)
         cmd_flags.extend([
             "--testcase",
             args.testcase.name,
@@ -117,7 +117,7 @@ def main() -> int:
         )
 
         dmem_file.seek(0)
-        actual_dmem = parse_actual_dmem(dmem_file.read(), le_words=bool(testcase))
+        actual_dmem = parse_actual_dmem(dmem_file.read())
         actual_regs = parse_reg_dump(regs_file.read().decode('utf-8'))
 
     expected_err = 0
@@ -130,12 +130,12 @@ def main() -> int:
         expected_dmem = parse_dmem_exp(args.expected_dmem.read())
 
     if testcase:
-        expected_dmem = testcase['output']['dmem']
-        expected_regs = testcase['output']['regs']
+        expected_dmem = testcase.output.dmem
+        expected_regs = testcase.output.regs
 
     expected_err = expected_regs.get(ERR_BITS, 0)
 
-    if testcase.get('entrypoint'):
+    if testcase and testcase.entrypoint and not expected_err:
         # expect call stack error since we overwrite the entrypoint.
         expected_err = 0x00000004
 
@@ -155,35 +155,33 @@ def main() -> int:
                        f"  {STOP_PC}\t= {stop_pc:#010x}")
 
     else:
-        if expected_regs:
-            for reg, expected_value in expected_regs.items():
-                actual_value = actual_regs.get(reg, None)
-                if actual_value != expected_value:
-                    if reg.startswith("w"):
-                        expected_str = f"{expected_value:#066x}"
-                        actual_str = f"{actual_value:#066x}"
-                    else:
-                        expected_str = f"{expected_value:#010x}"
-                        actual_str = f"{actual_value:#010x}"
-                    result.err(f"Mismatch for register {reg}:\n"
-                               f"  Expected: {expected_str}\n"
-                               f"  Actual:   {actual_str}")
+        for reg, expected_value in expected_regs.items():
+            actual_value = actual_regs.get(reg, None)
+            if actual_value != expected_value:
+                if reg.startswith("w"):
+                    expected_str = f"{expected_value:#066x}"
+                    actual_str = f"{actual_value:#066x}"
+                else:
+                    expected_str = f"{expected_value:#010x}"
+                    actual_str = f"{actual_value:#010x}"
+                result.err(f"Mismatch for register {reg}:\n"
+                           f"  Expected: {expected_str}\n"
+                           f"  Actual:   {actual_str}")
 
-        if expected_dmem:
-            for label, value in expected_dmem.items():
-                try:
-                    offset = symbols[label]
-                    actual = actual_dmem[offset:offset + len(value)]
-                    if actual != value:
-                        result.err(
-                            f"Mismatch for dmem {label}:\n"
-                            f"  Expected:     {value.hex()}\n"
-                            f"  Actual:       {actual.hex()}\n"
-                            f"  Expected(BE): {value[::-1].hex()}\n"
-                            f"  Actual(BE):   {actual[::-1].hex()}"
-                        )
-                except KeyError:
-                    result.err(f'No label "{label}" found in elf-file.')
+        for label, value in expected_dmem.items():
+            try:
+                offset = symbols[label]
+                actual = actual_dmem[offset:offset + len(value)]
+                if actual != value:
+                    result.err(
+                        f"Mismatch for dmem {label}:\n"
+                        f"  Expected:     {value.hex()}\n"
+                        f"  Actual:       {actual.hex()}\n"
+                        f"  Expected(BE): {value[::-1].hex()}\n"
+                        f"  Actual(BE):   {actual[::-1].hex()}"
+                    )
+            except KeyError:
+                result.err(f'No label "{label}" found in elf-file.')
 
     if result.has_errors() or result.has_warnings() or args.verbose:
         print(result.report())

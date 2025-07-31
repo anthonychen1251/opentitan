@@ -59,11 +59,13 @@ class StandaloneSim(OTBNSim):
 
         return insn_count
 
-    def load_dmem_vars(self, dmem_vars: Dict[str, bytes]):
+    def load_dmem_vars(self, dmem_vars: Dict[str, bytes]) -> None:
         for label, value in dmem_vars.items():
-            offset = self.symbols[label]
+            offset = self.symbols.get(label)
+            if offset is None:
+                raise KeyError(f'Symbol {label} does not exist in the elf')
             assert offset % 4 == 0, "Only word-aligned variables are supported."
-            self.state.dmem.load_le_words(value, has_validity=False, offset=offset // 4)
+            self.state.dmem.load_le_words(value, has_validity=False, word_offset=offset // 4)
 
     def load_regs_vars(self, regs: Dict[str, int]) -> None:
         for label, value in regs.items():
@@ -74,7 +76,7 @@ class StandaloneSim(OTBNSim):
                 wdr_idx = int(label[1:])
                 self.state.wdrs.get_reg(wdr_idx).write_unsigned(value)
             else:
-                self.state.ext_regs.write(label, value)
+                self.state.ext_regs.write(label, value, from_hw=False)
 
     def dump_regs(self, tgt: TextIO) -> None:
         for reg in ['ERR_BITS', 'INSN_CNT', 'STOP_PC']:

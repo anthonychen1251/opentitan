@@ -643,10 +643,10 @@ class Transformer:
 
         # Write .file and .line directives to tell the assembler where the code
         # came from.
-        out_handle.write(f'.file {in_idx+1} "{in_path}"\n')
-        out_handle.write(f'.loc {in_idx+1} 0\n')
+        out_handle.write(f'.file {in_idx + 1} "{in_path}"\n')
+        out_handle.write(f'.loc {in_idx + 1} 0\n')
         out_handle.write(f'.file "{in_path}"\n')
-        out_handle.write(f'.line 1\n')
+        out_handle.write('.line 1\n')
 
     def mk_raw_line(self, insn: Insn, op_to_expr: Dict[str,
                                                        Optional[str]]) -> str:
@@ -796,7 +796,7 @@ class Transformer:
                 '# pseudo-expansion for: {}\n'.format(reconstructed))
             for entry in expansion:
                 self.out_handle.write(f'.line {self.line_number - 1}\n')
-                self.out_handle.write(f'.loc {self.in_idx+1} {self.line_number}\n')
+                self.out_handle.write(f'.loc {self.in_idx + 1} {self.line_number}\n')
                 self.out_handle.write(f'{entry}\n')
             return
 
@@ -807,7 +807,7 @@ class Transformer:
         # resolve CSR names.
         if insn.rv32i and not insn.uses_isr:
             self.out_handle.write(f'.line {self.line_number - 1}\n')
-            self.out_handle.write(f'.loc {self.in_idx+1} {self.line_number}\n')
+            self.out_handle.write(f'.loc {self.in_idx + 1} {self.line_number}\n')
             self.out_handle.write(f'{reconstructed}\n')
             return
 
@@ -841,8 +841,8 @@ class Transformer:
             line = self.mk_raw_line(insn, op_to_expr)
 
         self.out_handle.write(f'# {reconstructed}\n')
-        self.out_handle.write(f'.line {self.line_number-1}\n')
-        self.out_handle.write(f'.loc {self.in_idx+1} {self.line_number}\n')
+        self.out_handle.write(f'.line {self.line_number - 1}\n')
+        self.out_handle.write(f'.loc {self.in_idx + 1} {self.line_number}\n')
         self.out_handle.write(f'{line}\n')
 
     def _continue_block_comment(self, line: str, pos: int) -> int:

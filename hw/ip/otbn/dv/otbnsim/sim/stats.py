@@ -2,10 +2,8 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-from collections import Counter, defaultdict
-import itertools
-import typing
-from typing import Dict, List, Optional, Tuple
+from collections import Counter, defaultdict, namedtuple
+from typing import Dict, Iterator, List, Optional
 
 from elftools.dwarf.dwarfinfo import DWARFInfo  # type: ignore
 from elftools.elf.elffile import ELFFile  # type: ignore
@@ -32,7 +30,7 @@ class ExecutionStats:
         self.ext_basic_block_histo = Counter()  # type: typing.Counter[int]
 
         # Coverage map indexed by pc.
-        self.coverage = Counter()  # type: typing.Counter[str]
+        self.coverage: Counter[int] = Counter()
 
         self._current_basic_block_len = 0
         self._current_ext_basic_block_len = 0
@@ -133,7 +131,11 @@ class ExecutionStats:
             self._current_ext_basic_block_len = 0
 
 
-def _dwarf_iter_file_line(dwarf_info: DWARFInfo, full_path=False):
+SourceLine = namedtuple('SourceLine', ['addr', 'path', 'lineno'])
+
+
+def _dwarf_iter_file_line(dwarf_info: DWARFInfo,
+                          full_path: bool = False) -> Iterator[Optional[SourceLine]]:
     # Go over all the line programs in the DWARF information.
     for CU in dwarf_info.iter_CUs():
         # First, look at line programs to find the file/line for the address
@@ -155,19 +157,18 @@ def _dwarf_iter_file_line(dwarf_info: DWARFInfo, full_path=False):
                 dir = lineprog['include_directory'][dir_index - 1]
                 raw_path = dir + b'/' + raw_path
             path = raw_path.decode('utf-8')
-            yield state.address, path, state.line
+            yield SourceLine(state.address, path, state.line)
 
 
-def _dwarf_decode_file_line(dwarf_info: DWARFInfo,
-                            address: int) -> Optional[Tuple[str, int]]:
+def _dwarf_decode_file_line(dwarf_info: DWARFInfo, address: int) -> Optional[SourceLine]:
     # Go over all the line programs in the DWARF information, looking for
     # one that describes the given address.
     lines = list(_dwarf_iter_file_line(dwarf_info, full_path=False))
     for before, after in zip(lines, lines[1:]):
         if before is None or after is None:
             continue
-        if before[0] <= address < after[0]:
-            return before[1:]
+        if before.addr <= address < after.addr:
+            return before
     return None
 
 
@@ -212,7 +213,7 @@ class ExecutionStatAnalyzer:
         if symbol_name:
             add_info.append(f"{symbol_name}")
         if file_line:
-            add_info.append(f"at {file_line[0]}:{file_line[1]}")
+            add_info.append(f"at {file_line.path}:{file_line.lineno}")
 
         str = f"{address:#x}"
         if add_info:
@@ -394,13 +395,12 @@ class ExecutionStatAnalyzer:
             return ''
         dwarf_info = self._elf_file.get_dwarf_info()
 
-        hits_by_path = defaultdict(dict)
-        for line in _dwarf_iter_file_line(dwarf_info, full_path=True):
-            if line is None:
+        hits_by_path: defaultdict[str, Dict[int, int]] = defaultdict(dict)
+        for info in _dwarf_iter_file_line(dwarf_info, full_path=True):
+            if info is None:
                 continue
-            addr, path, line = line
-            hit = self._stats.coverage.get(addr, 0)
-            hits_by_path[path][line] = hit
+            hit = self._stats.coverage.get(info.addr, 0)
+            hits_by_path[info.path][info.lineno] = hit
 
         out = []
         for path, hits in hits_by_path.items():
