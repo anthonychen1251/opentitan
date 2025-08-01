@@ -69,7 +69,7 @@ def main():
   zip_path = './bazel-out/_coverage/view/instrumented_mask_rom_coverage_view.zip'
   view = load_view_zip(zip_path, use_disassembly=True)
 
-  base_commit = 'earlgrey_1.0.0_A2_presilicon'
+  base_commit = 'upstream/earlgrey_1.0.0_A2_presilicon'
 
   files = [e.removeprefix('SF:') for e in view.keys()]
 

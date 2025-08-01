@@ -26,9 +26,15 @@ view_files="$(cat "${LCOV_FILES}" | grep "/coverage.dat$")"
 for view_dat in $view_files; do
     view_dir="${view_dat%/*}"
     view_name="${view_dir##*/}"
+    outputs_dir="${view_dir}/test.outputs"
+    outputs_zip="${outputs_dir}/outputs.zip"
     cached_zip="${VIEW_CACHE_DIR}/${view_name}.zip"
     CACHED_VIEWS+=( "${cached_zip}" )
-    cp "${view_dir}/test.outputs/outputs.zip" "${cached_zip}"
+    if [[ -f "$outputs_zip" ]]; then
+        cp "${outputs_zip}" "${cached_zip}"
+    else
+        zip -q -0 -j "${cached_zip}" -r "${outputs_dir}"
+    fi
     echo "INFO: Baseline coverage cached to '${cached_zip}'."
 done
 

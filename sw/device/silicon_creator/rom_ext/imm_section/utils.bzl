@@ -9,6 +9,11 @@ load(
 )
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cc_toolchain")
+load(
+    "@rules_cc//cc:action_names.bzl",
+    "CPP_LINK_STATIC_LIBRARY_ACTION_NAME",
+    "OBJ_COPY_ACTION_NAME",
+)
 load("@lowrisc_opentitan//rules:rv.bzl", "rv_rule")
 load(
     "//sw/device/silicon_creator/rom_ext/imm_section:defs.bzl",
@@ -20,6 +25,11 @@ def _cc_import(ctx, cc_toolchain, object):
         ctx = ctx,
         cc_toolchain = cc_toolchain,
     )
+    ar = cc_common.get_tool_for_action(
+        feature_configuration = feature_configuration,
+        action_name = CPP_LINK_STATIC_LIBRARY_ACTION_NAME,
+    )
+
 
     lib_name = "lib" + ctx.label.name + ".a"
     static_library = ctx.actions.declare_file(lib_name)
@@ -27,7 +37,7 @@ def _cc_import(ctx, cc_toolchain, object):
         outputs = [static_library],
         inputs = [object] + cc_toolchain.all_files.to_list(),
         arguments = ["-rcs", static_library.path, object.path],
-        executable = cc_toolchain.ar_executable,
+        executable = ar,
     )
 
     library_to_link = cc_common.create_library_to_link(
@@ -66,6 +76,16 @@ def _choose_one_build(src):
 
 def _create_imm_section_targets_impl(ctx):
     cc_toolchain = find_cc_toolchain(ctx)
+    feature_config = cc_common.configure_features(
+        ctx = ctx,
+        cc_toolchain = cc_toolchain,
+        requested_features = ctx.features,
+        unsupported_features = ctx.disabled_features,
+    )
+    objcopy = cc_common.get_tool_for_action(
+        feature_configuration = feature_config,
+        action_name = OBJ_COPY_ACTION_NAME,
+    )
 
     src, runfiles = _choose_one_build(ctx.attr.src)
 
@@ -88,7 +108,7 @@ def _create_imm_section_targets_impl(ctx):
             src.path,
             object.path,
         ],
-        executable = cc_toolchain.objcopy_executable,
+        executable = objcopy,
     )
 
     lib, cc_info = _cc_import(ctx, cc_toolchain, object)
@@ -107,9 +127,9 @@ create_imm_section_targets = rv_rule(
         "src": attr.label(allow_files = True),
         "_cc_toolchain": attr.label(default = Label("@bazel_tools//tools/cpp:current_cc_toolchain")),
     },
+    fragments = ["cpp"],
     provides = [CcInfo],
     toolchains = ["@rules_cc//cc:toolchain_type"],
-    fragments = ["cpp"],
 )
 
 _RELEASE_BUILD_HEADER = """\

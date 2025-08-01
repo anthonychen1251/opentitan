@@ -137,10 +137,3 @@ void coverage_invalidate(void) {
 int coverage_is_valid(void) {
   return coverage_status == *(uint32_t*) BUILD_ID;
 }
-
-/**
- * We use the linker generated symbols directly, so these runtime initializers
- * are no-op.
- */
-void __llvm_profile_register_names_function(void) {}
-void __llvm_profile_register_function(void) {}

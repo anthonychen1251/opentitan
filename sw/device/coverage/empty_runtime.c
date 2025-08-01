@@ -4,5 +4,7 @@
 
 #include "sw/device/lib/base/macros.h"
 
-OT_WEAK OT_NO_COVERAGE void coverage_init(void) {}
-OT_WEAK OT_NO_COVERAGE void coverage_report(void) {}
+OT_WEAK void coverage_transport_init(void) {}
+OT_WEAK void coverage_init(void) {}
+OT_WEAK void coverage_report(void) {}
+OT_WEAK void coverage_invalidate(void) {}

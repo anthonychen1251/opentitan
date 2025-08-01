@@ -4,11 +4,9 @@
 
 #include "sw/device/lib/arch/device.h"
 #include "sw/device/coverage/printer.h"
-#include "sw/device/lib/base/macros.h"
 #include "sw/device/silicon_creator/lib/drivers/uart.h"
 #include "sw/device/silicon_creator/lib/drivers/pinmux.h"
 
-OT_NO_COVERAGE
 void coverage_transport_init(void) {
   pinmux_init_uart0_tx();
   uart_init(kUartNCOValue);
@@ -19,13 +17,7 @@ void coverage_transport_init(void) {
   while (!uart_tx_idle());
 }
 
-OT_NO_COVERAGE
 void coverage_report(void) {
-  // Wait until idle.
-  while (!uart_tx_idle());
-
-#if defined(OT_COVERAGE_INSTRUMENTED)
-
   if (coverage_is_valid()) {
     // python3 sw/device/coverage/util/uart_hex.py '== COVERAGE PROFILE START ==\r\n'
     uart_write_imm(0x5245564f43203d3d);
@@ -48,21 +40,10 @@ void coverage_report(void) {
     uart_write_imm(0x000a0d3d3d204445);
   }
 
-#elif defined(OT_COVERAGE_ENABLED)
-
-  // python3 sw/device/coverage/util/uart_hex.py '== COVERAGE PROFILE SKIP ==\r\n'
-  uart_write_imm(0x5245564f43203d3d);
-  uart_write_imm(0x464f525020454741);
-  uart_write_imm(0x50494b5320454c49);
-  uart_write_imm(0x0000000a0d3d3d20);
-
-#endif
-
   // Wait until the report is sent.
   while (!uart_tx_idle());
 }
 
-OT_NO_COVERAGE
 void coverage_printer_sink(const void *data, size_t size) {
   for (size_t i = 0; i < size; ++i) {
     uart_write_hex(((uint8_t *)data)[i], 1, 0);

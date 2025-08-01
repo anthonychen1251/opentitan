@@ -332,9 +332,26 @@ pub fn generate_view_profraw(profile: &ProfileData, output_path: &PathBuf) -> Re
     Ok(())
 }
 
+fn find_tool(env_name: &str, file_name: &str) -> Result<PathBuf>{
+    let path = &env::var(env_name).unwrap();
+    debug_log!("{env_name}: {path}");
+    if !path.is_empty() {
+        return Ok(PathBuf::from(path));
+    }
+
+    // FIXME: workaround due to missing tools_path in rules_cc toolchain.
+    // See also https://github.com/bazelbuild/rules_cc/issues/351
+    let path = get_runfiles_dir().join("+lowrisc_rv32imcb_toolchain+lowrisc_rv32imcb_toolchain/bin").join(file_name);
+    debug_log!("Testing {file_name} path: {}", path.display());
+    if path.exists() {
+        return Ok(path);
+    }
+
+    bail!("ERROR: missing {file_name} tool.");
+}
+
 pub fn llvm_profdata_merge(profraw_file: &PathBuf, profdata_file: &PathBuf) {
-    let llvm_profdata = &env::var("LLVM_PROFDATA").unwrap();
-    debug_log!("llvm_profdata: {llvm_profdata}");
+    let llvm_profdata = find_tool("LLVM_PROFDATA", "llvm-profdata").unwrap();
 
     // "${LLVM_PROFDATA}" merge -output "${profdata_file}" "${profraw_file}"
     let mut llvm_profdata_cmd = process::Command::new(llvm_profdata);
@@ -357,8 +374,7 @@ pub fn llvm_profdata_merge(profraw_file: &PathBuf, profdata_file: &PathBuf) {
 
 pub fn llvm_cov_export(format: &str, profdata_file: &PathBuf, objects: &Vec<String>, output_file: &PathBuf) {
     let execroot = PathBuf::from(env::var("ROOT").unwrap());
-    let llvm_cov = &env::var("LLVM_COV").unwrap();
-    debug_log!("llvm_cov: {llvm_cov}");
+    let llvm_cov = find_tool("LLVM_COV", "llvm-cov").unwrap();
 
     // "${LLVM_COV}" export -instr-profile "${profdata_file" -format=lcov \
     //     -ignore-filename-regex='^/tmp/.+' \

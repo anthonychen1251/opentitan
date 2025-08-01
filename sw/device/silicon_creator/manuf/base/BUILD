@@ -92,6 +92,7 @@ opentitan_binary(
 opentitan_binary(
     name = "sram_cp_provision_functest",
     testonly = True,
+    collect_code_coverage = 0, # No space for sram binaries
     srcs = ["sram_cp_provision_functest.c"],
     exec_env = {
         "//hw/top_earlgrey:fpga_hyper310_rom_with_fake_keys": None,

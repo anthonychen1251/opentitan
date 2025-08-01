@@ -21,10 +21,12 @@
 #include "sw/device/silicon_creator/lib/ownership/datatypes.h"
 #include "sw/device/silicon_creator/lib/ownership/mock_ownership_key.h"
 #include "sw/device/silicon_creator/lib/ownership/owner_block.h"
+#include "sw/device/silicon_creator/lib/sigverify/flash_exec.h"
 #include "sw/device/silicon_creator/testing/rom_test.h"
 
 namespace {
 using ::testing::_;
+using ::testing::DoAll;
 using ::testing::Return;
 using ::testing::SetArgPointee;
 
@@ -56,8 +58,12 @@ class OwnershipActivateTest : public rom_test::RomTest {
       case kOwnershipStateUnlockedEndorsed:
         // In UnlockedEndorsed, the hash of the owner key in page1 must be equal
         // to the value stored in boot_data.
-        EXPECT_CALL(hmac_, sha256(_, _, _))
-            .WillOnce(SetArgPointee<2>((hmac_digest_t){{
+        EXPECT_CALL(hmac_, sha256_init());
+        EXPECT_CALL(hmac_, sha256_update(_, _));
+        EXPECT_CALL(hmac_, sha256_update(_, _));
+        EXPECT_CALL(hmac_, sha256_process());
+        EXPECT_CALL(hmac_, sha256_final(_))
+            .WillOnce(SetArgPointee<0>((hmac_digest_t){{
                 bootdata_.next_owner[0] + modifier,
                 bootdata_.next_owner[1],
                 bootdata_.next_owner[2],
@@ -134,8 +140,8 @@ TEST_P(OwnershipActivateValidStateTest, InvalidVersion) {
   owner_page[1].header.version.major = 5;
 
   EXPECT_CALL(ownership_key_,
-              validate(1, kOwnershipKeyActivate, kActivate, _, _, _, _))
-      .WillOnce(Return(kErrorOk));
+              validate(1, kOwnershipKeyActivate, kActivate, _, _, _, _, _))
+      .WillOnce(DoAll(SetArgPointee<7>(kSigverifyFlashExec), Return(kErrorOk)));
   EXPECT_CALL(lifecycle_, DeviceId(_))
       .WillOnce(SetArgPointee<0>((lifecycle_device_id_t){0}));
   EXPECT_CALL(hdr_, Finalize(_, _, _));
@@ -151,8 +157,9 @@ TEST_P(OwnershipActivateValidStateTest, InvalidSignature) {
   // message.
   MakePage1Valid(true);
   EXPECT_CALL(ownership_key_,
-              validate(1, kOwnershipKeyActivate, kActivate, _, _, _, _))
-      .WillOnce(Return(kErrorOwnershipInvalidSignature));
+              validate(1, kOwnershipKeyActivate, kActivate, _, _, _, _, _))
+      .WillOnce(
+          DoAll(SetArgPointee<7>(0), Return(kErrorOwnershipInvalidSignature)));
   EXPECT_CALL(hdr_, Finalize(_, _, _));
 
   rom_error_t error = ownership_activate_handler(&message_, &bootdata_);
@@ -167,8 +174,8 @@ TEST_P(OwnershipActivateValidStateTest, InvalidNonce) {
   // message.
   MakePage1Valid(true);
   EXPECT_CALL(ownership_key_,
-              validate(1, kOwnershipKeyActivate, kActivate, _, _, _, _))
-      .WillOnce(Return(kErrorOk));
+              validate(1, kOwnershipKeyActivate, kActivate, _, _, _, _, _))
+      .WillOnce(DoAll(SetArgPointee<7>(kSigverifyFlashExec), Return(kErrorOk)));
   EXPECT_CALL(hdr_, Finalize(_, _, _));
 
   rom_error_t error = ownership_activate_handler(&message_, &bootdata_);
@@ -182,8 +189,8 @@ TEST_P(OwnershipActivateValidStateTest, InvalidActivateDin) {
   // message.
   MakePage1Valid(true);
   EXPECT_CALL(ownership_key_,
-              validate(1, kOwnershipKeyActivate, kActivate, _, _, _, _))
-      .WillOnce(Return(kErrorOk));
+              validate(1, kOwnershipKeyActivate, kActivate, _, _, _, _, _))
+      .WillOnce(DoAll(SetArgPointee<7>(kSigverifyFlashExec), Return(kErrorOk)));
   EXPECT_CALL(lifecycle_, DeviceId(_))
       .WillOnce(SetArgPointee<0>((lifecycle_device_id_t){0, 1, 1}));
   EXPECT_CALL(hdr_, Finalize(_, _, _));
@@ -235,8 +242,8 @@ TEST_P(OwnershipActivateValidStateTest, OwnerPageValid) {
   MakePage1Valid(true);
 
   EXPECT_CALL(ownership_key_,
-              validate(1, kOwnershipKeyActivate, kActivate, _, _, _, _))
-      .WillOnce(Return(kErrorOk));
+              validate(1, kOwnershipKeyActivate, kActivate, _, _, _, _, _))
+      .WillOnce(DoAll(SetArgPointee<7>(kSigverifyFlashExec), Return(kErrorOk)));
   EXPECT_CALL(lifecycle_, DeviceId(_))
       .WillOnce(SetArgPointee<0>((lifecycle_device_id_t){0}));
 
@@ -305,8 +312,8 @@ TEST_P(OwnershipActivateValidStateTest, UpdateBootdataBl0) {
   owner_page[1].min_security_version_bl0 = 5;
 
   EXPECT_CALL(ownership_key_,
-              validate(1, kOwnershipKeyActivate, kActivate, _, _, _, _))
-      .WillOnce(Return(kErrorOk));
+              validate(1, kOwnershipKeyActivate, kActivate, _, _, _, _, _))
+      .WillOnce(DoAll(SetArgPointee<7>(kSigverifyFlashExec), Return(kErrorOk)));
   EXPECT_CALL(lifecycle_, DeviceId(_))
       .WillOnce(SetArgPointee<0>((lifecycle_device_id_t){0}));
 

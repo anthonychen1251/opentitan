@@ -7,8 +7,8 @@
 #include "sw/device/silicon_creator/lib/ownership/owner_verify.h"
 
 static rom_error_t owner_verify_spx_signature_not_found_test(void) {
-  owner_keydata_t key = {};
-  hmac_digest_t digest = {};
+  owner_keydata_t key = {0};
+  hmac_digest_t digest = {0};
   uint32_t flash_exec = 0;
   rom_error_t error =
       owner_verify(kOwnershipKeyAlgCategorySpx, &key, NULL, NULL, NULL, 0, NULL,
@@ -22,11 +22,11 @@ static rom_error_t owner_verify_spx_signature_not_found_test(void) {
 }
 
 static rom_error_t owner_verify_bad_spx_config_test(void) {
-  owner_keydata_t key = {};
-  hmac_digest_t digest = {};
+  owner_keydata_t key = {0};
+  hmac_digest_t digest = {0};
   uint32_t key_alg = kOwnershipKeyAlgCategorySpx | kOwnershipKeyAlgSpxPure |
                      kOwnershipKeyAlgSpxPrehash;
-  sigverify_spx_signature_t spx_signature = {};
+  sigverify_spx_signature_t spx_signature = {0};
   uint32_t flash_exec = 0;
   rom_error_t error = owner_verify(key_alg, &key, NULL, &spx_signature, NULL, 0,
                                    NULL, 0, NULL, 0, &digest, &flash_exec);
@@ -39,10 +39,10 @@ static rom_error_t owner_verify_bad_spx_config_test(void) {
 }
 
 static rom_error_t owner_verify_bad_spx_signature_test(void) {
-  owner_keydata_t key = {};
-  hmac_digest_t digest = {};
+  owner_keydata_t key = {0};
+  hmac_digest_t digest = {0};
   uint32_t key_alg = kOwnershipKeyAlgSpxPure;
-  sigverify_spx_signature_t spx_signature = {};
+  sigverify_spx_signature_t spx_signature = {0};
   uint32_t flash_exec = 0;
   rom_error_t error = owner_verify(key_alg, &key, NULL, &spx_signature, NULL, 0,
                                    NULL, 0, NULL, 0, &digest, &flash_exec);

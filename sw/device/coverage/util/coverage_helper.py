@@ -373,14 +373,19 @@ def iter_lcov_files(lcov_files_path):
 
 def _iter_raw_lcov_contents(lcov_files_path):
   for lcov in iter_lcov_paths(lcov_files_path):
-    test_zip = lcov.path.parent / 'test.outputs/outputs.zip'
-    if not test_zip.exists(): # e.g. unit tests
-      continue
-    with zipfile.ZipFile(test_zip, 'r') as zip:
-      for name in zip.namelist():
-        if name.endswith('.dat'):
-          with zip.open(name) as f:
-            yield lcov._replace(coverage=f.read())
+    test_dir = lcov.path.parent / 'test.outputs'
+    for dat in test_dir.glob('*.dat'):
+      yield lcov._replace(coverage=dat.read_bytes())
+
+    # The output could be zipped when the folllowing flag is set.
+    # https://bazel.build/reference/command-line-reference#flag--zip_undeclared_test_outputs
+    test_zip = test_dir / 'outputs.zip'
+    if test_zip.exists(): # e.g. skip unit tests
+      with zipfile.ZipFile(test_zip, 'r') as zip:
+        for name in zip.namelist():
+          if name.endswith('.dat'):
+            with zip.open(name) as f:
+              yield lcov._replace(coverage=f.read())
 
 def iter_raw_lcov_files(lcov_files_path):
   with mp.Pool() as pool:

@@ -60,7 +60,7 @@ TEST_F(OwnershipInitTest, InitWithRecoveryState) {
       .WillOnce(SetArgPointee<0>((lifecycle_device_id_t){0}));
   EXPECT_CALL(ownership_key_, seal_check(0))
       .WillOnce(Return(kErrorOwnershipInvalidInfoPage));
-  EXPECT_CALL(ownership_key_, validate(_, _, _, _, _, _, _))
+  EXPECT_CALL(ownership_key_, validate(_, _, _, _, _, _, _, _))
       .WillOnce(Return(kErrorOwnershipInvalidInfoPage));
 
   EXPECT_CALL(flash_ctrl_, InfoRead(&kFlashCtrlInfoPageOwnerSlot1, _, _, _))
@@ -69,7 +69,7 @@ TEST_F(OwnershipInitTest, InitWithRecoveryState) {
       .WillOnce(SetArgPointee<0>((lifecycle_device_id_t){0}));
   EXPECT_CALL(ownership_key_, seal_check(1))
       .WillOnce(Return(kErrorOwnershipInvalidInfoPage));
-  EXPECT_CALL(ownership_key_, validate(_, _, _, _, _, _, _))
+  EXPECT_CALL(ownership_key_, validate(_, _, _, _, _, _, _, _))
       .WillOnce(Return(kErrorOwnershipInvalidInfoPage));
 
   EXPECT_CALL(rnd_, Uint32()).WillRepeatedly(Return(0));
@@ -92,7 +92,7 @@ TEST_P(OwnershipInitInvalidPagesTest, InitWithInfoPageCorrupted) {
       .WillOnce(SetArgPointee<0>((lifecycle_device_id_t){0}));
   EXPECT_CALL(ownership_key_, seal_check(0))
       .WillOnce(Return(kErrorOwnershipInvalidInfoPage));
-  EXPECT_CALL(ownership_key_, validate(_, _, _, _, _, _, _))
+  EXPECT_CALL(ownership_key_, validate(_, _, _, _, _, _, _, _))
       .WillOnce(Return(kErrorOwnershipInvalidInfoPage));
 
   EXPECT_CALL(flash_ctrl_, InfoRead(&kFlashCtrlInfoPageOwnerSlot1, _, _, _))
@@ -101,7 +101,7 @@ TEST_P(OwnershipInitInvalidPagesTest, InitWithInfoPageCorrupted) {
       .WillOnce(SetArgPointee<0>((lifecycle_device_id_t){0}));
   EXPECT_CALL(ownership_key_, seal_check(1))
       .WillOnce(Return(kErrorOwnershipInvalidInfoPage));
-  EXPECT_CALL(ownership_key_, validate(_, _, _, _, _, _, _))
+  EXPECT_CALL(ownership_key_, validate(_, _, _, _, _, _, _, _))
       .WillOnce(Return(kErrorOwnershipInvalidInfoPage));
 
   EXPECT_CALL(rnd_, Uint32()).WillRepeatedly(Return(0));

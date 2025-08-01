@@ -48,6 +48,7 @@
 #include "sw/device/silicon_creator/lib/rescue/rescue.h"
 #include "sw/device/silicon_creator/lib/shutdown.h"
 #include "sw/device/silicon_creator/lib/sigverify/ecdsa_p256_key.h"
+#include "sw/device/silicon_creator/lib/sigverify/flash_exec.h"
 #include "sw/device/silicon_creator/lib/sigverify/sigverify.h"
 #include "sw/device/silicon_creator/lib/sigverify/sphincsplus/verify.h"
 #include "sw/device/silicon_creator/rom_ext/imm_section/imm_section_version.h"
@@ -73,11 +74,6 @@ enum {
   kRomExtAEnd = kRomExtAStart + kRomExtSizeInPages,
   kRomExtBStart = kFlashBankSize + kRomExtAStart,
   kRomExtBEnd = kRomExtBStart + kRomExtSizeInPages,
-};
-
-// Parameter to check the ECDSA and SPX signatures with.
-enum {
-  kSigverifySignExec = 0xa26a38f7,
 };
 
 // Declaration for the ROM_EXT manifest start address, populated by the linker
@@ -312,25 +308,13 @@ static rom_error_t rom_ext_boot(boot_data_t *boot_data, boot_log_t *boot_log,
       break;
     case kHardenedBoolFalse:
       HARDENED_CHECK_EQ(manifest->address_translation, kHardenedBoolFalse);
-      // Normally we'd want to clear the ROM region since we aren't using it
-      // anymore and since it isn't being used to encode access to the virtual
-      // window.  However, for SiVal, we want to keep low entries locked to
-      // prevent using low entries to override policy in higher entries.
-      // epmp_clear_rom_region();
       break;
     default:
       HARDENED_TRAP();
   }
 
-  // Allow execution of owner stage executable code (text) sections,
-  // unlock the ROM_EXT code regions so the next stage can re-use those
-  // entries and clear RLB to prevent further changes to locked ePMP regions.
-  HARDENED_RETURN_IF_ERROR(epmp_state_check());
+  // Allow execution of owner stage executable code (text) sections.
   epmp_set_tor(2, text_region, kEpmpPermReadExecute);
-
-  // Now that we're done reconfiguring the ePMP, we'll clear the RLB bit to
-  // prevent any modification to locked entries.
-  epmp_clear_rlb();
   HARDENED_RETURN_IF_ERROR(epmp_state_check());
 
   // Lock the address translation windows.
@@ -381,7 +365,7 @@ static rom_error_t rom_ext_boot(boot_data_t *boot_data, boot_log_t *boot_log,
   sec_mmio_check_values_except_otp(/*rnd_uint32()*/ 0,
                                    TOP_EARLGREY_OTP_CTRL_CORE_BASE_ADDR);
 
-  HARDENED_CHECK_EQ(*flash_exec, kSigverifySignExec);
+  HARDENED_CHECK_EQ(*flash_exec, kSigverifyFlashExec);
 
   // Jump to OWNER entry point.
   dbg_printf("entry: 0x%x\r\n", (unsigned int)entry_point);
@@ -409,7 +393,7 @@ static rom_error_t rom_ext_try_next_stage(boot_data_t *boot_data,
     if (error != kErrorOk) {
       continue;
     }
-    HARDENED_CHECK_EQ(flash_exec, kSigverifySignExec);
+    HARDENED_CHECK_EQ(flash_exec, kSigverifyFlashExec);
 
     if (manifests.ordered[i] == rom_ext_boot_policy_manifest_a_get()) {
       boot_log->bl0_slot = kBootSlotA;

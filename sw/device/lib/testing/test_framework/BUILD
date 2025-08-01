@@ -5,7 +5,7 @@
 load("@bazel_skylib//lib:dicts.bzl", "dicts")
 load("//rules:cross_platform.bzl", "dual_cc_library", "dual_inputs")
 load("//rules:linker.bzl", "ld_library")
-load("//rules:opentitan.bzl", "OPENTITAN_CPU")
+load("//rules/opentitan:defs.bzl", "OPENTITAN_CPU")
 load(
     "//rules/opentitan:defs.bzl",
     "EARLGREY_TEST_ENVS",
@@ -183,6 +183,7 @@ cc_library(
     target_compatible_with = [OPENTITAN_CPU],
     deps = [
         ":check",
+        ":ottf_test_config",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
         "//sw/device/lib/base:csr",
         "//sw/device/lib/base:macros",
@@ -190,7 +191,13 @@ cc_library(
         "//sw/device/lib/runtime:hart",
         "//sw/device/lib/runtime:ibex",
         "//sw/device/lib/runtime:log",
-    ],
+    ] + select({
+        "//sw/device:is_english_breakfast": [],
+        "//conditions:default": [
+            "//hw/top_earlgrey:alert_handler_c_regs",
+            "//sw/device/lib/dif:alert_handler",
+        ],
+    }),
 )
 
 # This target provides start files without providing the full OTTF, and can be
@@ -247,6 +254,25 @@ cc_library(
 )
 
 cc_library(
+    name = "ottf_alerts",
+    srcs = ["ottf_alerts.c"],
+    hdrs = ["ottf_alerts.h"],
+    target_compatible_with = [OPENTITAN_CPU],
+    deps = [
+        "//hw/top_earlgrey:alert_handler_c_regs",
+        "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+        "//sw/device/lib/arch:boot_stage",
+        "//sw/device/lib/arch:device",
+        "//sw/device/lib/base:status",
+        "//sw/device/lib/dif:alert_handler",
+        "//sw/device/lib/dif:rv_plic",
+        "//sw/device/lib/runtime:irq",
+        "//sw/device/lib/testing:alert_handler_testutils",
+        "//sw/device/lib/testing:rv_plic_testutils",
+    ],
+)
+
+cc_library(
     name = "ottf_main",
     srcs = ["ottf_main.c"],
     hdrs = ["ottf_main.h"],
@@ -271,7 +297,10 @@ cc_library(
         "//sw/device/lib/testing:rand_testutils",
         "//third_party/freertos",
         "@manufacturer_test_hooks//:test_hooks",
-    ],
+    ] + select({
+        "//sw/device:is_english_breakfast": [],
+        "//conditions:default": [":ottf_alerts"],
+    }),
     # `:ottf` depends on `:ottf_start`, but `:ottf_start` gets its main function
     # from `:ottf`. Thus we need to include all of the objects in `:ottf`
     # unconditionally so that the linker can find the symbol later.

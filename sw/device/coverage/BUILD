@@ -26,12 +26,12 @@ cc_library(
     name = "printer",
     hdrs = ["printer.h"],
     srcs = ["printer.c"],
-    features = ["-coverage"],
     deps = [
         "//sw/device/lib/base:crc32",
         "//sw/device/lib/base:macros",
     ],
-    alwayslink = True,
+    features = ["-coverage"],
+    alwayslink = True,  # replacing weak symbol
 )
 
 cc_library(
@@ -57,10 +57,10 @@ cc_library(
 cc_library(
     name = "empty_runtime",
     srcs = ["empty_runtime.c"],
-    features = ["-coverage"],
     deps = [
         "//sw/device/lib/base:macros",
     ],
+    features = ["-coverage"],
 )
 
 cc_library(
@@ -72,15 +72,28 @@ cc_library(
         "//sw/device/lib/arch:device",
         "//sw/device/silicon_creator/lib/drivers:pinmux",
         "//sw/device/silicon_creator/lib/drivers:uart",
-        "//sw/device/lib/base:macros",
     ],
-    alwayslink = True,
+    features = ["-coverage"],
+    alwayslink = True,  # replacing weak symbol
+)
+
+cc_library(
+    name = "uart_runtime_skip",
+    srcs = ["uart_runtime_skip.c"],
+    deps = [
+        "//sw/device/lib/arch:device",
+        "//sw/device/silicon_creator/lib/drivers:pinmux",
+        "//sw/device/silicon_creator/lib/drivers:uart",
+    ],
+    features = ["-coverage"],
+    alwayslink = True,  # replacing weak symbol
 )
 
 alias(
     name = "uart_runtime",
     actual = select({
-        "//rules/coverage:enabled": ":uart_runtime_real",
+        "//rules/coverage:instrumented": ":uart_runtime_real",
+        "//rules/coverage:enabled": ":uart_runtime_skip",
         "//conditions:default": ":empty_runtime",
     }),
 )
@@ -94,15 +107,26 @@ cc_library(
         "//sw/device/lib/base:memory",
         "//sw/device/lib/runtime:log",
         "//sw/device/lib/runtime:print",
-        "//sw/device/lib/base:macros",
     ],
-    alwayslink = True,
+    features = ["-coverage"],
+    alwayslink = True,  # replacing weak symbol
+)
+
+cc_library(
+    name = "ottf_runtime_skip",
+    srcs = ["ottf_runtime_skip.c"],
+    deps = [
+        "//sw/device/lib/runtime:print",
+    ],
+    features = ["-coverage"],
+    alwayslink = True,  # replacing weak symbol
 )
 
 alias(
     name = "ottf_runtime",
     actual = select({
-        "//rules/coverage:enabled": ":ottf_runtime_real",
+        "//rules/coverage:instrumented": ":ottf_runtime_real",
+        "//rules/coverage:enabled": ":ottf_runtime_skip",
         "//conditions:default": ":empty_runtime",
     }),
 )
@@ -113,9 +137,4 @@ ld_library(
         "llvm_prf_cnts.ld",
         "rodata.ld",
     ],
-)
-
-filegroup(
-    name = "collect_cc_coverage",
-    srcs = ["collect_cc_coverage.sh"],
 )

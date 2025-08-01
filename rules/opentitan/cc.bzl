@@ -3,13 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 load(
-    "@lowrisc_opentitan//rules:rv.bzl",
-    "rv_rule",
-    _OPENTITAN_CPU = "OPENTITAN_CPU",
-    _OPENTITAN_PLATFORM = "OPENTITAN_PLATFORM",
-    _opentitan_transition = "opentitan_transition",
-)
-load(
     "@lowrisc_opentitan//rules/opentitan:transform.bzl",
     "convert_to_vmem",
     "obj_disassemble",
@@ -19,15 +12,22 @@ load(
 load("@lowrisc_opentitan//rules:signing.bzl", "sign_binary")
 load("@lowrisc_opentitan//rules/opentitan:exec_env.bzl", "ExecEnvInfo")
 load("@lowrisc_opentitan//rules/opentitan:util.bzl", "get_fallback", "get_override")
+load("@lowrisc_opentitan//rules:rv.bzl", "rv_rule")
 load("@rules_cc//cc:find_cc_toolchain.bzl", "find_cc_toolchain")
 load("//rules/opentitan:toolchain.bzl", "LOCALTOOLS_TOOLCHAIN")
 load("//rules/opentitan:util.bzl", "assemble_for_test")
 
-# Re-exports of names from transition.bzl; many files in the repo use opentitan.bzl
-# to get to them.
-OPENTITAN_CPU = _OPENTITAN_CPU
-OPENTITAN_PLATFORM = _OPENTITAN_PLATFORM
-opentitan_transition = _opentitan_transition
+def _create_cc_instrumented_files_info(ctx, metadata_files):
+    # Simplified version of the same function in cc_helper.bzl
+    cc_config = ctx.fragments.cpp
+    info = coverage_common.instrumented_files_info(
+        ctx = ctx,
+        source_attributes = ["srcs", "hdrs"],
+        dependency_attributes = ["implementation_deps", "deps", "data"],
+        extensions = [".c", ".h", ".inc", ".s", ".S"],
+        metadata_files = metadata_files,
+    )
+    return info
 
 def _expand(ctx, name, items):
     """Perform location and make_variable expansion on a list of items.
@@ -130,8 +130,8 @@ def ot_binary(ctx, **kwargs):
     )
 
     objects = []
-    for ctx in linking_contexts:
-      for inp in ctx.linker_inputs.to_list():
+    for linking_ctx in linking_contexts:
+      for inp in linking_ctx.linker_inputs.to_list():
         for lib in inp.libraries:
           objects.extend(lib.objects)
 
@@ -307,8 +307,17 @@ def _opentitan_binary(ctx):
         groups.update(_as_group_info(exec_env.exec_env, signed))
         groups.update(_as_group_info(exec_env.exec_env, provides))
 
+    # FIXME: workaround due to missing tools_path in rules_cc toolchain.
+    # See also https://github.com/bazelbuild/rules_cc/issues/351
+    cc_toolchain = find_cc_toolchain(ctx)
+    runfiles = runfiles.merge(ctx.runfiles(files = cc_toolchain.all_files.to_list()))
+
     providers.append(DefaultInfo(files = depset(default_info), runfiles = runfiles))
     providers.append(OutputGroupInfo(**groups))
+    providers.append(_create_cc_instrumented_files_info(
+        ctx = ctx,
+        metadata_files = [],
+    ))
     return providers
 
 common_binary_attrs = {
@@ -442,6 +451,12 @@ def _opentitan_test(ctx):
         harness_runfiles = ctx.attr.test_harness[DefaultInfo].default_runfiles
     else:
         harness_runfiles = ctx.runfiles()
+
+    # FIXME: workaround due to missing tools_path in rules_cc toolchain.
+    # See also https://github.com/bazelbuild/rules_cc/issues/351
+    cc_toolchain = find_cc_toolchain(ctx)
+    runfiles.extend(cc_toolchain.all_files.to_list())
+
     return DefaultInfo(
         executable = executable,
         runfiles = ctx.runfiles(files = runfiles).merge_all([harness_runfiles]),
