@@ -922,29 +922,37 @@ PROVISIONING_TESTS=(
 )
 
 UNSUPPORTED_TESTS=(
-//sw/device/lib/base:global_mock_unittest
-//sw/device/tests/penetrationtests:fi_crypto_fpga_cw310_sival_rom_ext
-//sw/device/tests/penetrationtests:fi_ibex_fpga_cw310_sival_rom_ext
-//sw/device/tests/penetrationtests:fi_lc_ctrl_fpga_cw310_sival_rom_ext
-//sw/device/tests/penetrationtests:fi_otbn_fpga_cw310_sival_rom_ext
-//sw/device/tests/penetrationtests:fi_otp_fpga_cw310_sival_rom_ext
-//sw/device/tests/penetrationtests:fi_rng_fpga_cw310_sival_rom_ext
-//sw/device/tests/penetrationtests:fi_rom_fpga_cw310_sival_rom_ext
-//sw/device/tests/penetrationtests:sca_aes_fpga_cw310_sival_rom_ext
-//sw/device/tests/penetrationtests:sca_edn_fpga_cw310_sival_rom_ext
-//sw/device/tests/penetrationtests:sca_hmac_fpga_cw310_sival_rom_ext
-//sw/device/tests/penetrationtests:sca_ibex_fpga_cw310_sival_rom_ext
-//sw/device/tests/penetrationtests:sca_kmac_fpga_cw310_sival_rom_ext
-//sw/device/tests/penetrationtests:sca_otbn_fpga_cw310_sival_rom_ext
-//sw/device/tests/penetrationtests:sca_sha3_fpga_cw310_sival_rom_ext
-//third_party/coremark/top_earlgrey:coremark_test_fpga_cw310_rom_with_fake_keys
-//third_party/coremark/top_earlgrey:coremark_test_fpga_cw310_sival_rom_ext
-//third_party/coremark/top_earlgrey:coremark_test_silicon_owner_sival_rom_ext
-//third_party/coremark/top_earlgrey:coremark_test_sim_dv
-//third_party/coremark/top_earlgrey:coremark_test_sim_qemu_rom_with_fake_keys
-//third_party/coremark/top_earlgrey:coremark_test_sim_verilator
-//sw/device/coverage/collect_cc_coverage:collect_cc_coverage_test
-//sw/device/tests:coverage_test_fpga_cw340_sival_rom_ext
+# //sw/device/coverage/collect_cc_coverage:collect_cc_coverage_test
+# //sw/device/lib/base:global_mock_unittest
+# //sw/device/tests/closed_source:example_test_fpga_cw310_rom_with_fake_keys
+# //sw/device/tests/closed_source:example_test_fpga_cw310_test_rom
+# //sw/device/tests/closed_source:statically_hooked_opensource_test_fpga_cw310_rom_with_fake_keys
+# //sw/device/tests/closed_source:statically_hooked_opensource_test_fpga_cw310_test_rom
+# //sw/device/tests:coverage_test_fpga_cw340_sival_rom_ext
+# //sw/device/tests/penetrationtests:fi_asym_cryptolib_fpga_cw310_sival_rom_ext
+# //sw/device/tests/penetrationtests:fi_crypto_fpga_cw310_sival_rom_ext
+# //sw/device/tests/penetrationtests:fi_ibex_fpga_cw310_sival_rom_ext
+# //sw/device/tests/penetrationtests:fi_lc_ctrl_fpga_cw310_sival_rom_ext
+# //sw/device/tests/penetrationtests:fi_otbn_fpga_cw310_sival_rom_ext
+# //sw/device/tests/penetrationtests:fi_otp_fpga_cw310_sival_rom_ext
+# //sw/device/tests/penetrationtests:fi_rng_fpga_cw310_sival_rom_ext
+# //sw/device/tests/penetrationtests:fi_rom_fpga_cw310_sival_rom_ext
+# //sw/device/tests/penetrationtests:fi_sym_cryptolib_fpga_cw310_sival_rom_ext
+# //sw/device/tests/penetrationtests:sca_aes_fpga_cw310_sival_rom_ext
+# //sw/device/tests/penetrationtests:sca_asym_cryptolib_fpga_cw310_sival_rom_ext
+# //sw/device/tests/penetrationtests:sca_edn_fpga_cw310_sival_rom_ext
+# //sw/device/tests/penetrationtests:sca_hmac_fpga_cw310_sival_rom_ext
+# //sw/device/tests/penetrationtests:sca_ibex_fpga_cw310_sival_rom_ext
+# //sw/device/tests/penetrationtests:sca_kmac_fpga_cw310_sival_rom_ext
+# //sw/device/tests/penetrationtests:sca_otbn_fpga_cw310_sival_rom_ext
+# //sw/device/tests/penetrationtests:sca_sha3_fpga_cw310_sival_rom_ext
+# //sw/device/tests/penetrationtests:sca_sym_cryptolib_fpga_cw310_sival_rom_ext
+# //third_party/coremark/top_earlgrey:coremark_test_fpga_cw310_rom_with_fake_keys
+# //third_party/coremark/top_earlgrey:coremark_test_fpga_cw310_sival_rom_ext
+# //third_party/coremark/top_earlgrey:coremark_test_silicon_owner_sival_rom_ext
+# //third_party/coremark/top_earlgrey:coremark_test_sim_dv
+# //third_party/coremark/top_earlgrey:coremark_test_sim_qemu_rom_with_fake_keys
+# //third_party/coremark/top_earlgrey:coremark_test_sim_verilator
 )
 
 # ./bazelisk.sh query 'tests(//sw/otbn/...) except attr("tags", "skip_in_ci|manual|broken", //sw/otbn/...)'
