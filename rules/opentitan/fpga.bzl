@@ -135,7 +135,8 @@ def _test_dispatch(ctx, exec_env, firmware):
           assemble += " {instrumented_rom}@{instrumented_rom_slot}"
 
         for _ in range(10):
-          assemble = assemble.format(**action_param)
+            # Recursive evaluation of the assemble spec
+            assemble = assemble.format(**action_param)
         assemble = ctx.expand_location(assemble, data_labels)
         image = assemble_for_test(
             ctx,
