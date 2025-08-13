@@ -17,6 +17,7 @@
 #include "sw/device/lib/dif/dif_base.h"
 #include "sw/device/lib/dif/dif_rstmgr.h"
 #include "sw/device/lib/dif/dif_rv_core_ibex.h"
+#include "sw/device/lib/dif/dif_rv_plic.h"
 #include "sw/device/lib/dif/dif_uart.h"
 #include "sw/device/lib/runtime/hart.h"
 #include "sw/device/lib/runtime/log.h"
@@ -24,6 +25,7 @@
 #include "sw/device/lib/testing/test_framework/FreeRTOSConfig.h"
 #include "sw/device/lib/testing/test_framework/check.h"
 #include "sw/device/lib/testing/test_framework/ottf_console.h"
+#include "sw/device/lib/testing/test_framework/ottf_isrs.h"
 #include "sw/device/lib/testing/test_framework/ottf_test_config.h"
 #include "sw/device/lib/testing/test_framework/status.h"
 #include "sw/device/silicon_creator/lib/manifest_def.h"
@@ -166,6 +168,11 @@ void _ottf_main(void) {
     CHECK_DIF_OK(dif_rstmgr_reset_info_clear(&rstmgr));
   }
 
+  // Initialize the global rv_plic DIF context for interrupts.
+  // This needs to happen before ottf_console_init.
+  CHECK_DIF_OK(dif_rv_plic_init(
+      mmio_region_from_addr(TOP_EARLGREY_RV_PLIC_BASE_ADDR), &ottf_plic));
+
   // Initialize the console to enable logging for non-DV simulation platforms.
   if (kDeviceType != kDeviceSimDV) {
     ottf_console_init();
@@ -176,6 +183,7 @@ void _ottf_main(void) {
 
 #if !OT_IS_ENGLISH_BREAKFAST
   if (!kOttfTestConfig.ignore_alerts) {
+    LOG_INFO("Enabling OTTF alert catcher");
     CHECK_STATUS_OK(ottf_alerts_enable_all());
   }
 #endif  // !OT_IS_ENGLISH_BREAKFAST
