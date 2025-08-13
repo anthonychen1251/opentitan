@@ -323,6 +323,8 @@ EX_CW310_FAKE_KEYS_TESTS=(
 //sw/device/silicon_creator/lib/drivers:hmac_functest_fpga_cw340_rom_with_fake_keys
 //sw/device/silicon_creator/lib/drivers:kmac_functest_fpga_cw340_rom_with_fake_keys
 
+//sw/device/tests:ottf_alert_catch_test_fpga_cw310_rom_with_fake_keys
+
 # //sw/device/tests:usbdev_deep_disconnect_test_fpga_cw310_rom_with_fake_keys
 # //sw/device/tests:usbdev_suspend_resume_test_fpga_cw310_rom_with_fake_keys
 
@@ -462,6 +464,12 @@ EX_CW340_SIVAL_TESTS=(
 //sw/device/tests:rv_dm_lc_disabled_tl_test_unlocked1_fpga_cw340_sival
 //sw/device/silicon_creator/lib/drivers:hmac_functest_fpga_cw340_sival
 //sw/device/silicon_creator/lib/drivers:kmac_functest_fpga_cw340_sival
+
+//sw/device/silicon_creator/lib:otbn_boot_services_functest_fpga_cw340_sival
+//sw/device/tests:ast_clk_outs_test_fpga_cw340_sival
+//sw/device/tests:clkmgr_reset_frequency_test_fpga_cw340_sival
+//sw/device/tests:keymgr_derive_sealing_test_fpga_cw340_sival
+# //sw/device/tests:otbn_smoketest_fpga_cw340_sival
 
 # //sw/device/tests:rv_dm_csr_rw_dev_rv_dm_default_enabled_fpga_cw340_sival
 # //sw/device/tests:rv_dm_csr_rw_dev_rv_dm_delayed_enabled_fpga_cw340_sival
@@ -710,6 +718,8 @@ EX_CW340_FAKE_KEYS_TESTS=(
 //sw/device/tests:spi_host_config_test_fpga_cw340_rom_with_fake_keys
 //sw/device/tests:sram_ctrl_scrambled_access_test_fpga_cw340_rom_with_fake_keys
 //sw/device/tests:uart_smoketest_fpga_cw340_rom_with_fake_keys
+//sw/device/tests:flash_ctrl_mem_protection_test_fpga_cw340_rom_with_fake_keys
+//sw/device/tests:flash_ctrl_test_fpga_cw340_rom_with_fake_keys
 )
 
 EX_CW340_SIVAL_ROM_EXT=(
@@ -724,6 +734,16 @@ EX_CW340_SIVAL_ROM_EXT=(
 //sw/device/tests/crypto:otcrypto_export_test_fpga_cw340_sival_rom_ext
 //sw/device/tests/crypto:otcrypto_hash_test_fpga_cw340_sival_rom_ext
 
+//sw/device/tests:aes_masking_off_test_fpga_cw340_sival_rom_ext
+//sw/device/tests:edn_boot_mode_fpga_cw340_sival_rom_ext
+//sw/device/tests:edn_kat_fpga_cw340_sival_rom_ext
+//sw/device/tests:entropy_src_edn_reqs_test_fpga_cw340_sival_rom_ext
+//sw/device/tests:keymgr_derive_sealing_test_fpga_cw340_sival_rom_ext
+//sw/device/tests:keymgr_sideload_otbn_test_fpga_cw340_sival_rom_ext
+//sw/device/tests:otbn_irq_test_fpga_cw340_sival_rom_ext
+//sw/device/tests:ottf_alert_catch_test_fpga_cw340_sival_rom_ext
+
+# //sw/device/tests:otbn_smoketest_fpga_cw340_sival_rom_ext
 # //sw/device/tests/crypto:rsa_3072_verify_functest_wycheproof_fpga_cw340_sival_rom_ext
 )
 

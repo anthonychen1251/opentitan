@@ -551,6 +551,7 @@ CW310_SIVAL_ROMEXT_TESTS=(
 //sw/device/silicon_creator/lib/ownership:owner_verify_functest_fpga_cw310_sival_rom_ext
 
 //sw/device/tests:crt_test_fpga_cw310_sival_rom_ext
+//sw/device/tests:ottf_alert_catch_test_fpga_cw310_sival_rom_ext
 # //sw/device/tests:rv_core_ibex_isa_test_test_unlocked0_fpga_cw310_sival_rom_ext
 # //sw/device/tests:rv_core_ibex_mem_test_test_unlocked0_fpga_cw310_sival_rom_ext
 
