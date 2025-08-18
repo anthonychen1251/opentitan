@@ -72,7 +72,6 @@ pub enum RescueTestActions {
     SpiDfuInvalidCmd,
     SpiDfuControl,
     UsbDfuInCancel,
-    XmodemUnsupportedRate,
     XmodemCrcErrorCancel,
     XmodemPacketBadLen,
     XmodemPacketTimeout,
@@ -132,28 +131,6 @@ fn usb_dfu_in_transaction_cancel(
         rescue.enter(transport, EntryMode::Reset)?;
         rescue.set_mode(RescueMode::DeviceId)?;
         rescue.set_mode(RescueMode::EraseOwner)?;
-        #[cfg(feature = "ot_coverage_enabled")]
-        {
-            rescue.reboot()?;
-
-            let uart = transport.uart("console")?;
-            UartConsole::wait_for(&*uart, r"CDI_0:", Duration::from_secs(5))?;
-            UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
-        }
-    }
-
-    Ok(())
-}
-
-fn xmodem_unsupported_rate(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
-    if params.protocol == RescueProtocol::Xmodem {
-        let rescue = params.create(transport)?;
-        rescue.enter(transport, EntryMode::Reset)?;
-        expect_err_from_rescue_result(rescue.set_speed(460800), "error: unsupported baudrate")?;
-        expect_err_from_rescue_result(rescue.set_speed(921600), "error: unsupported baudrate")?;
-        expect_err_from_rescue_result(rescue.set_speed(1333333), "error: unsupported baudrate")?;
-        expect_err_from_rescue_result(rescue.set_speed(1500000), "error: unsupported baudrate")?;
-        expect_err_from_rescue_result(rescue.set_speed(0), "error: unsupported baudrate")?;
         #[cfg(feature = "ot_coverage_enabled")]
         {
             rescue.reboot()?;
@@ -778,9 +755,6 @@ fn main() -> Result<()> {
             }
             RescueTestActions::UsbDfuInCancel => {
                 usb_dfu_in_transaction_cancel(&rescue.params, &transport)?;
-            }
-            RescueTestActions::XmodemUnsupportedRate => {
-                xmodem_unsupported_rate(&rescue.params, &transport)?;
             }
             RescueTestActions::XmodemCrcErrorCancel => {
                 xmodem_crc_error_cancel(&rescue.params, &transport)?;
