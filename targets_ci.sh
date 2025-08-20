@@ -858,18 +858,7 @@ HYPER310_ROMEXT_TESTS=(
 //sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_invalid_cmd_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_dfu_control_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/rescue:usbdfu_in_cancel_fpga_hyper310_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_crc_error_cancel_test_fpga_hyper310_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_crc_timeout_test_fpga_hyper310_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_data_timeout_test_fpga_hyper310_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_packet_timeout_test_fpga_hyper310_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_host_data_cancel_test_fpga_hyper310_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_host_data_nak_test_fpga_hyper310_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_host_data_timeout_test_fpga_hyper310_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_host_finish_nak_test_fpga_hyper310_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_host_start_cancel_test_fpga_hyper310_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_host_start_nak_test_fpga_hyper310_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_host_start_timeout_test_fpga_hyper310_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_packet_bad_len_test_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_rescue_error_handling_test_fpga_hyper310_rom_ext
 
 //sw/device/silicon_creator/rom_ext/e2e/ownership:invalid_device_id_request_test_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/ownership:newversion_noupdate_with_bad_owner_block_test_fpga_hyper310_rom_ext

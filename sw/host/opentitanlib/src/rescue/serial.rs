@@ -130,66 +130,6 @@ impl Rescue for RescueSerial {
         self.uart.set_baudrate(baud)?;
         Ok(old)
     }
-    fn xmodem_invalid_transaction(&self, mode: RescueMode) -> Result<()> {
-        self.set_mode(RescueMode::Rescue)?;
-        // Device should decline all the transactions below, otherwise
-        // the firmware partition A will be flashed with dummy data
-        // and then the device won't be able to boot into owner software.
-
-        if mode == RescueMode::RescueB {
-            // Trigger crc error and cancel test case
-            let xm = Xmodem::new();
-            let payload = [7u8; 8];
-            xm.send_crc_error(&*self.uart, &payload[..])?;
-        } else if mode == RescueMode::BootLog {
-            // Trigger packet timeout test case
-            let xm = Xmodem::new();
-            xm.send_packet_timeout(&*self.uart)?;
-        } else if mode == RescueMode::DeviceId {
-            // Trigger data timeout test case
-            let xm = Xmodem::new();
-            xm.send_data_timeout(&*self.uart)?;
-        } else if mode == RescueMode::OwnerBlock {
-            // Trigger crc timeout test case
-            let xm = Xmodem::new();
-            xm.send_crc_timeout(&*self.uart)?;
-        } else if mode == RescueMode::EraseOwner {
-            // Trigeer packet bad length.
-            let xm = Xmodem::new();
-            xm.send_packet_bad_len(&*self.uart)?;
-        }
-
-        Ok(())
-    }
-
-    fn xmodem_host_ack_err(&self, mode: RescueMode) -> Result<()> {
-        self.set_mode(RescueMode::BootLog)?;
-        let xm = Xmodem::new();
-        if mode == RescueMode::BootLog {
-            // Data Nak + kErrorXModemTooManyErrors
-            xm.receive_nak(&*self.uart)?;
-        } else if mode == RescueMode::RescueB {
-            // Data Cancel.
-            xm.receive_cancel(&*self.uart)?;
-        } else if mode == RescueMode::OwnerBlock {
-            // Data Timeout.
-            xm.receive_timeout(&*self.uart)?;
-        } else if mode == RescueMode::DeviceId {
-            // start nak.
-            xm.start_nak(&*self.uart)?;
-        } else if mode == RescueMode::Rescue {
-            // start cancel.
-            xm.start_cancel(&*self.uart)?;
-        } else if mode == RescueMode::EraseOwner {
-            // start Timeout.
-            xm.start_timeout(&*self.uart)?;
-        } else if mode == RescueMode::BootSvcReq {
-            let mut data = Vec::new();
-            xm.receive_finish_nak(&*self.uart, &mut data)?;
-        }
-
-        Ok(())
-    }
 
     fn set_mode(&self, mode: RescueMode) -> Result<()> {
         let mode = mode.0.to_be_bytes();
