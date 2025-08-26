@@ -324,6 +324,7 @@ EX_CW310_FAKE_KEYS_TESTS=(
 //sw/device/silicon_creator/lib/drivers:kmac_functest_fpga_cw340_rom_with_fake_keys
 
 //sw/device/tests:ottf_alert_catch_test_fpga_cw310_rom_with_fake_keys
+//sw/device/lib/crypto/drivers:rv_core_ibex_test_fpga_cw310_rom_with_fake_keys
 
 # //sw/device/tests:usbdev_deep_disconnect_test_fpga_cw310_rom_with_fake_keys
 # //sw/device/tests:usbdev_suspend_resume_test_fpga_cw310_rom_with_fake_keys
@@ -704,6 +705,7 @@ EX_CW340_ROM_EXT_TESTS=(
 
 //sw/device/silicon_creator/lib/drivers:hmac_functest_fpga_cw340_rom_ext
 //sw/device/silicon_creator/lib/drivers:kmac_functest_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/handoff:rom_ext_device_status_test_fpga_cw340_rom_ext
 
 # //sw/device/silicon_creator/rom_ext/e2e/handoff:epmp_test_fpga_cw340_rom_ext
 )

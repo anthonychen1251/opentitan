@@ -552,6 +552,7 @@ CW310_SIVAL_ROMEXT_TESTS=(
 
 //sw/device/tests:crt_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:ottf_alert_catch_test_fpga_cw310_sival_rom_ext
+//sw/device/lib/crypto/drivers:rv_core_ibex_test_fpga_cw310_sival_rom_ext
 # //sw/device/tests:rv_core_ibex_isa_test_test_unlocked0_fpga_cw310_sival_rom_ext
 # //sw/device/tests:rv_core_ibex_mem_test_test_unlocked0_fpga_cw310_sival_rom_ext
 
@@ -871,6 +872,7 @@ HYPER310_ROMEXT_TESTS=(
 //sw/device/silicon_creator/rom_ext/e2e/ownership:transfer_bl0_slot_b_test_fpga_hyper310_rom_ext
 
 //sw/device/silicon_creator/lib/cert:dice_cwt_functest_fpga_cw310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/handoff:rom_ext_device_status_test_fpga_hyper310_rom_ext
 
 # FAILED
 # //sw/device/silicon_creator/rom_ext/e2e/rescue/std_utils:usbdfu_protocol_fpga_hyper310_rom_ext
@@ -954,6 +956,8 @@ UNSUPPORTED_TESTS=(
 # //third_party/coremark/top_earlgrey:coremark_test_sim_dv
 # //third_party/coremark/top_earlgrey:coremark_test_sim_qemu_rom_with_fake_keys
 # //third_party/coremark/top_earlgrey:coremark_test_sim_verilator
+# //sw/device/silicon_creator/rom_ext/sival/binaries:sival_signature_test
+# //sw/device/silicon_creator/rom_ext:rom_ext_signature_test
 )
 
 # ./bazelisk.sh query 'tests(//sw/otbn/...) except attr("tags", "skip_in_ci|manual|broken", //sw/otbn/...)'
