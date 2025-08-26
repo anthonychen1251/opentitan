@@ -176,7 +176,9 @@ pub enum UartRequest {
     SetBaudrate {
         rate: u32,
     },
+    SetBreak(bool),
     SetParity(Parity),
+    GetDevicePath,
     Read {
         timeout_millis: Option<u32>,
         len: u32,
@@ -192,7 +194,9 @@ pub enum UartRequest {
 pub enum UartResponse {
     GetBaudrate { rate: u32 },
     SetBaudrate,
+    SetBreak,
     SetParity,
+    GetDevicePath { path: String },
     Read { data: Vec<u8> },
     Write,
     SupportsNonblockingRead { has_support: bool },
@@ -240,6 +244,7 @@ pub enum SpiRequest {
     SetVoltage {
         voltage: Voltage,
     },
+    GetFlashromArgs,
     RunTransaction {
         transaction: Vec<SpiTransferRequest>,
     },
@@ -275,6 +280,9 @@ pub enum SpiResponse {
         sizes: MaxSizes,
     },
     SetVoltage,
+    GetFlashromArgs {
+        programmer: String,
+    },
     RunTransaction {
         transaction: Vec<SpiTransferResponse>,
     },

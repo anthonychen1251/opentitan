@@ -7,7 +7,7 @@ load("@rules_rust//rust:defs.bzl", "rust_binary")
 package(default_visibility = ["//visibility:public"])
 
 rust_binary(
-    name = "gpio_intr",
+    name = "device_status",
     srcs = [
         "src/main.rs",
     ],
@@ -17,7 +17,5 @@ rust_binary(
         "@crate_index//:clap",
         "@crate_index//:humantime",
         "@crate_index//:log",
-        "@crate_index//:once_cell",
-        "@crate_index//:serde_json",
     ],
 )

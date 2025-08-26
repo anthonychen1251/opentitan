@@ -1,3 +1,6 @@
+// Copyright lowRISC contributors (OpenTitan project).
+// Licensed under the Apache License, Version 2.0, see LICENSE for details.
+// SPDX-License-Identifier: Apache-2.0
 {
   /**
    * @param[out] dmem[d0]: First share of secret key.
@@ -19,6 +22,8 @@
 
       # BUG: the upper 64 bits are cleared incorrectly in p256_random_scalar.
       #   bn.rshi   w16, w20, w31 >> 192
+      #
+      # This bug is runtime-patched by ROM_EXT (PR #27679).
       "d0":
         '''
           0x0000000000000000000000000000000000000000000000000000000000000000
