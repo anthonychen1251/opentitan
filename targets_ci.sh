@@ -344,7 +344,6 @@ CW310_SIVAL_ROMEXT_TESTS=(
 //sw/device/silicon_creator/lib/sigverify:sigverify_dynamic_functest_hardcoded_fpga_cw310_sival_rom_ext
 //sw/device/tests:aes_entropy_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:aes_force_prng_reseed_test_fpga_cw310_sival_rom_ext
-//sw/device/tests:aes_masking_off_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:aes_prng_reseed_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:aes_smoketest_fpga_cw310_sival_rom_ext
 //sw/device/tests:aes_stall_test_fpga_cw310_sival_rom_ext
@@ -428,7 +427,6 @@ CW310_SIVAL_ROMEXT_TESTS=(
 //sw/device/tests:pwrmgr_normal_sleep_all_wake_ups_fpga_cw310_sival_rom_ext
 //sw/device/tests:pwrmgr_normal_sleep_por_reset_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:pwrmgr_random_sleep_all_reset_reqs_test_fpga_cw310_sival_rom_ext
-//sw/device/tests:pwrmgr_random_sleep_all_wake_ups_fpga_cw310_sival_rom_ext
 //sw/device/tests:pwrmgr_sleep_disabled_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:pwrmgr_sleep_wake_5_bug_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:pwrmgr_smoketest_fpga_cw310_sival_rom_ext
@@ -459,7 +457,6 @@ CW310_SIVAL_ROMEXT_TESTS=(
 //sw/device/tests:sram_ctrl_execution_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:sram_ctrl_memset_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:sram_ctrl_readback_test_fpga_cw310_sival_rom_ext
-//sw/device/tests:sram_ctrl_scrambled_access_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:sram_ctrl_sleep_sram_ret_contents_no_scramble_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:sram_ctrl_sleep_sram_ret_contents_scramble_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:sram_ctrl_smoketest_fpga_cw310_sival_rom_ext
@@ -534,7 +531,6 @@ CW310_SIVAL_ROMEXT_TESTS=(
 
 //sw/device/tests:usbdev_config_host_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:usbdev_deep_reset_test_fpga_cw310_sival_rom_ext
-//sw/device/tests:usbdev_deep_resume_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:usbdev_iso_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:usbdev_mem_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:usbdev_mixed_test_fpga_cw310_sival_rom_ext
@@ -566,6 +562,8 @@ CW310_SIVAL_ROMEXT_TESTS=(
 # //sw/device/tests:example_concurrency_test_fpga_cw310_sival_rom_ext
 # //sw/device/tests:uart_tx_rx_test_fpga_cw310_sival_rom_ext
 # //sw/device/tests/crypto:rsa_4096_keygen_functest_fpga_cw310_sival_rom_ext
+# //sw/device/tests:pwrmgr_random_sleep_all_wake_ups_fpga_cw310_sival_rom_ext
+# //sw/device/tests:sram_ctrl_scrambled_access_test_fpga_cw310_sival_rom_ext
 
 
 # Failed
@@ -591,6 +589,8 @@ CW310_SIVAL_ROMEXT_TESTS=(
 # //sw/device/tests:spi_host_winbond_flash_test_fpga_cw310_sival_rom_ext
 # //sw/device/tests:flash_ctrl_test_fpga_cw310_sival_rom_ext
 # //sw/device/tests:ottf_dual_console_test_fpga_cw310_sival_rom_ext
+# //sw/device/tests:aes_masking_off_test_fpga_cw310_sival_rom_ext
+# //sw/device/tests:usbdev_deep_resume_test_fpga_cw310_sival_rom_ext
 
 
 # Perftest
