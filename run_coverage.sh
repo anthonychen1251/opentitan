@@ -24,7 +24,7 @@ BAZEL_ARGS=(
     --local_test_jobs=1
     --notest_runner_fail_fast
     --keep_going
-    --spawn_strategy=processwrapper-sandbox
+    --spawn_strategy=processwrapper-sandbox,local,linux-sandbox
     # --jobs=1
     # --subcommands
 )

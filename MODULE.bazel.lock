@@ -242,6 +242,94 @@
         ]
       }
     },
+    "//third_party/hsm:extensions.bzl%hsm": {
+      "general": {
+        "bzlTransitiveDigest": "j2GwGdc7Oxlja02plc7IXvFl0HZEyDDmWbrXkP9J/ns=",
+        "usagesDigest": "uEk6dTktgdMfLQN5bAE4Sorkuuxcz3nEbPEKZLUjpak=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "softhsm2": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "build_file": "@@//third_party/hsm:BUILD.softhsm2.bazel",
+              "url": "https://github.com/opendnssec/SoftHSMv2/archive/4975c0df4c7090e97a3860ae21079a9597cfedc6.tar.gz",
+              "strip_prefix": "SoftHSMv2-4975c0df4c7090e97a3860ae21079a9597cfedc6",
+              "sha256": "72cf979ec4f74ca4555861dcae45cf7d1b667cc2e4f3ee3fb26e6ff1b99aec95",
+              "patches": [
+                "@@//third_party/hsm/patches:0001-Disable-filename-logging.patch"
+              ],
+              "patch_args": [
+                "-p1"
+              ]
+            }
+          },
+          "sc_hsm": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "build_file": "@@//third_party/hsm:BUILD.sc_hsm.bazel",
+              "url": "https://github.com/CardContact/sc-hsm-embedded/archive/refs/tags/V2.12.tar.gz",
+              "strip_prefix": "sc-hsm-embedded-2.12",
+              "sha256": "707fca9df630708e0e59a7d4a8a7a016c56c83a585957f0fd9f806c0762f1944"
+            }
+          },
+          "opensc": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "build_file": "@@//third_party/hsm:BUILD.opensc.bazel",
+              "url": "https://github.com/OpenSC/OpenSC/archive/refs/tags/0.26.0.tar.gz",
+              "strip_prefix": "OpenSC-0.26.0",
+              "sha256": "c692ac7639fa398f7f07b1070ea5358344000d49d08dcb825296d4cec94c6b1f"
+            }
+          },
+          "cloud_kms_hsm": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "build_file": "@@//third_party/hsm:BUILD.cloud_kms_hsm.bazel",
+              "url": "https://github.com/GoogleCloudPlatform/kms-integrations/releases/download/pkcs11-v1.2/libkmsp11-1.2-linux-amd64.tar.gz",
+              "strip_prefix": "libkmsp11-1.2-linux-amd64",
+              "sha256": "81fff58d5835f05d550ff86c88fa6fb92a733bde8b232e1482d85a3cf07c6396"
+            }
+          }
+        },
+        "recordedRepoMappingEntries": [
+          [
+            "",
+            "bazel_tools",
+            "bazel_tools"
+          ]
+        ]
+      }
+    },
+    "//third_party/hwtrust:extensions.bzl%hwtrust": {
+      "general": {
+        "bzlTransitiveDigest": "k+eVkpIKKoll+00pC23CYyiPcbMEgx6k1EdN7iQxiCA=",
+        "usagesDigest": "E7yErwZF7b/bpM+r5XyMZeprKVdzGd+ET8BdGKkLXmE=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "hwtrust": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "urls": [
+                "https://android.googlesource.com/platform/tools/security/+archive/da7738aaf3ece666272adab6b3091f72ce027e9c.tar.gz"
+              ],
+              "strip_prefix": "remote_provisioning/hwtrust",
+              "build_file": "@@//third_party/hwtrust:BUILD.hwtrust.bazel"
+            }
+          }
+        },
+        "recordedRepoMappingEntries": [
+          [
+            "",
+            "bazel_tools",
+            "bazel_tools"
+          ]
+        ]
+      }
+    },
     "//third_party/hyperdebug:extensions.bzl%hyperdebug": {
       "general": {
         "bzlTransitiveDigest": "Zg2sQGKEfs4e/Zz8eFOnAUl6OlxvKOmB4A9BCHFYhdI=",

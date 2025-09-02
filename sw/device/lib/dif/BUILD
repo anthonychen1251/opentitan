@@ -113,6 +113,8 @@ cc_library(
         "//sw/device/lib/base:mmio",
         "//sw/device/lib/base:multibits",
     ],
+    # FIXME: Instrumenting alert_handler uses a large amount of RAM.
+    features = ["-coverage"],
 )
 
 cc_test(
