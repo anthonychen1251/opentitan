@@ -6,6 +6,10 @@ load(
     "//rules:certificates.bzl",
     "certificate_template",
 )
+load(
+    "//rules/opentitan:defs.bzl",
+    "opentitan_test",
+)
 
 load(
     "//rules/opentitan:defs.bzl",
@@ -217,11 +221,11 @@ opentitan_test(
         ":dice_cwt",
         "//hw/top_earlgrey/ip_autogen/flash_ctrl:flash_ctrl_c_regs",
         "//sw/device/lib/base:hardened",
+        "//sw/device/lib/testing/test_framework:ottf_main",
         "//sw/device/silicon_creator/lib:error",
         "//sw/device/silicon_creator/lib/drivers:hmac",
         "//sw/device/silicon_creator/lib/sigverify:ecdsa_p256_key",
         "//sw/device/silicon_creator/manuf/base:perso_tlv_data",
-        "//sw/device/lib/testing/test_framework:ottf_main",
     ],
 )
 
