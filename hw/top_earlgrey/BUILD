@@ -2,6 +2,7 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
+load("//hw/top_earlgrey:defs.bzl", "EARLGREY_SLOTS")
 load(
     "//rules:autogen.bzl",
     "autogen_hjson_c_header",
@@ -71,28 +72,6 @@ filegroup(
 # to this null manifest, then the signing will be skipped.
 CLEAR_MANIFEST = manifest(d = {
     "name": "none_manifest",
-})
-
-EARLGREY_SLOTS_NORMAL = {
-    "rom_ext_slot_a": "0x0",
-    "rom_ext_slot_b": "0x80000",
-    "owner_slot_a": "0x10000",
-    "owner_slot_b": "0x90000",
-    "rom_ext_size": "0x10000",
-}
-
-EARLGREY_SLOTS_COVERAGE = {
-    "rom_ext_slot_a": "0x0",
-    "rom_ext_slot_b": "0x80000",
-    "owner_slot_a": "0x40000",
-    "owner_slot_b": "0xc0000",
-    "rom_ext_size": "0x40000",
-    "instrumented_rom_slot": "0xe0000",
-}
-
-EARLGREY_SLOTS = select({
-    "//rules/coverage:enabled": EARLGREY_SLOTS_COVERAGE,
-    "//conditions:default": EARLGREY_SLOTS_NORMAL,
 })
 
 ###########################################################################
