@@ -392,7 +392,7 @@ ownership_transfer_test(
 )
 
 ownership_transfer_test(
-    name = "unlock_with_owner_recovery_key_test",
+    name = "unlock_when_recovery_state_test",
     fpga = fpga_params(
         changes_otp = True,
         rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_default_ownership_state_recovery",
@@ -412,7 +412,7 @@ ownership_transfer_test(
 )
 
 ownership_transfer_test(
-    name = "unlock_when_recovery_state_test",
+    name = "unlock_with_owner_recovery_key_test",
     fpga = fpga_params(
         changes_otp = True,
         test_cmd = """
