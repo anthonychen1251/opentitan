@@ -89,6 +89,16 @@ def recursive_format(spec, variables, max_depth = 10):
     `variables` until all placeholders are resolved or `max_depth` is
     reached. This is useful for handling nested variable substitutions.
 
+    All `format` placeholders like `{something}` are recursively resolved,
+    and escaped sequences `{{` are unescaped only once to `{`.
+
+    Examples:
+      "{{ blah }}"                      =>  "{ blah }"
+      "{  blah  }",  blah="{{ blah }}"  =>  "{ blah }"
+      "{  blah  }",  blah="   blah   "  =>  "   blah   "
+      "{  blah  }",  blah="{  blah  }"  =>  error
+      "{"                               =>  error
+
     Args:
       spec: The string to be formatted.
       variables: A dictionary of variables to use for formatting.

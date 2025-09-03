@@ -26,22 +26,10 @@ load(
 
 package(default_visibility = ["//visibility:public"])
 
-KEY_TYPE_ECDSA = [
-    {
-        "name": "prod_key",
-        "ecdsa": {"//sw/device/silicon_creator/lib/ownership/keys/fake:app_prod_ecdsa": "prod_key_0"},
-    },
-    {
-        "name": "test_key",
-        "ecdsa": {"//sw/device/silicon_creator/lib/ownership/keys/fake:app_test_ecdsa": "test_key_0"},
-    }
-]
-
 [
     opentitan_test(
-        name = "no_refresh_{}_{}_test".format(variation, key_type["name"]),
+        name = "no_refresh_{}_test".format(variation),
         srcs = ["no_refresh_test.c"],
-        ecdsa_key = key_type["ecdsa"],
         exec_env = {
             "//hw/top_earlgrey:fpga_cw310_rom_ext": None,
             "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
@@ -60,7 +48,6 @@ KEY_TYPE_ECDSA = [
             "//sw/device/silicon_creator/lib/drivers:rstmgr",
         ],
     )
-    for key_type in KEY_TYPE_ECDSA
     for variation in ROM_EXT_VARIATIONS.keys()
 ]
 
@@ -206,3 +193,45 @@ opentitan_test(
         "//sw/device/silicon_creator/lib/drivers:retention_sram",
     ],
 )
+
+DEBUG_MODE_TESTCASES = [
+    {
+        "name": "off",
+        "key": {"//sw/device/silicon_creator/lib/ownership/keys/fake:app_prod_ecdsa": "prod_key_0"},
+        "defines": ["TEST_EXPECT_DEBUG_OFF=1"],
+    },
+    {
+        "name": "on",
+        "key": {"//sw/device/silicon_creator/lib/ownership/keys/fake:app_test_ecdsa": "test_key_0"},
+        "defines": ["TEST_EXPECT_DEBUG_ON=1"],
+    },
+]
+
+[
+    opentitan_test(
+        name = "debug_mode_{}_{}_test".format(
+            testcase["name"],
+            variation,
+        ),
+        srcs = ["debug_mode_test.c"],
+        defines = testcase["defines"],
+        ecdsa_key = testcase["key"],
+        exec_env = {
+            "//hw/top_earlgrey:fpga_cw310_rom_ext": None,
+            "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
+        },
+        fpga = fpga_params(
+            rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_{}_slot_a".format(variation),
+        ),
+        deps = [
+            "//sw/device/lib/base:status",
+            "//sw/device/lib/runtime:log",
+            "//sw/device/lib/testing/test_framework:check",
+            "//sw/device/lib/testing/test_framework:ottf_main",
+            "//sw/device/silicon_creator/lib/drivers:flash_ctrl",
+            "//sw/device/silicon_creator/manuf/base:perso_tlv_data",
+        ],
+    )
+    for testcase in DEBUG_MODE_TESTCASES
+    for variation in ROM_EXT_VARIATIONS.keys()
+]

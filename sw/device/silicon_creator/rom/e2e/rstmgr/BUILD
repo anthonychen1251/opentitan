@@ -45,12 +45,12 @@ CPU_INFO_TESTCASES = [
     {
         "name": "enabled",
         "fpga": fpga_params(
-            otp = ":otp_img_cpu_info_enabled",
+            exit_failure = "PASS!",
 
             # These expectations only applies to earlgrey. See #27498.
             # After the ROM is fixed, the test should report PASS.
             exit_success = "BFV:0152530d",
-            exit_failure = "PASS!",
+            otp = ":otp_img_cpu_info_enabled",
         ),
         "defines": ["TEST_CPU_INFO_ENABLED"],
     },

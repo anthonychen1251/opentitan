@@ -32,7 +32,6 @@ static dif_hmac_t hmac;
 static dif_otbn_t otbn;
 
 #define MAX_BATCH_SIZE 256
-#define DEST_REGS_CNT 6
 
 // OTBN symbols used by the combinatorial test.
 OTBN_DECLARE_APP_SYMBOLS(p256_ecdsa_sca);
@@ -159,7 +158,8 @@ status_t handle_ibex_pentest_init(ujson_t *uj) {
       uj_cpuctrl_data.enable_sram_readback, &uj_output.clock_jitter_locked,
       &uj_output.clock_jitter_en, &uj_output.sram_main_readback_locked,
       &uj_output.sram_ret_readback_locked, &uj_output.sram_main_readback_en,
-      &uj_output.sram_ret_readback_en));
+      &uj_output.sram_ret_readback_en, uj_cpuctrl_data.enable_data_ind_timing,
+      &uj_output.data_ind_timing_en));
 
   // Key manager not initialized for the handle_ibex_sca_key_sideloading test.
   key_manager_init = false;
@@ -178,6 +178,9 @@ status_t handle_ibex_pentest_init(ujson_t *uj) {
   // Load p256 keygen from seed app into OTBN.
   // This is not used, but just set so it receives input,
   TRY(otbn_load_app(kOtbnAppP256Ecdsa));
+
+  // Read rom digest.
+  TRY(pentest_read_rom_digest(uj_output.rom_digest));
 
   // Read device ID and return to host.
   TRY(pentest_read_device_id(uj_output.device_id));
@@ -662,16 +665,14 @@ status_t handle_ibex_sca_register_file_write_batch_random(ujson_t *uj) {
   TRY_CHECK(uj_data.num_iterations < MAX_BATCH_SIZE);
 
   // Generate random values.
-  uint32_t values[MAX_BATCH_SIZE * DEST_REGS_CNT];
-  generate_random(uj_data.num_iterations * DEST_REGS_CNT, values);
+  uint32_t values[MAX_BATCH_SIZE];
+  generate_random(uj_data.num_iterations, values);
 
   // SCA code target.
   for (size_t i = 0; i < uj_data.num_iterations; i++) {
     pentest_set_trigger_high();
-    init_registers(values[i * DEST_REGS_CNT], values[i * DEST_REGS_CNT + 1],
-                   values[i * DEST_REGS_CNT + 2], values[i * DEST_REGS_CNT + 3],
-                   values[i * DEST_REGS_CNT + 4],
-                   values[i * DEST_REGS_CNT + 5]);
+    init_registers(values[i], values[i], values[i], values[i], values[i],
+                   values[i]);
     // Give the trigger time to rise.
     asm volatile(NOP10);
     // Write provided data into register file.
@@ -682,7 +683,7 @@ status_t handle_ibex_sca_register_file_write_batch_random(ujson_t *uj) {
 
   // Write back last value written into the RF to validate generated data.
   ibex_sca_result_t uj_output;
-  uj_output.result = values[uj_data.num_iterations * DEST_REGS_CNT - 1];
+  uj_output.result = values[uj_data.num_iterations - 1];
   RESP_OK(ujson_serialize_ibex_sca_result_t, uj, &uj_output);
   return OK_STATUS();
 }

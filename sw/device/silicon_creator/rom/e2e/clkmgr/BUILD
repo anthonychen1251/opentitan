@@ -42,7 +42,6 @@ otp_image(
     overlays = STD_OTP_OVERLAYS + [":otp_json_jitter_enabled"],
 )
 
-
 JITTER_TESTCASES = [
     {
         "name": "disabled",

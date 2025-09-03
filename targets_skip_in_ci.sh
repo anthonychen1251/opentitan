@@ -501,10 +501,8 @@ EX_IMM_TESTS=(
 )
 
 EX_CW340_ROM_EXT_TESTS=(
-//sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_dice_cwt_prod_key_test_fpga_cw340_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_dice_cwt_test_key_test_fpga_cw340_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_dice_x509_prod_key_test_fpga_cw340_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_dice_x509_test_key_test_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_dice_cwt_test_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_dice_x509_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/verified_boot:bad_manifest_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/verified_boot:bad_spx_manifest_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/verified_boot:key_dev_fpga_cw340_rom_ext
@@ -706,6 +704,11 @@ EX_CW340_ROM_EXT_TESTS=(
 //sw/device/silicon_creator/lib/drivers:hmac_functest_fpga_cw340_rom_ext
 //sw/device/silicon_creator/lib/drivers:kmac_functest_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/handoff:rom_ext_device_status_test_fpga_cw340_rom_ext
+
+//sw/device/silicon_creator/rom_ext/e2e/dice_chain:debug_mode_off_dice_cwt_test_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/dice_chain:debug_mode_off_dice_x509_test_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/dice_chain:debug_mode_on_dice_cwt_test_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/dice_chain:debug_mode_on_dice_x509_test_fpga_cw340_rom_ext
 
 # //sw/device/silicon_creator/rom_ext/e2e/handoff:epmp_test_fpga_cw340_rom_ext
 )
@@ -1280,24 +1283,6 @@ EX_INS_ROM_TESTS=(
 )
 
 EX_UNSUPPORTED_TESTS=(
-# //sw/device/tests/penetrationtests:fi_asym_cryptolib_fpga_cw310_test_rom
-# //sw/device/tests/penetrationtests:fi_asym_cryptolib_fpga_cw340_sival_rom_ext
-# //sw/device/tests/penetrationtests:fi_asym_cryptolib_fpga_cw340_test_rom
-# //sw/device/tests/penetrationtests:fi_crypto_fpga_cw310_test_rom
-# //sw/device/tests/penetrationtests:fi_crypto_fpga_cw340_sival_rom_ext
-# //sw/device/tests/penetrationtests:fi_crypto_fpga_cw340_test_rom
-# //sw/device/tests/penetrationtests:fi_ibex_fpga_cw310_test_rom
-# //sw/device/tests/penetrationtests:fi_ibex_fpga_cw340_sival_rom_ext
-# //sw/device/tests/penetrationtests:fi_ibex_fpga_cw340_test_rom
-# //sw/device/tests/penetrationtests:fi_lc_ctrl_fpga_cw310_test_rom
-# //sw/device/tests/penetrationtests:fi_lc_ctrl_fpga_cw340_sival_rom_ext
-# //sw/device/tests/penetrationtests:fi_lc_ctrl_fpga_cw340_test_rom
-# //sw/device/tests/penetrationtests:fi_otbn_fpga_cw310_test_rom
-# //sw/device/tests/penetrationtests:fi_otbn_fpga_cw340_sival_rom_ext
-# //sw/device/tests/penetrationtests:fi_otbn_fpga_cw340_test_rom
-# //sw/device/tests/penetrationtests:fi_otp_fpga_cw310_test_rom
-# //sw/device/tests/penetrationtests:fi_otp_fpga_cw340_sival_rom_ext
-# //sw/device/tests/penetrationtests:fi_otp_fpga_cw340_test_rom
 # //sw/device/tests/penetrationtests/firmware:pen_test_cryptolib_fi_asym_fpga_cw310_rom_with_fake_keys
 # //sw/device/tests/penetrationtests/firmware:pen_test_cryptolib_fi_asym_fpga_cw310_sival_rom_ext
 # //sw/device/tests/penetrationtests/firmware:pen_test_cryptolib_fi_asym_fpga_cw310_test_rom
@@ -1322,41 +1307,23 @@ EX_UNSUPPORTED_TESTS=(
 # //sw/device/tests/penetrationtests/firmware:pen_test_sca_fpga_cw310_rom_with_fake_keys
 # //sw/device/tests/penetrationtests/firmware:pen_test_sca_fpga_cw310_sival_rom_ext
 # //sw/device/tests/penetrationtests/firmware:pen_test_sca_fpga_cw310_test_rom
-# //sw/device/tests/penetrationtests:fi_rng_fpga_cw310_test_rom
-# //sw/device/tests/penetrationtests:fi_rng_fpga_cw340_sival_rom_ext
+# //sw/device/tests/penetrationtests:fi_asym_cryptolib_fpga_cw340_test_rom
+# //sw/device/tests/penetrationtests:fi_crypto_fpga_cw340_test_rom
+# //sw/device/tests/penetrationtests:fi_ibex_fpga_cw340_test_rom
+# //sw/device/tests/penetrationtests:fi_lc_ctrl_fpga_cw340_test_rom
+# //sw/device/tests/penetrationtests:fi_otbn_fpga_cw340_test_rom
+# //sw/device/tests/penetrationtests:fi_otp_fpga_cw340_test_rom
 # //sw/device/tests/penetrationtests:fi_rng_fpga_cw340_test_rom
-# //sw/device/tests/penetrationtests:fi_rom_fpga_cw310_test_rom
-# //sw/device/tests/penetrationtests:fi_rom_fpga_cw340_sival_rom_ext
 # //sw/device/tests/penetrationtests:fi_rom_fpga_cw340_test_rom
-# //sw/device/tests/penetrationtests:fi_sym_cryptolib_fpga_cw310_test_rom
-# //sw/device/tests/penetrationtests:fi_sym_cryptolib_fpga_cw340_sival_rom_ext
 # //sw/device/tests/penetrationtests:fi_sym_cryptolib_fpga_cw340_test_rom
-# //sw/device/tests/penetrationtests:sca_aes_fpga_cw310_test_rom
-# //sw/device/tests/penetrationtests:sca_aes_fpga_cw340_sival_rom_ext
 # //sw/device/tests/penetrationtests:sca_aes_fpga_cw340_test_rom
-# //sw/device/tests/penetrationtests:sca_asym_cryptolib_fpga_cw310_test_rom
-# //sw/device/tests/penetrationtests:sca_asym_cryptolib_fpga_cw340_sival_rom_ext
 # //sw/device/tests/penetrationtests:sca_asym_cryptolib_fpga_cw340_test_rom
-# //sw/device/tests/penetrationtests:sca_edn_fpga_cw310_test_rom
-# //sw/device/tests/penetrationtests:sca_edn_fpga_cw340_sival_rom_ext
 # //sw/device/tests/penetrationtests:sca_edn_fpga_cw340_test_rom
-# //sw/device/tests/penetrationtests:sca_hmac_fpga_cw310_test_rom
-# //sw/device/tests/penetrationtests:sca_hmac_fpga_cw340_sival_rom_ext
 # //sw/device/tests/penetrationtests:sca_hmac_fpga_cw340_test_rom
-# //sw/device/tests/penetrationtests:sca_ibex_fpga_cw310_test_rom
-# //sw/device/tests/penetrationtests:sca_ibex_fpga_cw340_sival_rom_ext
 # //sw/device/tests/penetrationtests:sca_ibex_fpga_cw340_test_rom
-# //sw/device/tests/penetrationtests:sca_kmac_fpga_cw310_test_rom
-# //sw/device/tests/penetrationtests:sca_kmac_fpga_cw340_sival_rom_ext
 # //sw/device/tests/penetrationtests:sca_kmac_fpga_cw340_test_rom
-# //sw/device/tests/penetrationtests:sca_otbn_fpga_cw310_test_rom
-# //sw/device/tests/penetrationtests:sca_otbn_fpga_cw340_sival_rom_ext
 # //sw/device/tests/penetrationtests:sca_otbn_fpga_cw340_test_rom
-# //sw/device/tests/penetrationtests:sca_sha3_fpga_cw310_test_rom
-# //sw/device/tests/penetrationtests:sca_sha3_fpga_cw340_sival_rom_ext
 # //sw/device/tests/penetrationtests:sca_sha3_fpga_cw340_test_rom
-# //sw/device/tests/penetrationtests:sca_sym_cryptolib_fpga_cw310_test_rom
-# //sw/device/tests/penetrationtests:sca_sym_cryptolib_fpga_cw340_sival_rom_ext
 # //sw/device/tests/penetrationtests:sca_sym_cryptolib_fpga_cw340_test_rom
 )
 

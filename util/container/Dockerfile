@@ -12,18 +12,15 @@ ARG VERIBLE_VERSION=v0.0-3622-g07b310a3
 ARG RISCV_TOOLCHAIN_TAR_VERSION=20220210-1
 # This should match the version in bazelish.sh.
 ARG BAZELISK_VERSION=v1.24.1
-# This should match the version in ci/install-package-dependencies.sh
-ARG GCC_VERSION=9
 # This should match the version of the lowRISC RISC-V toolchain.
 ARG CLANG_VERSION=16
 
 # Main container image.
-FROM ubuntu:20.04 AS opentitan
+FROM ubuntu:22.04 AS opentitan
 ARG VERILATOR_VERSION
 ARG VERIBLE_VERSION
 ARG RISCV_TOOLCHAIN_TAR_VERSION
 ARG BAZELISK_VERSION
-ARG GCC_VERSION
 ARG CLANG_VERSION
 
 LABEL version="1.0"
@@ -66,13 +63,6 @@ RUN sed -i -e '/^$/d' -e '/^#/d' -e 's/#.*//' /tmp/apt-requirements.txt \
     && apt-get clean; \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/*
 
-# Install the CI version of gcc and g++
-RUN add-apt-repository ppa:ubuntu-toolchain-r/test \
-    && apt-get update \
-    && apt-get install -y gcc-${GCC_VERSION} g++-${GCC_VERSION} \
-    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VERSION} 90 \
-    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${GCC_VERSION} 90
-
 # RISC-V device toolchain
 COPY util/get-toolchain.py /tmp/get-toolchain.py
 RUN /tmp/get-toolchain.py -r ${RISCV_TOOLCHAIN_TAR_VERSION} \
@@ -83,7 +73,7 @@ RUN /tmp/get-toolchain.py -r ${RISCV_TOOLCHAIN_TAR_VERSION} \
 # build. These are kept intentionally since we plan to use them in the future, e.g.
 # `llvm-remark-size-diff` and `llvm-tli-checker`.
 RUN curl https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add \
-    && add-apt-repository "deb https://apt.llvm.org/focal/ llvm-toolchain-focal-${CLANG_VERSION} main" \
+    && add-apt-repository "deb https://apt.llvm.org/jammy/ llvm-toolchain-jammy-${CLANG_VERSION} main" \
     && apt update \
     && apt install -y clang-${CLANG_VERSION} lldb-${CLANG_VERSION} lld-${CLANG_VERSION} \
         clangd-${CLANG_VERSION} clang-tidy-${CLANG_VERSION} clang-format-${CLANG_VERSION} \
@@ -129,19 +119,19 @@ RUN curl https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add \
 # Install verilator prebuild binary
 RUN mkdir -p /tools/verilator \
     && curl -sSfL https://storage.googleapis.com/verilator-builds/verilator-v${VERILATOR_VERSION}.tar.gz | tar -C /tools/verilator -xvzf -
-ENV PATH "/tools/verilator/v${VERILATOR_VERSION}/bin:${PATH}"
+ENV PATH="/tools/verilator/v${VERILATOR_VERSION}/bin:${PATH}"
 
 # Install Verible
 RUN curl -f -Ls -o verible.tar.gz \
         https://github.com/chipsalliance/verible/releases/download/${VERIBLE_VERSION}/verible-${VERIBLE_VERSION}-linux-static-x86_64.tar.gz \
     && mkdir -p /tools/verible \
     && tar -C /tools/verible -xf verible.tar.gz --strip-components=1
-ENV PATH "/tools/verible/bin:${PATH}"
+ENV PATH="/tools/verible/bin:${PATH}"
 
 # Set Locale to utf-8 everywhere
-ENV LC_ALL en_US.UTF-8
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
+ENV LC_ALL=en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
 
 # Scripting for use within this container.
 COPY util/container/start.sh /start.sh
@@ -163,7 +153,7 @@ USER dev:dev
 # specify that an older version of a package must be used for a certain
 # Python version. If that information is not read, pip installs the latest
 # version, which then fails to run.
-ENV PATH "/home/dev/.local/bin:${PATH}"
+ENV PATH="/home/dev/.local/bin:${PATH}"
 COPY --chown=dev:dev python-requirements.txt /tmp/python-requirements.txt
 RUN python3 -m pip install --user -U pip "setuptools<66.0.0" \
     && python3 -m pip install --user -r /tmp/python-requirements.txt \
