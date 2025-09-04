@@ -30,7 +30,6 @@ def _cc_import(ctx, cc_toolchain, object):
         action_name = CPP_LINK_STATIC_LIBRARY_ACTION_NAME,
     )
 
-
     lib_name = "lib" + ctx.label.name + ".a"
     static_library = ctx.actions.declare_file(lib_name)
     ctx.actions.run(

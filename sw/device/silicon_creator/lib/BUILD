@@ -204,12 +204,12 @@ asm_library_with_coverage(
     srcs = ["irq_asm.S"],
     target_compatible_with = [OPENTITAN_CPU],
     deps = [
-        "//sw/device/coverage:runtime_api_asm",
         "//hw/ip/aon_timer/data:aon_timer_c_regs",
         "//hw/top_earlgrey/ip_autogen/flash_ctrl:flash_ctrl_c_regs",
         "//hw/top_earlgrey/ip_autogen/pwrmgr:pwrmgr_c_regs",
         "//hw/top_earlgrey/ip_autogen/rstmgr:rstmgr_c_regs",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+        "//sw/device/coverage:runtime_api_asm",
         "//sw/device/lib/base:multibits",
     ],
 )

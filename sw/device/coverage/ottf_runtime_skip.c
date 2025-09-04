@@ -4,14 +4,10 @@
 
 #include "sw/device/lib/runtime/print.h"
 
-void coverage_transport_init(void) {
-  base_printf("COV_SKIP:OTTF\r\n");
-}
+void coverage_transport_init(void) { base_printf("COV_SKIP:OTTF\r\n"); }
 
 void coverage_init(void) {}
 
-void coverage_report(void) {
-  base_printf("== COVERAGE PROFILE SKIP ==\r\n");
-}
+void coverage_report(void) { base_printf("== COVERAGE PROFILE SKIP ==\r\n"); }
 
 void coverage_invalidate(void) {}

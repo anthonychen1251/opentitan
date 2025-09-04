@@ -104,6 +104,8 @@ cc_library(
     hdrs = [
         "dif_alert_handler.h",
     ],
+    # FIXME: Instrumenting alert_handler uses a large amount of RAM.
+    features = ["-coverage"],
     deps = [
         ":base",
         "//hw/top_earlgrey:alert_handler_c_regs",
@@ -113,8 +115,6 @@ cc_library(
         "//sw/device/lib/base:mmio",
         "//sw/device/lib/base:multibits",
     ],
-    # FIXME: Instrumenting alert_handler uses a large amount of RAM.
-    features = ["-coverage"],
 )
 
 cc_test(

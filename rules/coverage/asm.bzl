@@ -24,12 +24,12 @@ def _asm_source_with_coverage(ctx):
             else:
                 other_srcs.append(f)
 
-        outputs = [ ctx.actions.declare_file(f.basename) for f in asm_srcs ]
+        outputs = [ctx.actions.declare_file(f.basename) for f in asm_srcs]
 
         arguments = []
-        arguments.append('--input')
+        arguments.append("--input")
         arguments.extend([f.path for f in asm_srcs])
-        arguments.append('--output')
+        arguments.append("--output")
         arguments.extend([f.path for f in outputs])
 
         ctx.actions.run(
@@ -46,7 +46,7 @@ def _asm_source_with_coverage(ctx):
 
     return [
         DefaultInfo(files = depset(outputs)),
-        create_cc_instrumented_files_info(ctx, metadata_files=[]),
+        create_cc_instrumented_files_info(ctx, metadata_files = []),
     ]
 
 asm_source_with_coverage = rule(
@@ -66,7 +66,7 @@ asm_source_with_coverage = rule(
     fragments = ["cpp"],
 )
 
-def asm_library_with_coverage(name, srcs, *args, data=[], **kwargs):
+def asm_library_with_coverage(name, srcs, *args, data = [], **kwargs):
     """A wrapper around `cc_library` to enable coverage report for
     assembly source files.
 
@@ -84,7 +84,7 @@ def asm_library_with_coverage(name, srcs, *args, data=[], **kwargs):
         will be processed for coverage.
       ...: Additional arguments to be passed to `cc_library`.
     """
-    coverage_name = name + '_asm_prf_data'
+    coverage_name = name + "_asm_prf_data"
     coverage_label = ":{}".format(coverage_name)
 
     asm_source_with_coverage(
@@ -99,5 +99,5 @@ def asm_library_with_coverage(name, srcs, *args, data=[], **kwargs):
         srcs = [coverage_label],
         data = data + [coverage_label],
         *args,
-        **kwargs,
+        **kwargs
     )

@@ -192,8 +192,8 @@ ownership_transfer_test(
     name = "invalid_key_alg_activate_request_test",
     ecdsa_key = {"//sw/device/silicon_creator/lib/ownership/keys/dummy:app_prod_ecdsa": "app_prod"},
     fpga = fpga_params(
-        rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_invalid_key_alg",
         changes_otp = True,
+        rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_invalid_key_alg",
         test_cmd = """
             --clear-bitstream
             --bootstrap={firmware}

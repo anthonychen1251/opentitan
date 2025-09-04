@@ -297,7 +297,14 @@ impl UsbBackend {
         buf: &mut [u8],
     ) -> Result<usize> {
         self.handle
-            .read_control(request_type, request, value, index, buf, Duration::from_millis(1))
+            .read_control(
+                request_type,
+                request,
+                value,
+                index,
+                buf,
+                Duration::from_millis(1),
+            )
             .context("USB error")
     }
 

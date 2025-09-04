@@ -133,7 +133,7 @@ def _test_dispatch(ctx, exec_env, firmware):
     if "assemble" in param:
         assemble = param.get("assemble")
         if "instrumented_rom" in action_param and "instrumented_rom" not in assemble:
-          assemble += " {instrumented_rom}@{instrumented_rom_slot}"
+            assemble += " {instrumented_rom}@{instrumented_rom_slot}"
         assemble = recursive_format(assemble, action_param)
         assemble = ctx.expand_location(assemble, data_labels)
         image = assemble_for_test(
@@ -157,12 +157,12 @@ def _test_dispatch(ctx, exec_env, firmware):
     if "instrumented_rom" in action_param:
         assemble = "{instrumented_rom}@{instrumented_rom_slot}"
         for _ in range(10):
-          # Recursive evaluation of the assemble spec
-          assemble = assemble.format(**action_param)
+            # Recursive evaluation of the assemble spec
+            assemble = assemble.format(**action_param)
         assemble = ctx.expand_location(assemble, data_labels)
         image = assemble_for_test(
             ctx,
-            name = ctx.attr.name + '_ins_rom',
+            name = ctx.attr.name + "_ins_rom",
             spec = assemble.strip().split(" "),
             data_files = data_files,
             opentitantool = exec_env._opentitantool,
@@ -171,16 +171,18 @@ def _test_dispatch(ctx, exec_env, firmware):
         action_param["ins_rom_image"] = image.path
         data_files.append(image)
 
-        test_cmd_list = test_cmd.split('\n')
+        test_cmd_list = test_cmd.split("\n")
+
         def find_bitstream_idx():
             for i, e in list(enumerate(test_cmd_list)):
-                if 'load-bitstream' in e:
+                if "load-bitstream" in e:
                     return i
             return -1
+
         idx = find_bitstream_idx()
         if idx != -1:
-            test_cmd_list.insert(idx+1, '--exec="bootstrap --clear-uart=true {ins_rom_image}"')
-            test_cmd = '\n'.join(test_cmd_list)
+            test_cmd_list.insert(idx + 1, '--exec="bootstrap --clear-uart=true {ins_rom_image}"')
+            test_cmd = "\n".join(test_cmd_list)
 
     test_cmd = test_cmd.format(**param)
     test_cmd = ctx.expand_location(test_cmd, data_labels)

@@ -6,13 +6,13 @@
 
 #include <assert.h>
 
+#include "sw/device/coverage/runtime.h"
 #include "sw/device/lib/base/abs_mmio.h"
 #include "sw/device/lib/base/bitfield.h"
 #include "sw/device/lib/base/hardened.h"
 #include "sw/device/lib/base/macros.h"
 #include "sw/device/lib/base/multibits.h"
 #include "sw/device/silicon_creator/lib/drivers/otp.h"
-#include "sw/device/coverage/runtime.h"
 
 #ifdef OT_PLATFORM_RV32
 #include "sw/device/lib/runtime/hart.h"

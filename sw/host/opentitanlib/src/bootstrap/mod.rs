@@ -15,8 +15,8 @@ use crate::impl_serializable_error;
 use crate::io::gpio::GpioPin;
 use crate::io::spi::SpiParams;
 use crate::io::uart::UartParams;
-use crate::uart::console::UartConsole;
 use crate::transport::{Capability, ProgressIndicator};
+use crate::uart::console::UartConsole;
 
 mod eeprom;
 mod legacy;

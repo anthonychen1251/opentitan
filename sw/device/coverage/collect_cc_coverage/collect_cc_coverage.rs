@@ -31,16 +31,8 @@ use std::process;
 use zerocopy::AsBytes;
 
 use coverage_lib::{
-  search_by_extension,
-  recursive_search_by_extension,
-  debug_log,
-  decompress,
-  process_elf,
-  process_counter,
-  llvm_cov_export,
-  llvm_profdata_merge,
-  get_runfiles_dir,
-  debug_environ,
+    debug_environ, debug_log, decompress, get_runfiles_dir, llvm_cov_export, llvm_profdata_merge,
+    process_counter, process_elf, recursive_search_by_extension, search_by_extension,
 };
 
 fn main() -> Result<()> {

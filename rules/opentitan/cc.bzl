@@ -6,8 +6,8 @@ load(
     "@lowrisc_opentitan//rules/opentitan:transform.bzl",
     "convert_to_vmem",
     "obj_disassemble",
-    "obj_transform",
     "obj_tarball",
+    "obj_transform",
 )
 load("@lowrisc_opentitan//rules:signing.bzl", "sign_binary")
 load("@lowrisc_opentitan//rules/opentitan:exec_env.bzl", "ExecEnvInfo")
@@ -125,8 +125,8 @@ def ot_binary(ctx, **kwargs):
         "-nostdlib",
     ] + _expand(ctx, "linkopts", extra_linkopts)
 
-    if ctx.var.get('ot_coverage_enabled', 'false') == 'true':
-      linkopts.append("-Wl,--defsym=_ot_coverage_enabled=1")
+    if ctx.var.get("ot_coverage_enabled", "false") == "true":
+        linkopts.append("-Wl,--defsym=_ot_coverage_enabled=1")
 
     lout = cc_common.link(
         name = name + ".elf",
@@ -141,9 +141,9 @@ def ot_binary(ctx, **kwargs):
 
     objects = []
     for linking_ctx in linking_contexts:
-      for inp in linking_ctx.linker_inputs.to_list():
-        for lib in inp.libraries:
-          objects.extend(lib.objects)
+        for inp in linking_ctx.linker_inputs.to_list():
+            for lib in inp.libraries:
+                objects.extend(lib.objects)
 
     return lout.executable, mapfile, objects
 
@@ -254,9 +254,9 @@ def _build_binary(ctx, exec_env, name, deps, kind):
     )
 
     tarball = obj_tarball(
-      ctx,
-      name = name,
-      srcs = objects,
+        ctx,
+        name = name,
+        srcs = objects,
     )
 
     provides = exec_env.transform(
@@ -269,7 +269,7 @@ def _build_binary(ctx, exec_env, name, deps, kind):
         disassembly = disassembly,
         mapfile = mapfile,
     )
-    provides['objects'] = tarball
+    provides["objects"] = tarball
     return provides, signed
 
 def _opentitan_binary(ctx):

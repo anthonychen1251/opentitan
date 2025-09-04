@@ -400,7 +400,8 @@ impl UartConsole {
     where
         T: ConsoleDevice + ?Sized,
     {
-        let anchor = regex::escape(COVERAGE_END_ANCHOR) + "|" + &regex::escape(COVERAGE_SKIP_ANCHOR);
+        let anchor =
+            regex::escape(COVERAGE_END_ANCHOR) + "|" + &regex::escape(COVERAGE_SKIP_ANCHOR);
 
         Self::wait_for(device, &anchor, timeout)?;
         Ok(())

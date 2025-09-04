@@ -73,10 +73,10 @@ pub fn ownership_unlock(
     let result = rescue.get_boot_svc()?;
     match result.message {
         Message::OwnershipUnlockResponse(r) => {
-            #[cfg(feature= "ot_coverage_enabled")]
+            #[cfg(feature = "ot_coverage_enabled")]
             let _ = rescue.enter(transport, EntryMode::Reboot);
             r.status.into()
-        },
+        }
         _ => Err(anyhow!("Unexpected response: {result:x?}")),
     }
 }
@@ -138,10 +138,10 @@ pub fn ownership_activate(
     let result = rescue.get_boot_svc()?;
     match &result.message {
         Message::OwnershipActivateResponse(r) => {
-            #[cfg(feature= "ot_coverage_enabled")]
+            #[cfg(feature = "ot_coverage_enabled")]
             let _ = rescue.enter(transport, EntryMode::Reboot);
             r.status.into()
-        },
+        }
         _ => Err(anyhow!("Unexpected response: {result:x?}")),
     }
 }
@@ -334,22 +334,62 @@ where
 
             // Side A: 0-64K romext, 64-448K firmware, 448-512K filesystem.
             vec![
-                OwnerFlashRegion::new(OWNER_FLASH_ROM_EXT_START, OWNER_FLASH_ROM_EXT_SIZE, config.rom_ext()),
-                OwnerFlashRegion::new(OWNER_FLASH_OWNER_START, OWNER_FLASH_OWNER_SIZE, config.firmware()),
-                OwnerFlashRegion::new(OWNER_FLASH_FILE_START, OWNER_FLASH_FILE_SIZE, config.filesystem()),
+                OwnerFlashRegion::new(
+                    OWNER_FLASH_ROM_EXT_START,
+                    OWNER_FLASH_ROM_EXT_SIZE,
+                    config.rom_ext(),
+                ),
+                OwnerFlashRegion::new(
+                    OWNER_FLASH_OWNER_START,
+                    OWNER_FLASH_OWNER_SIZE,
+                    config.firmware(),
+                ),
+                OwnerFlashRegion::new(
+                    OWNER_FLASH_FILE_START,
+                    OWNER_FLASH_FILE_SIZE,
+                    config.filesystem(),
+                ),
                 // Side B: 0-64K romext, 64-448K firmware, 448-512K filesystem.
-                OwnerFlashRegion::new(256 + OWNER_FLASH_ROM_EXT_START, OWNER_FLASH_ROM_EXT_SIZE, config.rom_ext()),
-                OwnerFlashRegion::new(256 + OWNER_FLASH_OWNER_START, OWNER_FLASH_OWNER_SIZE, config.firmware()),
-                OwnerFlashRegion::new(256 + OWNER_FLASH_FILE_START, OWNER_FLASH_FILE_SIZE, config.filesystem()),
+                OwnerFlashRegion::new(
+                    256 + OWNER_FLASH_ROM_EXT_START,
+                    OWNER_FLASH_ROM_EXT_SIZE,
+                    config.rom_ext(),
+                ),
+                OwnerFlashRegion::new(
+                    256 + OWNER_FLASH_OWNER_START,
+                    OWNER_FLASH_OWNER_SIZE,
+                    config.firmware(),
+                ),
+                OwnerFlashRegion::new(
+                    256 + OWNER_FLASH_FILE_START,
+                    OWNER_FLASH_FILE_SIZE,
+                    config.filesystem(),
+                ),
             ]
         } else {
             vec![
                 // Side A: 64-448K firmware, 448-512K filesystem.
-                OwnerFlashRegion::new(OWNER_FLASH_OWNER_START, OWNER_FLASH_OWNER_SIZE, config.firmware()),
-                OwnerFlashRegion::new(OWNER_FLASH_FILE_START, OWNER_FLASH_FILE_SIZE, config.filesystem()),
+                OwnerFlashRegion::new(
+                    OWNER_FLASH_OWNER_START,
+                    OWNER_FLASH_OWNER_SIZE,
+                    config.firmware(),
+                ),
+                OwnerFlashRegion::new(
+                    OWNER_FLASH_FILE_START,
+                    OWNER_FLASH_FILE_SIZE,
+                    config.filesystem(),
+                ),
                 // Side B: 64-448K firmware, 448-512K filesystem.
-                OwnerFlashRegion::new(256 + OWNER_FLASH_OWNER_START, OWNER_FLASH_OWNER_SIZE, config.firmware()),
-                OwnerFlashRegion::new(256 + OWNER_FLASH_FILE_START, OWNER_FLASH_FILE_SIZE, config.filesystem()),
+                OwnerFlashRegion::new(
+                    256 + OWNER_FLASH_OWNER_START,
+                    OWNER_FLASH_OWNER_SIZE,
+                    config.firmware(),
+                ),
+                OwnerFlashRegion::new(
+                    256 + OWNER_FLASH_FILE_START,
+                    OWNER_FLASH_FILE_SIZE,
+                    config.filesystem(),
+                ),
             ]
         };
         owner

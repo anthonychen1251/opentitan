@@ -366,7 +366,10 @@ cc_feature(
 cc_args(
     name = "coverage_single_byte",
     actions = ["@rules_cc//cc/toolchains/actions:compile_actions"],
-    args = ["-mllvm", "--enable-single-byte-coverage"],
+    args = [
+        "-mllvm",
+        "--enable-single-byte-coverage",
+    ],
 )
 
 cc_args(

@@ -18,13 +18,13 @@ cc_library(
 
 cc_library(
     name = "printer",
-    hdrs = ["printer.h"],
     srcs = ["printer.c"],
+    hdrs = ["printer.h"],
+    features = ["-coverage"],
     deps = [
         "//sw/device/lib/base:crc32",
         "//sw/device/lib/base:macros",
     ],
-    features = ["-coverage"],
     alwayslink = True,  # replacing weak symbol
 )
 
@@ -49,10 +49,10 @@ cc_library(
 cc_library(
     name = "empty_runtime_real",
     srcs = ["empty_runtime.c"],
+    features = ["-coverage"],
     deps = [
         "//sw/device/lib/base:macros",
     ],
-    features = ["-coverage"],
 )
 
 alias(
@@ -66,6 +66,7 @@ alias(
 cc_library(
     name = "uart_runtime_real",
     srcs = ["uart_runtime.c"],
+    features = ["-coverage"],
     target_compatible_with = [OPENTITAN_CPU],
     deps = [
         ":printer",
@@ -73,19 +74,18 @@ cc_library(
         "//sw/device/silicon_creator/lib/drivers:pinmux",
         "//sw/device/silicon_creator/lib/drivers:uart",
     ],
-    features = ["-coverage"],
     alwayslink = True,  # replacing weak symbol
 )
 
 cc_library(
     name = "uart_runtime_skip",
     srcs = ["uart_runtime_skip.c"],
+    features = ["-coverage"],
     deps = [
         "//sw/device/lib/arch:device",
         "//sw/device/silicon_creator/lib/drivers:pinmux",
         "//sw/device/silicon_creator/lib/drivers:uart",
     ],
-    features = ["-coverage"],
     alwayslink = True,  # replacing weak symbol
 )
 
@@ -101,6 +101,7 @@ alias(
 cc_library(
     name = "ottf_runtime_real",
     srcs = ["ottf_runtime.c"],
+    features = ["-coverage"],
     target_compatible_with = [OPENTITAN_CPU],
     deps = [
         ":printer",
@@ -108,17 +109,16 @@ cc_library(
         "//sw/device/lib/runtime:log",
         "//sw/device/lib/runtime:print",
     ],
-    features = ["-coverage"],
     alwayslink = True,  # replacing weak symbol
 )
 
 cc_library(
     name = "ottf_runtime_skip",
     srcs = ["ottf_runtime_skip.c"],
+    features = ["-coverage"],
     deps = [
         "//sw/device/lib/runtime:print",
     ],
-    features = ["-coverage"],
     alwayslink = True,  # replacing weak symbol
 )
 

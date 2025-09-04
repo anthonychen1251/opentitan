@@ -10,7 +10,6 @@ load(
     "//rules/opentitan:defs.bzl",
     "opentitan_test",
 )
-
 load(
     "//rules/opentitan:defs.bzl",
     "opentitan_test",

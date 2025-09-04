@@ -55,7 +55,7 @@ _FAULT_TEST_CASES = {
     },
     "return_boot_failed": {
         "defines": ["RETURN_TO_ROM_EXT=1"],
-        "exit_success": "BFV:01524509", # kErrorRomExtBootFailed
+        "exit_success": "BFV:01524509",  # kErrorRomExtBootFailed
     },
 }
 

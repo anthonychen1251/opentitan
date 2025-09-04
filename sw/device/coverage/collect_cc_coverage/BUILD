@@ -2,7 +2,7 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_doc", "rust_test", "rust_test_suite")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_doc", "rust_library", "rust_test", "rust_test_suite")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -14,9 +14,9 @@ rust_library(
         "@crate_index//:byteorder",
         "@crate_index//:hex",
         "@crate_index//:object",
-        "@crate_index//:zerocopy",
-        "@crate_index//:tar",
         "@crate_index//:rand",
+        "@crate_index//:tar",
+        "@crate_index//:zerocopy",
     ],
 )
 

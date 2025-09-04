@@ -64,9 +64,9 @@ manifest({
 
 opentitan_binary(
     name = "bare_metal_slot_a",
-    collect_code_coverage = 0,
     testonly = True,
     srcs = ["bare_metal_start.S"],
+    collect_code_coverage = 0,
     exec_env = [
         "//hw/top_earlgrey:fpga_cw310_rom_ext",
     ],
@@ -81,9 +81,9 @@ opentitan_binary(
 
 opentitan_binary(
     name = "bare_metal_slot_b",
-    collect_code_coverage = 0,
     testonly = True,
     srcs = ["bare_metal_start.S"],
+    collect_code_coverage = 0,
     exec_env = [
         "//hw/top_earlgrey:fpga_cw310_rom_ext",
         "//hw/top_earlgrey:fpga_cw340_rom_ext",
@@ -100,9 +100,9 @@ opentitan_binary(
 
 opentitan_binary(
     name = "bare_metal_slot_virtual",
-    collect_code_coverage = 0,
     testonly = True,
     srcs = ["bare_metal_start.S"],
+    collect_code_coverage = 0,
     exec_env = [
         "//hw/top_earlgrey:fpga_cw310_rom_ext",
         "//hw/top_earlgrey:fpga_cw340_rom_ext",

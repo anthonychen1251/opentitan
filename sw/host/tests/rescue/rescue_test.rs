@@ -501,7 +501,9 @@ fn disability_test(
                 rescue.reboot()?;
                 if params.protocol != RescueProtocol::Xmodem {
                     transport.capabilities()?.request(Capability::UART).ok()?;
-                    let uart = transport.uart("console").expect("Failed to init Uart console");
+                    let uart = transport
+                        .uart("console")
+                        .expect("Failed to init Uart console");
                     UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
                 }
             }

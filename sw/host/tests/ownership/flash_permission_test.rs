@@ -19,13 +19,8 @@ use opentitanlib::rescue::{EntryMode, Rescue};
 use opentitanlib::test_utils::init::InitializeTest;
 use opentitanlib::uart::console::UartConsole;
 use transfer_lib::{
-  HybridPair,
-  OWNER_FLASH_ROM_EXT_START,
-  OWNER_FLASH_ROM_EXT_SIZE,
-  OWNER_FLASH_OWNER_START,
-  OWNER_FLASH_OWNER_SIZE,
-  OWNER_FLASH_FILE_START,
-  OWNER_FLASH_FILE_SIZE,
+    HybridPair, OWNER_FLASH_FILE_SIZE, OWNER_FLASH_FILE_START, OWNER_FLASH_OWNER_SIZE,
+    OWNER_FLASH_OWNER_START, OWNER_FLASH_ROM_EXT_SIZE, OWNER_FLASH_ROM_EXT_START,
 };
 
 #[derive(Debug, Parser)]
@@ -253,11 +248,25 @@ fn flash_permission_test(opts: &Opts, transport: &TransportWrapper) -> Result<()
         // The ROM_EXT always protects itself in regions 0 and 1.
         assert_eq!(
             region[0],
-            FlashRegion("data", 0, OWNER_FLASH_ROM_EXT_START as u32, OWNER_FLASH_ROM_EXT_SIZE as u32, romext_region[0], "LK")
+            FlashRegion(
+                "data",
+                0,
+                OWNER_FLASH_ROM_EXT_START as u32,
+                OWNER_FLASH_ROM_EXT_SIZE as u32,
+                romext_region[0],
+                "LK"
+            )
         );
         assert_eq!(
             region[1],
-            FlashRegion("data", 1, 256+OWNER_FLASH_ROM_EXT_START as u32, OWNER_FLASH_ROM_EXT_SIZE as u32, romext_region[1], "LK")
+            FlashRegion(
+                "data",
+                1,
+                256 + OWNER_FLASH_ROM_EXT_START as u32,
+                OWNER_FLASH_ROM_EXT_SIZE as u32,
+                romext_region[1],
+                "LK"
+            )
         );
 
         // Current owner (fake_owner in flash SideA) doesn't have a configuration,
@@ -266,11 +275,25 @@ fn flash_permission_test(opts: &Opts, transport: &TransportWrapper) -> Result<()
         // Next owner (dummy_owner in Flash SideB) is the next owner configuration.
         assert_eq!(
             region[2],
-            FlashRegion("data", 2, 256+OWNER_FLASH_OWNER_START as u32, OWNER_FLASH_OWNER_SIZE as u32, "RD-WR-ER-SC-EC-xx", "UN")
+            FlashRegion(
+                "data",
+                2,
+                256 + OWNER_FLASH_OWNER_START as u32,
+                OWNER_FLASH_OWNER_SIZE as u32,
+                "RD-WR-ER-SC-EC-xx",
+                "UN"
+            )
         );
         assert_eq!(
             region[3],
-            FlashRegion("data", 3, 256+OWNER_FLASH_FILE_START as u32, OWNER_FLASH_FILE_SIZE as u32, "RD-WR-ER-xx-xx-HE", "UN")
+            FlashRegion(
+                "data",
+                3,
+                256 + OWNER_FLASH_FILE_START as u32,
+                OWNER_FLASH_FILE_SIZE as u32,
+                "RD-WR-ER-xx-xx-HE",
+                "UN"
+            )
         );
 
         // The remaining flash regions are unused.
@@ -344,17 +367,73 @@ fn flash_permission_test(opts: &Opts, transport: &TransportWrapper) -> Result<()
     let app_region = match opts.rescue_slot {
         BootSlot::SlotA => [
             // Slot A protected, Slot B writable.
-            FlashRegion("data", 2, OWNER_FLASH_OWNER_START as u32, OWNER_FLASH_OWNER_SIZE as u32, "RD-xx-xx-SC-EC-xx", locked),
-            FlashRegion("data", 3, OWNER_FLASH_FILE_START as u32, OWNER_FLASH_FILE_SIZE as u32, "RD-WR-ER-xx-xx-HE", locked),
-            FlashRegion("data", 4, 256+OWNER_FLASH_OWNER_START as u32, OWNER_FLASH_OWNER_SIZE as u32, "RD-WR-ER-SC-EC-xx", locked),
-            FlashRegion("data", 5, 256+OWNER_FLASH_FILE_START as u32, OWNER_FLASH_FILE_SIZE as u32, "RD-WR-ER-xx-xx-HE", locked),
+            FlashRegion(
+                "data",
+                2,
+                OWNER_FLASH_OWNER_START as u32,
+                OWNER_FLASH_OWNER_SIZE as u32,
+                "RD-xx-xx-SC-EC-xx",
+                locked,
+            ),
+            FlashRegion(
+                "data",
+                3,
+                OWNER_FLASH_FILE_START as u32,
+                OWNER_FLASH_FILE_SIZE as u32,
+                "RD-WR-ER-xx-xx-HE",
+                locked,
+            ),
+            FlashRegion(
+                "data",
+                4,
+                256 + OWNER_FLASH_OWNER_START as u32,
+                OWNER_FLASH_OWNER_SIZE as u32,
+                "RD-WR-ER-SC-EC-xx",
+                locked,
+            ),
+            FlashRegion(
+                "data",
+                5,
+                256 + OWNER_FLASH_FILE_START as u32,
+                OWNER_FLASH_FILE_SIZE as u32,
+                "RD-WR-ER-xx-xx-HE",
+                locked,
+            ),
         ],
         BootSlot::SlotB => [
             // Slot A writable, Slot B protected.
-            FlashRegion("data", 2, OWNER_FLASH_OWNER_START as u32, OWNER_FLASH_OWNER_SIZE as u32, "RD-WR-ER-SC-EC-xx", locked),
-            FlashRegion("data", 3, OWNER_FLASH_FILE_START as u32, OWNER_FLASH_FILE_SIZE as u32, "RD-WR-ER-xx-xx-HE", locked),
-            FlashRegion("data", 4, 256+OWNER_FLASH_OWNER_START as u32, OWNER_FLASH_OWNER_SIZE as u32, "RD-xx-xx-SC-EC-xx", locked),
-            FlashRegion("data", 5, 256+OWNER_FLASH_FILE_START as u32, OWNER_FLASH_FILE_SIZE as u32, "RD-WR-ER-xx-xx-HE", locked),
+            FlashRegion(
+                "data",
+                2,
+                OWNER_FLASH_OWNER_START as u32,
+                OWNER_FLASH_OWNER_SIZE as u32,
+                "RD-WR-ER-SC-EC-xx",
+                locked,
+            ),
+            FlashRegion(
+                "data",
+                3,
+                OWNER_FLASH_FILE_START as u32,
+                OWNER_FLASH_FILE_SIZE as u32,
+                "RD-WR-ER-xx-xx-HE",
+                locked,
+            ),
+            FlashRegion(
+                "data",
+                4,
+                256 + OWNER_FLASH_OWNER_START as u32,
+                OWNER_FLASH_OWNER_SIZE as u32,
+                "RD-xx-xx-SC-EC-xx",
+                locked,
+            ),
+            FlashRegion(
+                "data",
+                5,
+                256 + OWNER_FLASH_FILE_START as u32,
+                OWNER_FLASH_FILE_SIZE as u32,
+                "RD-WR-ER-xx-xx-HE",
+                locked,
+            ),
         ],
         _ => return Err(anyhow!("Unknown boot slot {}", data.bl0_slot)),
     };
@@ -362,11 +441,25 @@ fn flash_permission_test(opts: &Opts, transport: &TransportWrapper) -> Result<()
     // The ROM_EXT always protects itself in regions 0 and 1.
     assert_eq!(
         region[0],
-        FlashRegion("data", 0, OWNER_FLASH_ROM_EXT_START as u32, OWNER_FLASH_ROM_EXT_SIZE as u32, romext_region[0], "LK")
+        FlashRegion(
+            "data",
+            0,
+            OWNER_FLASH_ROM_EXT_START as u32,
+            OWNER_FLASH_ROM_EXT_SIZE as u32,
+            romext_region[0],
+            "LK"
+        )
     );
     assert_eq!(
         region[1],
-        FlashRegion("data", 1, 256+OWNER_FLASH_ROM_EXT_START as u32, OWNER_FLASH_ROM_EXT_SIZE as u32, romext_region[1], "LK")
+        FlashRegion(
+            "data",
+            1,
+            256 + OWNER_FLASH_ROM_EXT_START as u32,
+            OWNER_FLASH_ROM_EXT_SIZE as u32,
+            romext_region[1],
+            "LK"
+        )
     );
     // Flash Slot A:
     assert_eq!(region[2], app_region[0]);

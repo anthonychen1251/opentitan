@@ -6,6 +6,7 @@
 
 #include <assert.h>
 
+#include "sw/device/coverage/runtime.h"
 #include "sw/device/lib/arch/device.h"
 #include "sw/device/lib/base/abs_mmio.h"
 #include "sw/device/lib/base/bitfield.h"
@@ -22,7 +23,6 @@
 #include "sw/device/silicon_creator/lib/drivers/retention_sram.h"
 #include "sw/device/silicon_creator/lib/epmp_defs.h"
 #include "sw/device/silicon_creator/lib/stack_utilization.h"
-#include "sw/device/coverage/runtime.h"
 
 #include "alert_handler_regs.h"
 #include "flash_ctrl_regs.h"

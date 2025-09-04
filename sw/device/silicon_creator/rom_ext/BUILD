@@ -158,8 +158,8 @@ asm_library_with_coverage(
         "//hw/top_earlgrey/ip_autogen/flash_ctrl:flash_ctrl_c_regs",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
         "//sw/device/coverage:runtime_api_asm",
-        "//sw/device/lib/base:macros",
         "//sw/device/lib/base:hardened",
+        "//sw/device/lib/base:macros",
     ],
 )
 
@@ -253,12 +253,12 @@ asm_library_with_coverage(
         hdrs = ["rom_ext.h"],
         target_compatible_with = [OPENTITAN_CPU],
         deps = [
-            ":rom_ext_start",
             ":rom_ext_boot_policy",
             ":rom_ext_boot_policy_ptrs",
             ":rom_ext_boot_services",
             ":rom_ext_isrs",
             ":rom_ext_manifest",
+            ":rom_ext_start",
             "//hw/ip/otp_ctrl/data:otp_ctrl_c_regs",
             "//hw/ip/sram_ctrl/data:sram_ctrl_c_regs",
             "//hw/top_earlgrey/ip_autogen/flash_ctrl:flash_ctrl_c_regs",
@@ -406,8 +406,8 @@ opentitan_binary(
         ":rom_ext_dice_cwt",
         "//sw/device/lib/crt",
         "//sw/device/silicon_creator/lib:manifest_def",
-        "//sw/device/silicon_creator/rom_ext/imm_section:main_section_dice_cwt_slot_virtual",
         "//sw/device/silicon_creator/lib/rescue:rescue_spidfu",
+        "//sw/device/silicon_creator/rom_ext/imm_section:main_section_dice_cwt_slot_virtual",
     ],
 )
 

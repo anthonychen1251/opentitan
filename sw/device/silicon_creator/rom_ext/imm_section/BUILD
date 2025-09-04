@@ -31,9 +31,9 @@ asm_library_with_coverage(
     srcs = ["imm_section_start.S"],
     target_compatible_with = [OPENTITAN_CPU],
     deps = [
+        "//hw/top_earlgrey/sw/autogen:top_earlgrey",
         "//sw/device/coverage:runtime_api_asm",
         "//sw/device/lib/base:hardened",
-        "//hw/top_earlgrey/sw/autogen:top_earlgrey",
     ],
     alwayslink = True,
 )
@@ -44,8 +44,8 @@ cc_library(
     hdrs = ["imm_section.h"],
     target_compatible_with = [OPENTITAN_CPU],
     deps = [
-        ":imm_section_start",
         ":imm_section_epmp",
+        ":imm_section_start",
         ":imm_section_version_def",
         "//hw/top_earlgrey/ip_autogen/flash_ctrl:flash_ctrl_c_regs",
         "//sw/device/coverage:runtime_api",

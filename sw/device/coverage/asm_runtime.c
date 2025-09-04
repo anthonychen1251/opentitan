@@ -21,14 +21,14 @@ uint32_t coverage_backup_asm_counters(uint32_t offset) {
 OT_NO_COVERAGE
 void coverage_restore_asm_counters(uint32_t a, uint32_t b) {
   int32_t remaining = (int32_t)(__llvm_prf_cnts_end - __llvm_prf_cnts_start);
-  for (int i=0; i<32 && remaining > 0; i++, remaining--) {
+  for (int i = 0; i < 32 && remaining > 0; i++, remaining--) {
     if ((a >> i) & 1) {
       __llvm_prf_cnts_start[i] = 0;
     }
   }
-  for (int i=0; i<32 && remaining > 0; i++, remaining--) {
+  for (int i = 0; i < 32 && remaining > 0; i++, remaining--) {
     if ((b >> i) & 1) {
-      __llvm_prf_cnts_start[i+32] = 0;
+      __llvm_prf_cnts_start[i + 32] = 0;
     }
   }
 }

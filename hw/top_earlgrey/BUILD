@@ -80,6 +80,7 @@ EARLGREY_SLOTS_NORMAL = {
     "owner_slot_b": "0x90000",
     "rom_ext_size": "0x10000",
 }
+
 EARLGREY_SLOTS_COVERAGE = {
     "rom_ext_slot_a": "0x0",
     "rom_ext_slot_b": "0x80000",
@@ -88,6 +89,7 @@ EARLGREY_SLOTS_COVERAGE = {
     "rom_ext_size": "0x40000",
     "instrumented_rom_slot": "0xe0000",
 }
+
 EARLGREY_SLOTS = select({
     "//rules/coverage:enabled": EARLGREY_SLOTS_COVERAGE,
     "//conditions:default": EARLGREY_SLOTS_NORMAL,
@@ -105,15 +107,14 @@ fpga_cw310(
         "//sw/device/lib/arch:fpga_cw310",
     ],
     linker_script = "//sw/device/lib/testing/test_framework:ottf_ld_silicon_creator_slot_a",
-    rom_scramble_config = "//hw/top_earlgrey/data:autogen/top_earlgrey.gen.hjson",
-    slot_spec = EARLGREY_SLOTS,
-    test_cmd = "testing-not-supported",
-
     param = {
         "interface": "hyper340",
         "exit_success": DEFAULT_TEST_SUCCESS_MSG,
         "exit_failure": DEFAULT_TEST_FAILURE_MSG,
     },
+    rom_scramble_config = "//hw/top_earlgrey/data:autogen/top_earlgrey.gen.hjson",
+    slot_spec = EARLGREY_SLOTS,
+    test_cmd = "testing-not-supported",
 )
 
 fpga_cw310(
@@ -128,8 +129,10 @@ fpga_cw310(
         "//conditions:default": [],
     }),
     base = ":fpga_cw310",
+    base_bitstream = "//hw/bitstream/cw340:bitstream",
     # base_bitstream = "//hw/bitstream:bitstream",
     exec_env = "fpga_cw310_test_rom",
+    mmi = "//hw/bitstream/cw340:mmi",
     # mmi = "//hw/bitstream:cw310_mmi",
     openocd_adapter_config = "//third_party/openocd:jtag_olimex_cfg",
     otp = "//hw/ip/otp_ctrl/data:img_rma",
@@ -147,9 +150,6 @@ fpga_cw310(
         --exec="console --non-interactive --exit-success='{exit_success}' --exit-failure='{exit_failure}'"
         no-op
     """,
-
-    base_bitstream = "//hw/bitstream/cw340:bitstream",
-    mmi = "//hw/bitstream/cw340:mmi",
 )
 
 fpga_cw310(
@@ -226,10 +226,12 @@ fpga_cw310(
         "--interface={interface}",
     ],
     base = ":fpga_cw310",
+    base_bitstream = "//hw/bitstream/cw340:bitstream",
     # base_bitstream = "//hw/bitstream/hyperdebug:bitstream",
     ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:test_key_0_ecdsa_p256": "test_key_0"},
     exec_env = "fpga_hyper310_rom_with_fake_keys",
     manifest = "//sw/device/silicon_creator/rom_ext:manifest",
+    mmi = "//hw/bitstream/cw340:mmi",
     # mmi = "//hw/bitstream/hyperdebug:mmi",
     otp = "//hw/ip/otp_ctrl/data:img_rma",
     param = {
@@ -246,9 +248,6 @@ fpga_cw310(
         --exec="console --non-interactive --exit-success='{exit_success}' --exit-failure='{exit_failure}'"
         no-op
     """,
-
-    base_bitstream = "//hw/bitstream/cw340:bitstream",
-    mmi = "//hw/bitstream/cw340:mmi",
 )
 
 fpga_cw310(
@@ -440,15 +439,15 @@ fpga_cw340(
     testonly = True,
     base = ":fpga_cw340_rom_with_fake_keys",
     exec_env = "fpga_cw340_instrumented_rom",
-    rom = "//sw/device/lib/testing/test_rom:test_rom",
+    instrumented_rom = "//sw/device/silicon_creator/rom:instrumented_mask_rom",
+    otp = "//sw/device/silicon_creator/rom_ext/e2e:otp_img_secret2_locked_rma",
     param = {
         "interface": "hyper340",
         "exit_success": DEFAULT_TEST_SUCCESS_MSG,
         "exit_failure": DEFAULT_TEST_FAILURE_MSG,
         "assemble": "{firmware}@{rom_ext_slot_a} {instrumented_rom}@{instrumented_rom_slot}",
     },
-    otp = "//sw/device/silicon_creator/rom_ext/e2e:otp_img_secret2_locked_rma",
-    instrumented_rom = "//sw/device/silicon_creator/rom:instrumented_mask_rom",
+    rom = "//sw/device/lib/testing/test_rom:test_rom",
     test_cmd = """
         --exec="transport init"
         --exec="fpga load-bitstream {bitstream}"
@@ -483,14 +482,14 @@ fpga_cw340(
     testonly = True,
     base = ":fpga_cw340_sival",
     exec_env = "fpga_cw340_instrumented_rom_prod",
-    rom = "//sw/device/lib/testing/test_rom:test_rom",
+    instrumented_rom = "//sw/device/silicon_creator/rom:instrumented_mask_rom",
     param = {
         "interface": "hyper340",
         "exit_success": DEFAULT_TEST_SUCCESS_MSG,
         "exit_failure": DEFAULT_TEST_FAILURE_MSG,
         "assemble": "{firmware}@{rom_ext_slot_a} {instrumented_rom}@{instrumented_rom_slot}",
     },
-    instrumented_rom = "//sw/device/silicon_creator/rom:instrumented_mask_rom",
+    rom = "//sw/device/lib/testing/test_rom:test_rom",
     test_cmd = """
         --exec="transport init"
         --exec="fpga load-bitstream {bitstream}"

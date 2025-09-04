@@ -263,7 +263,7 @@ TEST_OWNER_CONFIGS = {
             "WITH_RESCUE_START=0",
             "WITH_RESCUE_SIZE=0",
             # Disable the owner block check in test_owner.c so that the rescue start addr can be 0.
-            "TEST_OWNER_DISABLE_OWNER_BLOCK_CHECK=1"
+            "TEST_OWNER_DISABLE_OWNER_BLOCK_CHECK=1",
         ],
         "rescue_module": ["//sw/device/silicon_creator/lib/rescue:rescue_spidfu"],
     },

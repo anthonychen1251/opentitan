@@ -8,8 +8,8 @@
 #include "sw/device/lib/base/bitfield.h"
 #include "sw/device/lib/base/macros.h"
 #include "sw/device/lib/base/memory.h"
-#include "sw/device/silicon_creator/lib/error.h"
 #include "sw/device/silicon_creator/lib/drivers/ibex.h"
+#include "sw/device/silicon_creator/lib/error.h"
 
 #include "hmac_regs.h"  // Generated.
 #include "hw/top_earlgrey/sw/autogen/top_earlgrey.h"
@@ -174,7 +174,8 @@ void hmac_sha256_save(hmac_context_t *ctx) {
    * SHA2-384/512).
    */
   uint32_t start = ibex_mcycle32();
-  while(ibex_mcycle32() - start < kHmacTmpDelay);
+  while (ibex_mcycle32() - start < kHmacTmpDelay)
+    ;
 #endif
 
   // Read the digest registers. Note that endianness does not matter here,
@@ -195,7 +196,8 @@ void hmac_sha256_save(hmac_context_t *ctx) {
 #ifdef OT_COVERAGE_INSTRUMENTED
   // Workaround linked to issue #24767
   // Trigger hash_process
-  uint32_t cmd_reg = abs_mmio_read32(TOP_EARLGREY_HMAC_BASE_ADDR + HMAC_CMD_REG_OFFSET);
+  uint32_t cmd_reg =
+      abs_mmio_read32(TOP_EARLGREY_HMAC_BASE_ADDR + HMAC_CMD_REG_OFFSET);
   cmd_reg = bitfield_bit32_write(cmd_reg, HMAC_CMD_HASH_PROCESS_BIT, true);
   abs_mmio_write32(TOP_EARLGREY_HMAC_BASE_ADDR + HMAC_CMD_REG_OFFSET, cmd_reg);
 

@@ -111,8 +111,8 @@ asm_library_with_coverage(
         "//hw/top_earlgrey/ip_autogen/flash_ctrl:flash_ctrl_c_regs",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
         "//sw/device/coverage:runtime_api_asm",
-        "//sw/device/lib/base:macros",
         "//sw/device/lib/base:hardened",
+        "//sw/device/lib/base:macros",
     ],
 )
 
@@ -153,11 +153,11 @@ asm_library_with_coverage(
         "//hw/top_earlgrey/ip_autogen/rstmgr:rstmgr_c_regs",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
         "//sw/device/coverage:runtime_api",
+        "//sw/device/coverage:runtime_api_asm",
         "//sw/device/coverage:uart_runtime",
         "//sw/device/lib/base:hardened",
         "//sw/device/lib/base:multibits",
         "//sw/device/silicon_creator/lib/base:chip",
-        "//sw/device/coverage:runtime_api_asm",
     ],
     alwayslink = True,
 )
@@ -166,19 +166,18 @@ cc_library(
     name = "mask_rom_lib",
     target_compatible_with = [OPENTITAN_CPU],
     deps = [
-        ":ld_rom",
         ":common_mask_rom_lib",
+        ":ld_rom",
     ],
     alwayslink = True,
 )
-
 
 cc_library(
     name = "instrumented_rom_lib",
     target_compatible_with = [OPENTITAN_CPU],
     deps = [
-        ":ld_instrumented_rom",
         ":common_mask_rom_lib",
+        ":ld_instrumented_rom",
     ],
     alwayslink = True,
 )
@@ -342,10 +341,10 @@ cc_library(
     deps = [
         ":rom_epmp_init",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+        "//sw/device/coverage:runtime_api_asm",
         "//sw/device/lib/base:bitfield",
         "//sw/device/lib/base:csr",
         "//sw/device/lib/base:memory",
-        "//sw/device/coverage:runtime_api_asm",
         "//sw/device/silicon_creator/lib:epmp_state",
         "//sw/device/silicon_creator/lib/drivers:lifecycle",
     ],

@@ -23,7 +23,7 @@ extern char __llvm_prf_cnts_end[];
 extern char _build_id_start[];
 extern char _build_id_end[];
 
-#define BUILD_ID ((uint8_t*)_build_id_end - kBuildIdSize)
+#define BUILD_ID ((uint8_t *)_build_id_end - kBuildIdSize)
 
 /**
  * When the linker finds a definition of this symbol, it knows to skip loading
@@ -32,12 +32,9 @@ extern char _build_id_end[];
  * for more information.
  */
 
-OT_SET_BSS_SECTION("__llvm_prf_noinit",
-  int __llvm_profile_runtime;
-  static uint32_t coverage_status;
-  static uint32_t coverage_crc;
-  static char send_buf[0x100];
-);
+OT_SET_BSS_SECTION("__llvm_prf_noinit", int __llvm_profile_runtime;
+                   static uint32_t coverage_status;
+                   static uint32_t coverage_crc; static char send_buf[0x100];);
 
 void coverage_printer_sink_with_crc(const void *buf, size_t size) {
   const uint8_t *ptr = (const uint8_t *)buf;
@@ -110,7 +107,7 @@ void coverage_init(void) {
     }
 
     // Set the report as valid.
-    coverage_status = *(uint32_t*) BUILD_ID;
+    coverage_status = *(uint32_t *)BUILD_ID;
   }
 }
 
@@ -130,10 +127,6 @@ void coverage_printer_run(void) {
   coverage_printer_sink(&coverage_crc, sizeof(coverage_crc));
 }
 
-void coverage_invalidate(void) {
-  coverage_status = 0x42;
-}
+void coverage_invalidate(void) { coverage_status = 0x42; }
 
-int coverage_is_valid(void) {
-  return coverage_status == *(uint32_t*) BUILD_ID;
-}
+int coverage_is_valid(void) { return coverage_status == *(uint32_t *)BUILD_ID; }

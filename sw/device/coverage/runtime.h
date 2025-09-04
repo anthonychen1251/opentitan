@@ -17,11 +17,16 @@ void coverage_invalidate(void);
 
 #else  // OT_COVERAGE_ENABLED
 
-#define coverage_init(...) do {} while(0)
-#define coverage_report(...) do {} while(0)
-#define coverage_invalidate(...) do {} while(0)
+#define coverage_init(...) \
+  do {                     \
+  } while (0)
+#define coverage_report(...) \
+  do {                       \
+  } while (0)
+#define coverage_invalidate(...) \
+  do {                           \
+  } while (0)
 
 #endif  // OT_COVERAGE_ENABLED
-
 
 #endif  // OPENTITAN_SW_DEVICE_COVERAGE_RUNTIME_H_

@@ -49,13 +49,15 @@ def _coverage_view_test(ctx):
 
     # Nop test
     script = ctx.actions.declare_file(ctx.attr.name + ".bash")
-    ctx.actions.write(script,
-      _TEST_SCRIPT.format(
-          elf_file = elf.short_path,
-          dis_file = dis.short_path,
-          tar_file = tar.short_path,
-      ),
-      is_executable = True)
+    ctx.actions.write(
+        script,
+        _TEST_SCRIPT.format(
+            elf_file = elf.short_path,
+            dis_file = dis.short_path,
+            tar_file = tar.short_path,
+        ),
+        is_executable = True,
+    )
 
     # Propagate all runfiles from elf attr
     runfiles = ctx.runfiles(files = ctx.files.elf + [elf, dis, tar])

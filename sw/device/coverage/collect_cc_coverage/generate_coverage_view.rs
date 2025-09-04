@@ -30,12 +30,7 @@ use std::path::PathBuf;
 use std::process;
 use zerocopy::AsBytes;
 
-use coverage_lib::{
-  process_elf,
-  generate_view,
-  debug_log,
-  debug_environ,
-};
+use coverage_lib::{debug_environ, debug_log, generate_view, process_elf};
 
 fn main() -> Result<()> {
     debug_environ();

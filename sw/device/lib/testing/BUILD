@@ -63,6 +63,9 @@ cc_library(
     name = "alert_handler_testutils",
     srcs = ["alert_handler_testutils.c"],
     hdrs = ["alert_handler_testutils.h"],
+    # FIXME: Why instrumenting this library for code coverage causes excessive
+    # memory consumption?
+    features = ["-coverage"],
     target_compatible_with = [OPENTITAN_CPU],
     deps = [
         "//sw/device/lib/dif:alert_handler",
@@ -71,9 +74,6 @@ cc_library(
         "//sw/device/lib/dif:rstmgr",
         "//sw/device/lib/testing/test_framework:check",
     ],
-    # FIXME: Why instrumenting this library for code coverage causes excessive
-    # memory consumption?
-    features = ["-coverage"],
 )
 
 cc_library(

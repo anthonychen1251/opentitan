@@ -8,15 +8,15 @@ package(default_visibility = ["//visibility:public"])
 
 config_setting(
     name = "enabled",
-    define_values = { "ot_coverage_enabled": "true" },
+    define_values = {"ot_coverage_enabled": "true"},
 )
 
 # Instrumented setting should include all constraints from the "enabled"
 # setting, allowing both to be used within the same select statement.
 config_setting(
     name = "instrumented",
-    define_values = { "ot_coverage_enabled": "true" },
-    values = { "collect_code_coverage": "true" },
+    define_values = {"ot_coverage_enabled": "true"},
+    values = {"collect_code_coverage": "true"},
 )
 
 bool_flag(

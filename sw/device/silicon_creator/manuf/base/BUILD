@@ -53,8 +53,8 @@ device_id_header(
 opentitan_binary(
     name = "sram_cp_provision",
     testonly = True,
-    collect_code_coverage = 0, # No space for sram binaries
     srcs = ["sram_cp_provision.c"],
+    collect_code_coverage = 0,  # No space for sram binaries
     exec_env = {
         "//hw/top_earlgrey:fpga_hyper310_rom_with_fake_keys": None,
         "//hw/top_earlgrey:fpga_cw340_rom_with_fake_keys": None,
@@ -92,8 +92,8 @@ opentitan_binary(
 opentitan_binary(
     name = "sram_cp_provision_functest",
     testonly = True,
-    collect_code_coverage = 0, # No space for sram binaries
     srcs = ["sram_cp_provision_functest.c"],
+    collect_code_coverage = 0,  # No space for sram binaries
     exec_env = {
         "//hw/top_earlgrey:fpga_hyper310_rom_with_fake_keys": None,
         "//hw/top_earlgrey:fpga_cw340_rom_with_fake_keys": None,
@@ -169,8 +169,8 @@ opentitan_test(
     opentitan_binary(
         name = "sram_ft_individualize_{}{}".format(sku, variant),
         testonly = True,
-        collect_code_coverage = 0, # No space for sram binaries
         srcs = ["sram_ft_individualize.c"],
+        collect_code_coverage = 0,  # No space for sram binaries
         exec_env = {
             "//hw/top_earlgrey:fpga_hyper310_rom_with_fake_keys": None,
             "//hw/top_earlgrey:fpga_cw340_rom_with_fake_keys": None,

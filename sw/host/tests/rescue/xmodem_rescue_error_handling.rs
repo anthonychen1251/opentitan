@@ -11,9 +11,9 @@ use std::time::Duration;
 
 use opentitanlib::app::TransportWrapper;
 use opentitanlib::io::uart::Uart;
-use opentitanlib::rescue::RescueSerial;
-use opentitanlib::rescue::Rescue;
 use opentitanlib::rescue::xmodem::XmodemError;
+use opentitanlib::rescue::Rescue;
+use opentitanlib::rescue::RescueSerial;
 use opentitanlib::rescue::{EntryMode, RescueMode};
 use opentitanlib::test_utils::init::InitializeTest;
 use opentitanlib::uart::console::UartConsole;
@@ -41,7 +41,11 @@ const BLOCK128_LEN: usize = 128;
 const CRC_LEN: usize = 2;
 const HEADER_LEN: usize = 3;
 
-fn send_packet_timeout(transport: &TransportWrapper, uart: &dyn Uart, rescue: &RescueSerial) -> Result<()> {
+fn send_packet_timeout(
+    transport: &TransportWrapper,
+    uart: &dyn Uart,
+    rescue: &RescueSerial,
+) -> Result<()> {
     rescue.enter(transport, EntryMode::Reset)?;
     rescue.set_mode(RescueMode::Rescue)?;
     let mut ch = 0u8;
@@ -60,7 +64,11 @@ fn send_packet_timeout(transport: &TransportWrapper, uart: &dyn Uart, rescue: &R
     Ok(())
 }
 
-fn send_data_timeout(transport: &TransportWrapper, uart: &dyn Uart, rescue: &RescueSerial) -> Result<()> {
+fn send_data_timeout(
+    transport: &TransportWrapper,
+    uart: &dyn Uart,
+    rescue: &RescueSerial,
+) -> Result<()> {
     rescue.enter(transport, EntryMode::Reset)?;
     rescue.set_mode(RescueMode::Rescue)?;
     let mut ch = 0u8;
@@ -79,7 +87,11 @@ fn send_data_timeout(transport: &TransportWrapper, uart: &dyn Uart, rescue: &Res
     Ok(())
 }
 
-fn send_crc_timeout(transport: &TransportWrapper, uart: &dyn Uart, rescue: &RescueSerial) -> Result<()> {
+fn send_crc_timeout(
+    transport: &TransportWrapper,
+    uart: &dyn Uart,
+    rescue: &RescueSerial,
+) -> Result<()> {
     rescue.enter(transport, EntryMode::Reset)?;
     rescue.set_mode(RescueMode::Rescue)?;
     let mut ch = 0u8;
@@ -102,7 +114,11 @@ fn send_crc_timeout(transport: &TransportWrapper, uart: &dyn Uart, rescue: &Resc
     Ok(())
 }
 
-fn send_data_crc_error_cancel(transport: &TransportWrapper, uart: &dyn Uart, rescue: &RescueSerial) -> Result<()> {
+fn send_data_crc_error_cancel(
+    transport: &TransportWrapper,
+    uart: &dyn Uart,
+    rescue: &RescueSerial,
+) -> Result<()> {
     rescue.enter(transport, EntryMode::Reset)?;
     rescue.set_mode(RescueMode::Rescue)?;
     let mut ch = 0u8;
@@ -131,7 +147,11 @@ fn send_data_crc_error_cancel(transport: &TransportWrapper, uart: &dyn Uart, res
     Ok(())
 }
 
-fn send_packet_bad_len(transport: &TransportWrapper, uart: &dyn Uart, rescue: &RescueSerial) -> Result<()> {
+fn send_packet_bad_len(
+    transport: &TransportWrapper,
+    uart: &dyn Uart,
+    rescue: &RescueSerial,
+) -> Result<()> {
     rescue.enter(transport, EntryMode::Reset)?;
     rescue.set_mode(RescueMode::Rescue)?;
     let mut ch = 0u8;
@@ -167,7 +187,11 @@ fn send_packet_bad_len(transport: &TransportWrapper, uart: &dyn Uart, rescue: &R
     Ok(())
 }
 
-fn recv_start_timeout(transport: &TransportWrapper, uart: &dyn Uart, rescue: &RescueSerial) -> Result<()> {
+fn recv_start_timeout(
+    transport: &TransportWrapper,
+    uart: &dyn Uart,
+    rescue: &RescueSerial,
+) -> Result<()> {
     rescue.enter(transport, EntryMode::Reset)?;
     rescue.set_mode(RescueMode::BootLog)?;
     let buf = vec![0xff; 29];
@@ -183,7 +207,11 @@ fn recv_start_timeout(transport: &TransportWrapper, uart: &dyn Uart, rescue: &Re
     Ok(())
 }
 
-fn recv_start_cancel(transport: &TransportWrapper, uart: &dyn Uart, rescue: &RescueSerial) -> Result<()> {
+fn recv_start_cancel(
+    transport: &TransportWrapper,
+    uart: &dyn Uart,
+    rescue: &RescueSerial,
+) -> Result<()> {
     rescue.enter(transport, EntryMode::Reset)?;
     rescue.set_mode(RescueMode::BootLog)?;
     uart.write(&[CAN, CAN])?;
@@ -198,7 +226,11 @@ fn recv_start_cancel(transport: &TransportWrapper, uart: &dyn Uart, rescue: &Res
     Ok(())
 }
 
-fn recv_start_nak(transport: &TransportWrapper, uart: &dyn Uart, rescue: &RescueSerial) -> Result<()> {
+fn recv_start_nak(
+    transport: &TransportWrapper,
+    uart: &dyn Uart,
+    rescue: &RescueSerial,
+) -> Result<()> {
     rescue.enter(transport, EntryMode::Reset)?;
     rescue.set_mode(RescueMode::BootLog)?;
     uart.write(&[NAK, NAK])?;
@@ -213,7 +245,11 @@ fn recv_start_nak(transport: &TransportWrapper, uart: &dyn Uart, rescue: &Rescue
     Ok(())
 }
 
-fn recv_data_timeout(transport: &TransportWrapper, uart: &dyn Uart, rescue: &RescueSerial) -> Result<()> {
+fn recv_data_timeout(
+    transport: &TransportWrapper,
+    uart: &dyn Uart,
+    rescue: &RescueSerial,
+) -> Result<()> {
     rescue.enter(transport, EntryMode::Reset)?;
     rescue.set_mode(RescueMode::BootLog)?;
     uart.write(&[CRC])?;
@@ -229,7 +265,11 @@ fn recv_data_timeout(transport: &TransportWrapper, uart: &dyn Uart, rescue: &Res
     Ok(())
 }
 
-fn recv_data_cancel(transport: &TransportWrapper, uart: &dyn Uart, rescue: &RescueSerial) -> Result<()> {
+fn recv_data_cancel(
+    transport: &TransportWrapper,
+    uart: &dyn Uart,
+    rescue: &RescueSerial,
+) -> Result<()> {
     rescue.enter(transport, EntryMode::Reset)?;
     rescue.set_mode(RescueMode::BootLog)?;
     uart.write(&[CRC])?;
@@ -245,7 +285,11 @@ fn recv_data_cancel(transport: &TransportWrapper, uart: &dyn Uart, rescue: &Resc
     Ok(())
 }
 
-fn recv_data_nak(transport: &TransportWrapper, uart: &dyn Uart, rescue: &RescueSerial) -> Result<()> {
+fn recv_data_nak(
+    transport: &TransportWrapper,
+    uart: &dyn Uart,
+    rescue: &RescueSerial,
+) -> Result<()> {
     rescue.enter(transport, EntryMode::Reset)?;
     rescue.set_mode(RescueMode::BootLog)?;
     uart.write(&[CRC])?;
@@ -276,7 +320,11 @@ fn crc16(buf: &[u8]) -> u16 {
     crc
 }
 
-fn recv_finish_nak(transport: &TransportWrapper, uart: &dyn Uart, rescue: &RescueSerial) -> Result<()> {
+fn recv_finish_nak(
+    transport: &TransportWrapper,
+    uart: &dyn Uart,
+    rescue: &RescueSerial,
+) -> Result<()> {
     rescue.enter(transport, EntryMode::Reset)?;
     rescue.set_mode(RescueMode::BootLog)?;
 

@@ -69,12 +69,12 @@ def obj_transform(ctx, **kwargs):
                 {src_path} \
                 {output_path}
         """.format(
-            objcopy=objcopy,
-            out_format=out_format,
-            src_path=src.path,
-            output_path=output.path,
-            _util_check_all_zeros=ctx.file._util_check_all_zeros.path,
-        )
+            objcopy = objcopy,
+            out_format = out_format,
+            src_path = src.path,
+            output_path = output.path,
+            _util_check_all_zeros = ctx.file._util_check_all_zeros.path,
+        ),
     )
     return output
 

@@ -681,14 +681,14 @@ static rom_error_t rom_boot(const manifest_t *manifest,
     coverage_report();
     coverage_invalidate();
     ((rom_ext_entry_point *)imm_section_entry_point)();
-    coverage_init(); // re-init after invalidate.
+    coverage_init();  // re-init after invalidate.
   }
 
   // Jump to ROM_EXT.
   coverage_report();
   coverage_invalidate();
   ((rom_ext_entry_point *)entry_point)();
-  coverage_init(); // re-init after invalidate.
+  coverage_init();  // re-init after invalidate.
   return kErrorRomBootFailed;
 }
 

@@ -12,14 +12,13 @@
 extern "C" {
 #endif  // __cplusplus
 
-
 /* External common runtime APIs */
 
 /**
  * @brief Checks if the current coverage report is valid.
  *
- * A report can be invalidated if the device resets or if `coverage_invalidate()`
- * is explicitly called.
+ * A report can be invalidated if the device resets or if
+ * `coverage_invalidate()` is explicitly called.
  *
  * @return 1 if the report is valid, 0 otherwise.
  */
@@ -41,7 +40,6 @@ void coverage_invalidate(void);
  */
 void coverage_init(void);
 
-
 /* Internal APIs for actual runtime */
 
 /**
@@ -57,14 +55,14 @@ void coverage_init(void);
 extern void coverage_printer_sink(const void *data, size_t size);
 
 /**
- * @brief Constructs the profile report and sends it via `coverage_printer_sink`.
+ * @brief Constructs the profile report and sends it via
+ * `coverage_printer_sink`.
  *
  * This function gathers the LLVM coverage counter data, compresses it,
  * calculates a CRC, and sends the final report through the
  * `coverage_printer_sink`.
  */
 void coverage_printer_run(void);
-
 
 #ifdef __cplusplus
 }  // extern "C"

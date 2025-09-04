@@ -73,18 +73,12 @@
 #ifdef TEST_OWNER_KEY_ALG_HYBRID_SPX_PREHASH
 #define TEST_OWNER_KEY_ALG kOwnershipKeyAlgSpxPrehash
 #endif
-#define OWNER_KEYDATA                                        \
-  (owner_keydata_t) {                                        \
-    .spx = OWNER_SPX                                         \
-  }
-#define ACTIVATE_KEYDATA                                     \
-  (owner_keydata_t) {                                        \
-    .spx = ACTIVATE_SPX                                      \
-  }
-#define UNLOCK_KEYDATA                                       \
-  (owner_keydata_t) {                                        \
-    .spx = UNLOCK_SPX                                        \
-  }
+#define OWNER_KEYDATA \
+  (owner_keydata_t) { .spx = OWNER_SPX }
+#define ACTIVATE_KEYDATA \
+  (owner_keydata_t) { .spx = ACTIVATE_SPX }
+#define UNLOCK_KEYDATA \
+  (owner_keydata_t) { .spx = UNLOCK_SPX }
 #endif
 
 #if defined(TEST_OWNER_KEY_ALG_CORRUPTED)

@@ -720,7 +720,6 @@ opentitan_test(
     ),
 )
 
-
 opentitan_test(
     name = "rescue_user_error",
     exec_env = {
@@ -767,7 +766,6 @@ opentitan_test(
         test_harness = "//sw/host/tests/rescue:rescue_test",
     ),
 )
-
 
 opentitan_test(
     name = "rescue_config_module_mismatch",

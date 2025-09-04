@@ -46,7 +46,6 @@ struct Opts {
     #[arg(long, default_value = "SlotA", help = "Which bl0 slot to activate")]
     activate_bl0_slot: BootSlot,
 
-
     #[arg(long, default_value_t = OwnershipKeyAlg::EcdsaP256, help = "Current Owner key algorithm")]
     next_key_alg: OwnershipKeyAlg,
     #[arg(long, help = "Next Owner private key (ECDSA P256)")]

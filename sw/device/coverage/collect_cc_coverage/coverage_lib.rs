@@ -34,14 +34,12 @@ use zerocopy::AsBytes;
 use std::fs::File;
 use tar::Archive;
 
-
 pub const BUILD_ID_SIZE: usize = 20;
 pub const PRF_MAGIC: u64 = 0xff6c70726f665281;
 pub const OTC_MAGIC: u64 = 0x7265766f43544f81; // File magic: \x81OTCover
 pub const PRF_VERSION: u64 = 8;
 pub const PRF_DATA_ENTRY_SIZE: u64 = 40;
 pub const VARIANT_MASK_BYTE_COVERAGE: u64 = (0x1 << 60);
-
 
 #[macro_export]
 macro_rules! debug_log {
@@ -52,7 +50,7 @@ macro_rules! debug_log {
     };
 }
 
-pub fn get_runfiles_dir () -> PathBuf {
+pub fn get_runfiles_dir() -> PathBuf {
     let execroot = PathBuf::from(env::var("ROOT").unwrap());
     let mut runfiles_dir = PathBuf::from(env::var("RUNFILES_DIR").unwrap());
 
@@ -63,7 +61,7 @@ pub fn get_runfiles_dir () -> PathBuf {
     debug_log!("ROOT: {}", execroot.display());
     debug_log!("RUNFILES_DIR: {}", runfiles_dir.display());
 
-    return runfiles_dir
+    return runfiles_dir;
 }
 
 pub fn debug_environ() {
@@ -250,8 +248,12 @@ pub fn decompress(path: &PathBuf) -> Result<ProfileCounter> {
     })
 }
 
-pub fn process_counter<'a>(path: &PathBuf, counter: &ProfileCounter, output: &PathBuf,
-                           profile_map: &'a HashMap<String, ProfileData>) -> Result<&'a ProfileData> {
+pub fn process_counter<'a>(
+    path: &PathBuf,
+    counter: &ProfileCounter,
+    output: &PathBuf,
+    profile_map: &'a HashMap<String, ProfileData>,
+) -> Result<&'a ProfileData> {
     let ProfileCounter { build_id, cnts } = counter;
 
     // Counters only, try to correlate with elf data.
@@ -276,13 +278,16 @@ pub fn process_counter<'a>(path: &PathBuf, counter: &ProfileCounter, output: &Pa
         bail!("cnts size mismatched");
     }
 
-    let header = ProfileHeader{
+    let header = ProfileHeader {
         Version: PRF_VERSION | VARIANT_MASK_BYTE_COVERAGE,
         NumCounters: cnts.len() as u64,
         ..profile.header
     };
     debug_log!("{:#?}", header);
-    assert_eq!(profile.data.len() as u64, header.NumData * PRF_DATA_ENTRY_SIZE);
+    assert_eq!(
+        profile.data.len() as u64,
+        header.NumData * PRF_DATA_ENTRY_SIZE
+    );
     assert_eq!(profile.names.len() as u64, header.NamesSize);
 
     let mut f = std::fs::File::create(output)?;
@@ -304,13 +309,16 @@ pub fn process_counter<'a>(path: &PathBuf, counter: &ProfileCounter, output: &Pa
 pub fn generate_view_profraw(profile: &ProfileData, output_path: &PathBuf) -> Result<()> {
     let cnts = vec![0x00; profile.cnts_size as usize];
 
-    let header = ProfileHeader{
+    let header = ProfileHeader {
         Version: PRF_VERSION | VARIANT_MASK_BYTE_COVERAGE,
         NumCounters: cnts.len() as u64,
         ..profile.header
     };
     debug_log!("{:#?}", header);
-    assert_eq!(profile.data.len() as u64, header.NumData * PRF_DATA_ENTRY_SIZE);
+    assert_eq!(
+        profile.data.len() as u64,
+        header.NumData * PRF_DATA_ENTRY_SIZE
+    );
     assert_eq!(profile.names.len() as u64, header.NamesSize);
 
     let mut f = std::fs::File::create(output_path)?;
@@ -329,7 +337,7 @@ pub fn generate_view_profraw(profile: &ProfileData, output_path: &PathBuf) -> Re
     Ok(())
 }
 
-fn find_tool(env_name: &str, file_name: &str) -> Result<PathBuf>{
+fn find_tool(env_name: &str, file_name: &str) -> Result<PathBuf> {
     let path = &env::var(env_name).unwrap();
     debug_log!("{env_name}: {path}");
     if !path.is_empty() {
@@ -338,7 +346,9 @@ fn find_tool(env_name: &str, file_name: &str) -> Result<PathBuf>{
 
     // FIXME: workaround due to missing tools_path in rules_cc toolchain.
     // See also https://github.com/bazelbuild/rules_cc/issues/351
-    let path = get_runfiles_dir().join("+lowrisc_rv32imcb_toolchain+lowrisc_rv32imcb_toolchain/bin").join(file_name);
+    let path = get_runfiles_dir()
+        .join("+lowrisc_rv32imcb_toolchain+lowrisc_rv32imcb_toolchain/bin")
+        .join(file_name);
     debug_log!("Testing {file_name} path: {}", path.display());
     if path.exists() {
         return Ok(path);
@@ -369,7 +379,12 @@ pub fn llvm_profdata_merge(profraw_file: &PathBuf, profdata_file: &PathBuf) {
     }
 }
 
-pub fn llvm_cov_export(format: &str, profdata_file: &PathBuf, objects: &Vec<String>, output_file: &PathBuf) {
+pub fn llvm_cov_export(
+    format: &str,
+    profdata_file: &PathBuf,
+    objects: &Vec<String>,
+    output_file: &PathBuf,
+) {
     let execroot = PathBuf::from(env::var("ROOT").unwrap());
     let llvm_cov = find_tool("LLVM_COV", "llvm-cov").unwrap();
 
@@ -403,7 +418,7 @@ pub fn llvm_cov_export(format: &str, profdata_file: &PathBuf, objects: &Vec<Stri
         .replace(&execroot.display().to_string(), "");
 
     if (format == "lcov") {
-      report_str = merge_lcov_count_copies(&report_str).unwrap();
+        report_str = merge_lcov_count_copies(&report_str).unwrap();
     }
 
     debug_log!("Writing output to {}", output_file.display());
@@ -433,7 +448,11 @@ pub fn load_object_list(path: &PathBuf) -> Result<Vec<String>> {
     let tmp_dir = tmp_dir.join(format!("objs-{}", rand::random::<u64>()));
     fs::create_dir_all(&tmp_dir).context("failed to create temporary directory")?;
 
-    debug_log!("Extracting archive {} to {}", path.display(), tmp_dir.display());
+    debug_log!(
+        "Extracting archive {} to {}",
+        path.display(),
+        tmp_dir.display()
+    );
 
     let mut ar = Archive::new(File::open(path)?);
 
