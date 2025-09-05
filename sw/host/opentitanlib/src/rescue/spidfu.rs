@@ -224,15 +224,22 @@ impl Rescue for SpiDfu {
         }
         // Use RescueMode::GetOwnerPage1 to trigger another set of special test cases.
         if mode == RescueMode::GetOwnerPage1 {
-            let setting = u32::from(mode);
+            let setting = u32::from(RescueMode::BootSvcRsp);
+            self.write_control(
+                DfuRequestType::Vendor.into(),
+                Self::SET_INTERFACE,
+                (setting >> 16) as u16,
+                setting as u16,
+                &[],
+            )?;
             // dfu control - kDfuActionNone
             // state transition: kDfuStateIdle -> kDfuStateIdle
             self.write_control(
                 DfuRequestType::Out.into(),
                 // kDfuReqAbort
                 6 as u8,
-                (setting >> 16) as u16,
-                setting as u16,
+                0,
+                0,
                 &[],
             )?;
 
@@ -242,8 +249,8 @@ impl Rescue for SpiDfu {
                 DfuRequestType::Out.into(),
                 // kDfuReqGetState
                 5 as u8,
-                (setting >> 16) as u16,
-                setting as u16,
+                0,
+                0,
                 &[],
             )?;
 
@@ -253,16 +260,16 @@ impl Rescue for SpiDfu {
                 DfuRequestType::Out.into(),
                 // kDfuReqClrStatus
                 4 as u8,
-                (setting >> 16) as u16,
-                setting as u16,
+                0,
+                0,
             )?;
             // state transition: kDfuStateError -> kDfuStateIdle
             self.write_control(
                 DfuRequestType::Out.into(),
                 // kDfuReqClrStatus
                 4 as u8,
-                (setting >> 16) as u16,
-                setting as u16,
+                0,
+                0,
                 &[],
             )?;
 
@@ -273,8 +280,8 @@ impl Rescue for SpiDfu {
                 DfuRequestType::Out.into(),
                 // kDfuReqDnLoad
                 1 as u8,
-                (setting >> 16) as u16,
-                setting as u16,
+                0,
+                0,
                 // setup->length > sizeof(ctx->state.data)
                 &mut payload,
             )?;
@@ -284,8 +291,8 @@ impl Rescue for SpiDfu {
                 DfuRequestType::Out.into(),
                 // kDfuReqClrStatus
                 4 as u8,
-                (setting >> 16) as u16,
-                setting as u16,
+                0,
+                0,
                 &[],
             )?;
 
@@ -296,8 +303,8 @@ impl Rescue for SpiDfu {
                 DfuRequestType::Out.into(),
                 // kDfuReqDnLoad
                 1 as u8,
-                (setting >> 16) as u16,
-                setting as u16,
+                0,
+                0,
                 // ctx->state.offset > ctx->state.flash_limit
                 &mut payload2,
             )?;
