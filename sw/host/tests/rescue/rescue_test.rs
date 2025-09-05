@@ -504,6 +504,7 @@ fn disability_test(
                     let uart = transport
                         .uart("console")
                         .expect("Failed to init Uart console");
+                    UartConsole::wait_for(&*uart, r"Finished", Duration::from_secs(5))?;
                     UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
                 }
             }
