@@ -108,7 +108,9 @@ ownership_transfer_test(
 
 ownership_transfer_test(
     name = "transfer_bl0_slot_b_test",
-    ecdsa_key = {"//sw/device/silicon_creator/lib/ownership/keys/dummy:app_prod_ecdsa": "app_prod"},
+    ecdsa_key = {
+        "//sw/device/silicon_creator/lib/ownership/keys/dummy:ecdsa_keyset": "app_prod_0",
+    },
     fpga = fpga_params(
         changes_otp = True,
         test_cmd = """
@@ -134,7 +136,9 @@ ownership_transfer_test(
 
 ownership_transfer_test(
     name = "invalid_device_id_request_test",
-    ecdsa_key = {"//sw/device/silicon_creator/lib/ownership/keys/dummy:app_prod_ecdsa": "app_prod"},
+    ecdsa_key = {
+        "//sw/device/silicon_creator/lib/ownership/keys/dummy:ecdsa_keyset": "app_prod_0",
+    },
     fpga = fpga_params(
         changes_otp = True,
         rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_default_ownership_state_unlock_any",
@@ -162,7 +166,9 @@ ownership_transfer_test(
 
 ownership_transfer_test(
     name = "invalid_nonce_request_test",
-    ecdsa_key = {"//sw/device/silicon_creator/lib/ownership/keys/dummy:app_prod_ecdsa": "app_prod"},
+    ecdsa_key = {
+        "//sw/device/silicon_creator/lib/ownership/keys/dummy:ecdsa_keyset": "app_prod_0",
+    },
     fpga = fpga_params(
         changes_otp = True,
         rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_default_ownership_state_unlock_any",
@@ -190,7 +196,9 @@ ownership_transfer_test(
 
 ownership_transfer_test(
     name = "invalid_key_alg_activate_request_test",
-    ecdsa_key = {"//sw/device/silicon_creator/lib/ownership/keys/dummy:app_prod_ecdsa": "app_prod"},
+    ecdsa_key = {
+        "//sw/device/silicon_creator/lib/ownership/keys/dummy:ecdsa_keyset": "app_prod_0",
+    },
     fpga = fpga_params(
         changes_otp = True,
         rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_invalid_key_alg",
@@ -218,7 +226,9 @@ ownership_transfer_test(
 
 ownership_transfer_test(
     name = "unlock_detached_sig_test",
-    ecdsa_key = {"//sw/device/silicon_creator/lib/ownership/keys/dummy:app_prod_ecdsa": "app_prod"},
+    ecdsa_key = {
+        "//sw/device/silicon_creator/lib/ownership/keys/dummy:ecdsa_keyset": "app_prod_0",
+    },
     fpga = fpga_params(
         binaries = {
             ":boot_test": "boot_test",
@@ -269,7 +279,9 @@ ownership_transfer_test(
 
 ownership_transfer_test(
     name = "bad_ownership_key_alg_test",
-    ecdsa_key = {"//sw/device/silicon_creator/lib/ownership/keys/fake:app_prod_ecdsa": "app_prod"},
+    ecdsa_key = {
+        "//sw/device/silicon_creator/lib/ownership/keys/fake:ecdsa_keyset": "app_prod_0",
+    },
     fpga = fpga_params(
         binaries = {
             ":boot_test": "boot_test",
@@ -299,7 +311,9 @@ ownership_transfer_test(
 
 ownership_transfer_test(
     name = "bad_ownership_key_alg_with_detached_sig_test",
-    ecdsa_key = {"//sw/device/silicon_creator/lib/ownership/keys/fake:app_prod_ecdsa": "app_prod"},
+    ecdsa_key = {
+        "//sw/device/silicon_creator/lib/ownership/keys/fake:ecdsa_keyset": "app_prod_0",
+    },
     fpga = fpga_params(
         binaries = {
             ":boot_test": "boot_test",
@@ -810,7 +824,7 @@ ownership_transfer_test(
 ownership_transfer_test(
     name = "newversion_noupdate_with_bad_owner_block_test",
     ecdsa_key = {
-        "//sw/device/silicon_creator/lib/ownership/keys/fake:app_prod_ecdsa": "app_prod",
+        "//sw/device/silicon_creator/lib/ownership/keys/fake:ecdsa_keyset": "app_prod_0",
     },
     fpga = fpga_params(
         changes_otp = True,
@@ -1046,7 +1060,9 @@ ownership_transfer_test(
 
 ownership_transfer_test(
     name = "transfer_spx_pure_to_spx_prehash_test",
-    ecdsa_key = {"//sw/device/silicon_creator/lib/ownership/keys/fake:app_prod_ecdsa": "app_prod"},
+    ecdsa_key = {
+        "//sw/device/silicon_creator/lib/ownership/keys/fake:ecdsa_keyset": "app_prod_0",
+    },
     fpga = fpga_params(
         binaries = {
             ":boot_test": "boot_test",
