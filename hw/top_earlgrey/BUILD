@@ -135,7 +135,7 @@ fpga_cw310(
     name = "fpga_cw310_rom_with_fake_keys",
     testonly = True,
     base = ":fpga_cw310_test_rom",
-    ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:test_key_0_ecdsa_p256": "test_key_0"},
+    ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:ecdsa_keyset": "test_key_0"},
     exec_env = "fpga_cw310_rom_with_fake_keys",
     manifest = "//sw/device/silicon_creator/rom_ext:manifest",
     rom = "//sw/device/silicon_creator/rom:mask_rom",
@@ -159,7 +159,7 @@ sim_qemu(
     name = "sim_qemu_rom_with_fake_keys",
     testonly = True,
     base = ":sim_qemu_base",
-    ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:test_key_0_ecdsa_p256": "test_key_0"},
+    ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:ecdsa_keyset": "test_key_0"},
     exec_env = "sim_qemu_rom_with_fake_keys",
     manifest = "//sw/device/silicon_creator/rom_ext:manifest",
     rom = "//sw/device/silicon_creator/rom:mask_rom",
@@ -170,7 +170,7 @@ fpga_cw310(
     testonly = True,
     base = ":fpga_cw310_test_rom",
     ecdsa_key = select({
-        "//signing:test_keys": {"//sw/device/silicon_creator/lib/ownership/keys/fake:app_prod_ecdsa": "prod_key_0"},
+        "//signing:test_keys": {"//sw/device/silicon_creator/lib/ownership/keys/fake:ecdsa_keyset": "app_prod_0"},
         # We choose key zero in the appkey's keyset, which should be app-key-prod-0.
         "//conditions:default": {"//signing:appkey": "0"},
     }),
@@ -207,7 +207,7 @@ fpga_cw310(
     base = ":fpga_cw310",
     base_bitstream = "//hw/bitstream/cw340:bitstream",
     # base_bitstream = "//hw/bitstream/hyperdebug:bitstream",
-    ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:test_key_0_ecdsa_p256": "test_key_0"},
+    ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:ecdsa_keyset": "test_key_0"},
     exec_env = "fpga_hyper310_rom_with_fake_keys",
     manifest = "//sw/device/silicon_creator/rom_ext:manifest",
     mmi = "//hw/bitstream/cw340:mmi",
@@ -233,7 +233,7 @@ fpga_cw310(
     name = "fpga_hyper310_rom_ext",
     testonly = True,
     base = ":fpga_hyper310_rom_with_fake_keys",
-    ecdsa_key = {"//sw/device/silicon_creator/lib/ownership/keys/fake:app_prod_ecdsa": "prod_key_0"},
+    ecdsa_key = {"//sw/device/silicon_creator/lib/ownership/keys/fake:ecdsa_keyset": "app_prod_0"},
     exec_env = "fpga_hyper310_rom_ext",
     libs = [
         "//sw/device/lib/arch:boot_stage_owner",
@@ -265,10 +265,10 @@ fpga_cw310(
     # PROD keys are allowed to run across all life cycle stages. This prod key
     # is used to enable execution across life cycle stages with a single
     # binary.
-    ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:prod_key_0_ecdsa_p256": "prod_key_0"},
+    ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:ecdsa_keyset": "prod_key_0"},
     exec_env = "fpga_cw310_sival",
     otp = "//hw/ip/otp_ctrl/data/earlgrey_skus/emulation:otp_img_prod_manuf_personalized",
-    spx_key = {"//sw/device/silicon_creator/rom/keys/fake/spx:prod_key_0_spx": "prod_key_0"},
+    spx_key = {"//sw/device/silicon_creator/rom/keys/fake/spx:spx_keyset": "prod_key_0"},
     tags = ["cw310_sival"],
 )
 
@@ -280,7 +280,7 @@ fpga_cw310(
     name = "fpga_cw310_sival_rom_ext",
     testonly = True,
     base = ":fpga_hyper310_rom_ext",
-    ecdsa_key = {"//sw/device/silicon_creator/lib/ownership/keys/fake:app_prod_ecdsa": "prod_key_0"},
+    ecdsa_key = {"//sw/device/silicon_creator/lib/ownership/keys/fake:ecdsa_keyset": "app_prod_0"},
     exec_env = "fpga_cw310_sival_rom_ext",
     libs = [
         "//sw/device/lib/arch:boot_stage_owner",
@@ -369,7 +369,7 @@ fpga_cw340(
     testonly = True,
     base = ":fpga_cw340",
     base_bitstream = "//hw/bitstream/cw340:bitstream",
-    ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:test_key_0_ecdsa_p256": "test_key_0"},
+    ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:ecdsa_keyset": "test_key_0"},
     exec_env = "fpga_cw340_rom_with_fake_keys",
     manifest = "//sw/device/silicon_creator/rom_ext:manifest",
     mmi = "//hw/bitstream/cw340:mmi",
@@ -389,7 +389,7 @@ fpga_cw340(
     testonly = True,
     base = ":fpga_cw340_rom_with_fake_keys",
     ecdsa_key = select({
-        "//signing:test_keys": {"//sw/device/silicon_creator/lib/ownership/keys/fake:app_prod_ecdsa": "prod_key_0"},
+        "//signing:test_keys": {"//sw/device/silicon_creator/lib/ownership/keys/fake:ecdsa_keyset": "app_prod_0"},
         # We choose key zero in the appkey's keyset, which should be app-key-prod-0.
         "//conditions:default": {"//signing:appkey": "0"},
     }),
@@ -449,10 +449,10 @@ fpga_cw340(
     # PROD keys are allowed to run across all life cycle stages. This prod key
     # is used to enable execution across life cycle stages with a single
     # binary.
-    ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:prod_key_0_ecdsa_p256": "prod_key_0"},
+    ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:ecdsa_keyset": "prod_key_0"},
     exec_env = "fpga_cw340_sival",
     otp = "//hw/ip/otp_ctrl/data/earlgrey_skus/emulation:otp_img_prod_manuf_personalized",
-    spx_key = {"//sw/device/silicon_creator/rom/keys/fake/spx:prod_key_0_spx": "prod_key_0"},
+    spx_key = {"//sw/device/silicon_creator/rom/keys/fake/spx:spx_keyset": "prod_key_0"},
     tags = ["cw340_sival"],
 )
 
@@ -486,7 +486,7 @@ fpga_cw340(
     name = "fpga_cw340_sival_rom_ext",
     testonly = True,
     base = ":fpga_cw340_rom_ext",
-    ecdsa_key = {"//sw/device/silicon_creator/lib/ownership/keys/fake:app_prod_ecdsa": "prod_key_0"},
+    ecdsa_key = {"//sw/device/silicon_creator/lib/ownership/keys/fake:ecdsa_keyset": "app_prod_0"},
     exec_env = "fpga_cw340_sival_rom_ext",
     libs = [
         "//sw/device/lib/arch:boot_stage_owner",
@@ -510,7 +510,7 @@ silicon(
     ],
     design = "earlgrey",
     ecdsa_key = select({
-        "//signing:test_keys": {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:test_key_0_ecdsa_p256": "test_key_0"},
+        "//signing:test_keys": {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:ecdsa_keyset": "test_key_0"},
         # We choose key zero in the keyset, which should be `*-earlgrey-a1-root-ecdsa-prod-0`.
         "//conditions:default": {"//signing:appkey": "0"},
     }),
@@ -548,7 +548,7 @@ silicon(
     ],
     design = "earlgrey",
     ecdsa_key = select({
-        "//signing:test_keys": {"//sw/device/silicon_creator/lib/ownership/keys/fake:app_prod_ecdsa": "prod_key_0"},
+        "//signing:test_keys": {"//sw/device/silicon_creator/lib/ownership/keys/fake:ecdsa_keyset": "app_prod_0"},
         # We choose key zero in the appkey's keyset, which should be app-key-prod-0.
         "//conditions:default": {"//signing:appkey": "0"},
     }),
@@ -634,7 +634,7 @@ sim_verilator(
     name = "sim_verilator_rom_with_fake_keys",
     testonly = True,
     base = ":sim_verilator",
-    ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:prod_key_0_ecdsa_p256": "prod_key_0"},
+    ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:ecdsa_keyset": "prod_key_0"},
     manifest = "//sw/device/silicon_creator/rom_ext:manifest",
     rom = "//sw/device/silicon_creator/rom:mask_rom_sim_verilator",
 )
