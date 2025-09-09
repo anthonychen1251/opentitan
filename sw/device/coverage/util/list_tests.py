@@ -78,6 +78,7 @@ def main():
   test_groups = [fix_rom_e2e_env(g) for g in test_groups]
   test_groups = [filter_tests(g, 'coverage_view') for g in test_groups]
   test_groups = [filter_tests(g, '/orchestrator/') for g in test_groups]
+  test_groups = [filter_tests(g, '/penetrationtests') for g in test_groups]
   test_groups_en = [{k for k, v in g.items() if v} for g in test_groups]
   test_groups = [set(g.keys()) for g in test_groups]
 
