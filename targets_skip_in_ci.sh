@@ -86,8 +86,6 @@ EX_CW340_TEST_ROM_TESTS=(
 //sw/device/silicon_creator/lib/drivers:hmac_functest_fpga_cw340_test_rom
 //sw/device/silicon_creator/lib/drivers:kmac_functest_fpga_cw340_test_rom
 
-# //sw/device/tests:coverage_test_fpga_cw340_test_rom
-
 # //sw/device/silicon_creator/lib/sigverify/sigverify_tests:sigverify_cryptotest_fpga_cw340_test_rom
 # //sw/device/tests/crypto/cryptotest:kmac_kat_fpga_cw340_test_rom
 )

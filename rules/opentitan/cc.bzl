@@ -387,9 +387,11 @@ common_binary_attrs = {
         default = {},
         doc = "Firmware slot spec to use in this environment",
     ),
-    "_util_check_all_zeros": attr.label(
-        default = "//util:check_all_zeros.py",
-        allow_single_file = True,
+    "_check_initial_coverage": attr.label(
+        doc = "Tool to check the coverage counter initialization.",
+        default = "//util/coverage_new:check_initial_coverage",
+        executable = True,
+        cfg = "exec",
     ),
 }
 

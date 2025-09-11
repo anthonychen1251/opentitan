@@ -18,3 +18,8 @@ py_binary(
         ":asm_helper",
     ],
 )
+
+py_binary(
+    name = "check_initial_coverage",
+    srcs = ["check_initial_coverage.py"],
+)

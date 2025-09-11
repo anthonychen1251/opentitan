@@ -17,37 +17,6 @@ load(
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "coverage_none",
-    srcs = ["coverage_none.c"],
-    hdrs = ["coverage.h"],
-)
-
-cc_library(
-    name = "coverage_llvm",
-    srcs = [
-        "coverage_llvm.c",
-    ],
-    hdrs = ["coverage.h"],
-    features = ["-coverage"],
-    deps = [
-        "//sw/device/lib/coverage:printer",
-        "//sw/device/lib/base:crc32",
-        "//sw/device/lib/base:memory",
-        "//sw/device/lib/runtime:log",
-        "//sw/device/lib/runtime:print",
-    ],
-)
-
-alias(
-    name = "coverage",
-    actual = select({
-        "//rules/coverage:enabled": ":coverage_llvm",
-        "//conditions:default": ":coverage_none",
-    }),
-    visibility = ["//visibility:private"],
-)
-
-cc_library(
     name = "status",
     srcs = ["status.c"],
     hdrs = ["status.h"],

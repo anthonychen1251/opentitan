@@ -43,10 +43,11 @@ def obj_transform(ctx, **kwargs):
     output = ctx.actions.declare_file(output)
     src = get_override(ctx, "file.src", kwargs)
     out_format = get_override(ctx, "attr.format", kwargs)
+    checker = ctx.executable._check_initial_coverage
 
     ctx.actions.run_shell(
         outputs = [output],
-        inputs = [src, ctx.file._util_check_all_zeros] + cc_toolchain.all_files.to_list(),
+        inputs = [src] + cc_toolchain.all_files.to_list(),
         command = """
             set -euo pipefail
 
@@ -58,7 +59,7 @@ def obj_transform(ctx, **kwargs):
                 --gap-fill 0xa5 \
                 {src_path} \
                 "$PRF_CNTS"
-            {_util_check_all_zeros} "$PRF_CNTS"
+            {_check_initial_coverage} "$PRF_CNTS"
 
             # Flatten the firmware
             {objcopy} \
@@ -73,8 +74,9 @@ def obj_transform(ctx, **kwargs):
             out_format = out_format,
             src_path = src.path,
             output_path = output.path,
-            _util_check_all_zeros = ctx.file._util_check_all_zeros.path,
+            _check_initial_coverage = checker.path,
         ),
+        tools = [checker],
     )
     return output
 

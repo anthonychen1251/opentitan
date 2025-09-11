@@ -10,10 +10,6 @@ load(
     "//rules/opentitan:defs.bzl",
     "opentitan_test",
 )
-load(
-    "//rules/opentitan:defs.bzl",
-    "opentitan_test",
-)
 
 package(default_visibility = ["//visibility:public"])
 

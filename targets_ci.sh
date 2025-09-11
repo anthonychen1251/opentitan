@@ -927,7 +927,6 @@ UNSUPPORTED_TESTS=(
 # //sw/device/tests/closed_source:example_test_fpga_cw310_test_rom
 # //sw/device/tests/closed_source:statically_hooked_opensource_test_fpga_cw310_rom_with_fake_keys
 # //sw/device/tests/closed_source:statically_hooked_opensource_test_fpga_cw310_test_rom
-# //sw/device/tests:coverage_test_fpga_cw340_sival_rom_ext
 # //third_party/coremark/top_earlgrey:coremark_test_fpga_cw310_rom_with_fake_keys
 # //third_party/coremark/top_earlgrey:coremark_test_fpga_cw310_sival_rom_ext
 # //third_party/coremark/top_earlgrey:coremark_test_silicon_owner_sival_rom_ext

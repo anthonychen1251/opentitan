@@ -11,5 +11,5 @@ with open(sys.argv[1], 'rb') as f:
 # Remove gap fill
 data = data.rstrip(b'\xa5')
 
-# Tests the section are either all 0x00 or all 0xff.
-assert data.strip(b'\0') == b'' or data.strip(b'\xff') == b'', data
+# Asserts the section are all 0xff (uncovered).
+assert data.strip(b'\xff') == b'', data
