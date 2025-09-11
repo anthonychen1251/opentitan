@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# Copyright lowRISC contributors (OpenTitan project).
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+
+"""A small utility to convert hex strings to uart_write_imm calls."""
 
 import ast
 import sys
