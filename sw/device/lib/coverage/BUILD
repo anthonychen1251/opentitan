@@ -4,7 +4,7 @@
 
 load("//rules:linker.bzl", "ld_library")
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
-load("//rules/opentitan:defs.bzl", "OPENTITAN_CPU", "opentitan_binary")
+load("//rules/opentitan:defs.bzl", "OPENTITAN_CPU")
 
 package(default_visibility = ["//visibility:public"])
 
