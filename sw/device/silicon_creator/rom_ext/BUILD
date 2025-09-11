@@ -157,9 +157,9 @@ asm_library_with_coverage(
     deps = [
         "//hw/top_earlgrey/ip_autogen/flash_ctrl:flash_ctrl_c_regs",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
-        "//sw/device/lib/coverage:api_asm",
         "//sw/device/lib/base:hardened",
         "//sw/device/lib/base:macros",
+        "//sw/device/lib/coverage:api_asm",
     ],
 )
 
@@ -240,8 +240,8 @@ asm_library_with_coverage(
     deps = [
         "//hw/ip/otp_ctrl/data:otp_ctrl_c_regs",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
-        "//sw/device/lib/coverage:api_asm",
         "//sw/device/lib/base:hardened",
+        "//sw/device/lib/coverage:api_asm",
     ],
     alwayslink = True,
 )
@@ -262,14 +262,14 @@ asm_library_with_coverage(
             "//hw/ip/otp_ctrl/data:otp_ctrl_c_regs",
             "//hw/ip/sram_ctrl/data:sram_ctrl_c_regs",
             "//hw/top_earlgrey/ip_autogen/flash_ctrl:flash_ctrl_c_regs",
-            "//sw/device/lib/coverage:api",
-            "//sw/device/lib/coverage:api_asm",
-            "//sw/device/lib/coverage:uart_runtime",
             "//sw/device/lib/arch:device",
             "//sw/device/lib/base:csr",
             "//sw/device/lib/base:macros",
             "//sw/device/lib/base:memory",
             "//sw/device/lib/base:stdasm",
+            "//sw/device/lib/coverage:api",
+            "//sw/device/lib/coverage:api_asm",
+            "//sw/device/lib/coverage:uart_runtime",
             "//sw/device/lib/runtime:hart",
             "//sw/device/silicon_creator/lib:boot_data",
             "//sw/device/silicon_creator/lib:boot_log",

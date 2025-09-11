@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
+#include "sw/device/lib/coverage/api_asm.h"
+
 /**
  * OTTF Interrupt Vector.
  */
@@ -163,9 +165,7 @@ _ottf_start:
   la   a1, _bss_end
   call crt_section_clear
 
-#ifdef OT_COVERAGE_INSTRUMENTED
-  call coverage_init
-#endif
+  COVERAGE_ASM_INIT()
 
  /**
   * Jump into the OTTF C entry point.

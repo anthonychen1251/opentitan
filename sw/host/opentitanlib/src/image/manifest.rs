@@ -17,7 +17,7 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use serde::{Deserialize, Serialize};
 use serde_annotate::Annotate;
 use std::io::Write;
-use zerocopy::{KnownLayout, Immutable, IntoBytes, FromBytes};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout};
 
 // Currently, these definitions must be updated manually but they can be
 // generated using the following commands (requires bindgen):

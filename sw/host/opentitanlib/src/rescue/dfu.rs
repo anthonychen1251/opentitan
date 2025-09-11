@@ -4,7 +4,7 @@
 
 use crate::with_unknown;
 use anyhow::Result;
-use zerocopy::{Immutable, IntoBytes, FromBytes};
+use zerocopy::{FromBytes, Immutable, IntoBytes};
 
 with_unknown! {
     #[derive(FromBytes, Immutable, IntoBytes)]

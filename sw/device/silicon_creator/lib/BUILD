@@ -209,8 +209,8 @@ asm_library_with_coverage(
         "//hw/top_earlgrey/ip_autogen/pwrmgr:pwrmgr_c_regs",
         "//hw/top_earlgrey/ip_autogen/rstmgr:rstmgr_c_regs",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
-        "//sw/device/lib/coverage:api_asm",
         "//sw/device/lib/base:multibits",
+        "//sw/device/lib/coverage:api_asm",
     ],
 )
 

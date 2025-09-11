@@ -21,12 +21,7 @@ use std::env;
 use std::fs;
 
 use coverage_lib::{
-    debug_environ,
-    debug_log,
-    llvm_cov_export,
-    llvm_profdata_merge,
-    path_from_env,
-    ProfileData,
+    debug_environ, debug_log, llvm_cov_export, llvm_profdata_merge, path_from_env, ProfileData,
 };
 
 fn generate_view(profile: &ProfileData) -> Result<()> {

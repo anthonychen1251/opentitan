@@ -62,7 +62,7 @@ pub fn debug_environ() {
 }
 
 /// Retrieves a `PathBuf` from an environment variable, panicking if it's empty.
-pub fn path_from_env(name: &str) -> PathBuf{
+pub fn path_from_env(name: &str) -> PathBuf {
     let path = PathBuf::from(env::var(name).unwrap());
     if path.as_os_str().is_empty() {
         panic!("Environment variable `{name}` cannot be empty.");
@@ -280,11 +280,7 @@ impl ProfileData {
     /// the actual counter values from a runtime profile). It combines them to
     /// produce a `profraw` file in the format expected by LLVM's `llvm-profdata`
     /// tool.
-    pub fn generate_profraw(
-        &self,
-        counter: &ProfileCounter,
-        output: &PathBuf,
-    ) -> Result<()> {
+    pub fn generate_profraw(&self, counter: &ProfileCounter, output: &PathBuf) -> Result<()> {
         let ProfileCounter { cnts, .. } = counter;
 
         if self.cnts_size != cnts.len() as u64 {
@@ -324,7 +320,10 @@ impl ProfileData {
     /// `ProfileData`, considering all counters as covered.
     pub fn generate_view_profraw(&self, output_path: &PathBuf) -> Result<()> {
         let cnts = vec![0x00; self.cnts_size as usize];
-        let counter = ProfileCounter { build_id: self.build_id.clone(), cnts };
+        let counter = ProfileCounter {
+            build_id: self.build_id.clone(),
+            cnts,
+        };
         self.generate_profraw(&counter, output_path)
     }
 }
@@ -354,9 +353,7 @@ impl ProfileRegistry {
         }
         debug_log!("All elf files are loaded!");
 
-        Ok(ProfileRegistry{
-            map: profile_map,
-        })
+        Ok(ProfileRegistry { map: profile_map })
     }
 
     /// Returns the `ProfileData` for the given build ID.
@@ -531,7 +528,6 @@ fn merge_sf_count_copies(contents: &str) -> Result<String> {
 
     Ok(out)
 }
-
 
 /// Merges function and line coverage counts for each source file within an LCOV report.
 ///

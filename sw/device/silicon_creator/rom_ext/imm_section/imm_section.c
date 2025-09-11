@@ -4,10 +4,10 @@
 
 #include "sw/device/silicon_creator/rom_ext/imm_section/imm_section.h"
 
-#include "sw/device/lib/coverage/api.h"
 #include "sw/device/lib/arch/device.h"
 #include "sw/device/lib/base/hardened.h"
 #include "sw/device/lib/base/macros.h"
+#include "sw/device/lib/coverage/api.h"
 #include "sw/device/silicon_creator/lib/base/boot_measurements.h"
 #include "sw/device/silicon_creator/lib/base/sec_mmio.h"
 #include "sw/device/silicon_creator/lib/cert/dice_chain.h"
