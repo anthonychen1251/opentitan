@@ -179,8 +179,8 @@ impl UartConsole {
     fn process_coverage(&mut self) -> Result<()> {
         let response = &self.alt_buffer.strip_suffix(COVERAGE_END_ANCHOR).unwrap();
         let response = hex::decode(response)?;
-        if response.len() == 0 {
-            // bail!("Got empty coverage");
+        if response.is_empty() {
+            bail!("Got empty coverage");
         }
         if response.len() < 4 {
             bail!("Coverage from device is too short");

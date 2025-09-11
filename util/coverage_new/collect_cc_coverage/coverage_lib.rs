@@ -81,7 +81,7 @@ pub fn get_runfiles_dir() -> PathBuf {
     debug_log!("ROOT: {}", execroot.display());
     debug_log!("RUNFILES_DIR: {}", runfiles_dir.display());
 
-    return runfiles_dir;
+    runfiles_dir
 }
 
 /// Searches a directory and its subdirectories for files with a specific extension.
@@ -250,7 +250,7 @@ impl ProfileData {
         }
 
         Ok(ProfileData {
-            build_id: build_id,
+            build_id,
             elf: path.clone(),
             file_name,
             header: ProfileHeader {
@@ -300,10 +300,10 @@ impl ProfileData {
         let mut f = std::fs::File::create(output)?;
         f.write_all(header.as_bytes())?;
         f.write_all(&self.data)?;
-        f.write_all(&cnts)?;
+        f.write_all(cnts)?;
         f.write_all(&self.names)?;
 
-        let size = f.seek(std::io::SeekFrom::Current(0))?;
+        let size = f.stream_position()?;
         if size % 8 != 0 {
             let buf = [0; 8];
             let pad: usize = (8 - (size % 8)) as usize;
