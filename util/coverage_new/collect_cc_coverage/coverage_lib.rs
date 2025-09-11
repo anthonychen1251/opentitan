@@ -23,7 +23,7 @@ use std::fs;
 use std::io::{Read, Seek, Write};
 use std::path::PathBuf;
 use std::process;
-use zerocopy::AsBytes;
+use zerocopy::{Immutable, IntoBytes};
 
 /// Size of SHA-1 build id.
 pub const BUILD_ID_SIZE: usize = 20;
@@ -115,7 +115,7 @@ pub fn search_by_extension(dir: &PathBuf, extension: &str) -> Vec<PathBuf> {
 ///
 /// This represents the INSTR_PROF_RAW_HEADER structure defined in:
 /// http://github.com/llvm/llvm-project/blob/llvmorg-16.0.2/compiler-rt/include/profile/InstrProfData.inc#L128-L141
-#[derive(AsBytes, Debug, Default)]
+#[derive(Debug, Default, Immutable, IntoBytes)]
 #[repr(C)]
 pub struct ProfileHeader {
     pub magic: u64,
