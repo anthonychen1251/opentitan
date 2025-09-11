@@ -3,8 +3,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "sw/device/lib/runtime/print.h"
+#include "sw/device/lib/testing/test_framework/ottf_console.h"
 
-void coverage_transport_init(void) { base_printf("COV_SKIP:OTTF\r\n"); }
+void coverage_transport_init(void) {
+  ottf_console_init();
+  base_printf("COV_SKIP:OTTF\r\n");
+}
 
 void coverage_init(void) {}
 

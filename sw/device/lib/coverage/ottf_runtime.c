@@ -8,8 +8,12 @@
 #include "sw/device/lib/coverage/printer.h"
 #include "sw/device/lib/runtime/log.h"
 #include "sw/device/lib/runtime/print.h"
+#include "sw/device/lib/testing/test_framework/ottf_console.h"
 
-void coverage_transport_init(void) { base_printf("COVERAGE:OTTF\r\n"); }
+void coverage_transport_init(void) {
+  ottf_console_init();
+  base_printf("COVERAGE:OTTF\r\n");
+}
 
 void coverage_report(void) {
   if (coverage_is_valid()) {

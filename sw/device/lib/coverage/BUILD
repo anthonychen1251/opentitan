@@ -108,6 +108,7 @@ cc_library(
         "//sw/device/lib/base:memory",
         "//sw/device/lib/runtime:log",
         "//sw/device/lib/runtime:print",
+        "//sw/device/lib/testing/test_framework:ottf_console",
     ],
     alwayslink = True,  # replacing weak symbol
 )
@@ -118,6 +119,7 @@ cc_library(
     features = ["-coverage"],
     deps = [
         "//sw/device/lib/runtime:print",
+        "//sw/device/lib/testing/test_framework:ottf_console",
     ],
     alwayslink = True,  # replacing weak symbol
 )
