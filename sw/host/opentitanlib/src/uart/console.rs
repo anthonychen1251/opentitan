@@ -164,21 +164,29 @@ impl UartConsole {
         Token(TOKEN_COUNTER.fetch_add(1, Ordering::Relaxed))
     }
 
+    fn get_active_buffer(&self) -> &str {
+        if self.alt_buffer_enabled {
+            &self.alt_buffer
+        } else {
+            &self.buffer
+        }
+    }
+
     // Maintain a buffer for the exit regexes to match against.
     fn append_buffer(&mut self, data: &[u8]) {
         let data = &String::from_utf8_lossy(data);
-        self.buffer.push_str(data);
-        while self.buffer.len() > UartConsole::BUFFER_LEN {
-            self.buffer.remove(0);
-        }
         if self.alt_buffer_enabled {
             self.alt_buffer.push_str(data);
+        } else {
+            self.buffer.push_str(data);
+            while self.buffer.len() > UartConsole::BUFFER_LEN {
+                self.buffer.remove(0);
+            }
         }
     }
 
     fn process_coverage(&mut self) -> Result<()> {
-        let response = &self.alt_buffer.strip_suffix(COVERAGE_END_ANCHOR).unwrap();
-        let response = hex::decode(response)?;
+        let response = hex::decode(&self.alt_buffer)?;
         if response.is_empty() {
             bail!("Got empty coverage");
         }
@@ -205,19 +213,13 @@ impl UartConsole {
         Ok(())
     }
 
-    fn process_buffer(&mut self) -> Result<Option<ExitStatus>> {
-        if self.buffer.ends_with(COVERAGE_START_ANCHOR) {
-            self.alt_buffer_enabled = true;
-            self.alt_buffer.clear();
-        }
-        if self.buffer.ends_with(COVERAGE_END_ANCHOR) {
-            self.alt_buffer_enabled = false;
-            self.process_coverage()?;
-        }
+    fn process_exit_regex(&self) -> Result<Option<ExitStatus>> {
+        let active_buffer = self.get_active_buffer();
+
         if self
             .exit_success
             .as_ref()
-            .map(|rx| rx.is_match(&self.buffer))
+            .map(|rx| rx.is_match(active_buffer))
             == Some(true)
         {
             return Ok(Some(ExitStatus::ExitSuccess));
@@ -225,12 +227,37 @@ impl UartConsole {
         if self
             .exit_failure
             .as_ref()
-            .map(|rx| rx.is_match(&self.buffer))
+            .map(|rx| rx.is_match(active_buffer))
             == Some(true)
         {
             return Ok(Some(ExitStatus::ExitFailure));
         }
         Ok(None)
+    }
+
+    fn process_buffer(&mut self) -> Result<Option<ExitStatus>> {
+        let result = self.process_exit_regex();
+
+        // Handle coverage transport
+        if self.buffer.ends_with(COVERAGE_START_ANCHOR) {
+            self.buffer
+                .truncate(self.buffer.len() - COVERAGE_START_ANCHOR.len());
+            self.alt_buffer_enabled = true;
+            self.alt_buffer.clear();
+        }
+        if self.alt_buffer.ends_with(COVERAGE_END_ANCHOR) {
+            self.alt_buffer
+                .truncate(self.alt_buffer.len() - COVERAGE_END_ANCHOR.len());
+            self.process_coverage()?;
+            self.alt_buffer_enabled = false;
+            self.alt_buffer.clear();
+        }
+        if self.buffer.ends_with(COVERAGE_SKIP_ANCHOR) {
+            self.buffer
+                .truncate(self.buffer.len() - COVERAGE_SKIP_ANCHOR.len());
+        }
+
+        result
     }
 
     // Read from the console device and process the data read.
@@ -352,15 +379,16 @@ impl UartConsole {
     }
 
     pub fn captures(&self, status: ExitStatus) -> Option<Captures> {
+        let active_buffer = self.get_active_buffer();
         match status {
             ExitStatus::ExitSuccess => self
                 .exit_success
                 .as_ref()
-                .and_then(|rx| rx.captures(&self.buffer)),
+                .and_then(|rx| rx.captures(active_buffer)),
             ExitStatus::ExitFailure => self
                 .exit_failure
                 .as_ref()
-                .and_then(|rx| rx.captures(&self.buffer)),
+                .and_then(|rx| rx.captures(active_buffer)),
             _ => None,
         }
     }
@@ -381,12 +409,13 @@ impl UartConsole {
         println!();
         match result {
             ExitStatus::ExitSuccess => {
-                let caps = console.captures(ExitStatus::ExitSuccess).expect("capture");
                 let mut vec = Vec::new();
-                for c in caps.iter() {
-                    match c {
-                        None => vec.push(String::new()),
-                        _ => vec.push(c.unwrap().as_str().to_owned()),
+                if let Some(caps) = console.captures(ExitStatus::ExitSuccess) {
+                    for c in caps.iter() {
+                        match c {
+                            None => vec.push(String::new()),
+                            _ => vec.push(c.unwrap().as_str().to_owned()),
+                        }
                     }
                 }
                 Ok(vec)
