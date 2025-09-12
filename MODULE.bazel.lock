@@ -167,8 +167,8 @@
   "moduleExtensions": {
     "//rules:extensions.bzl%hooks": {
       "general": {
-        "bzlTransitiveDigest": "JtlGEaCpHKgl5jYHSsQSQqj/D9+BZp4eX10bMAWEdes=",
-        "usagesDigest": "dWypNPjkieDpBn42ZggScwVN/Vkqax/a1rWLWxbLCXM=",
+        "bzlTransitiveDigest": "V/eMDDbzTPDq7RNmOtJFWYlGw3YpiUhcAYNL8Isz3Jc=",
+        "usagesDigest": "fVMLjSGwgHUujBxC+fs03K5K7OfTaTFZjTNRC7D5DMc=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {
@@ -178,21 +178,21 @@
         },
         "generatedRepoSpecs": {
           "manufacturer_test_hooks": {
-            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:local.bzl%local_repository",
+            "repoRuleId": "@@//rules:extensions.bzl%copy_from_label",
             "attributes": {
-              "path": "sw/device/tests/closed_source"
+              "src": "@@//:sw/device/tests/closed_source"
             }
           },
           "secure_manufacturer_test_hooks": {
-            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:local.bzl%local_repository",
+            "repoRuleId": "@@//rules:extensions.bzl%copy_from_label",
             "attributes": {
-              "path": "sw/device/tests/closed_source"
+              "src": "@@//:sw/device/tests/closed_source"
             }
           },
           "provisioning_exts": {
-            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:local.bzl%local_repository",
+            "repoRuleId": "@@//rules:extensions.bzl%copy_from_label",
             "attributes": {
-              "path": "sw/device/silicon_creator/manuf/extensions"
+              "src": "@@//:sw/device/silicon_creator/manuf/extensions"
             }
           }
         },
@@ -607,18 +607,27 @@
     },
     "//third_party/qemu:extensions.bzl%qemu": {
       "general": {
-        "bzlTransitiveDigest": "DtEEK5BmsgX2WOs5DWA1taB+hCIP9eFLYEn1mVXhWe8=",
+        "bzlTransitiveDigest": "OuB1CxVkFqfOZYzBZb1O0hzVaq2zEJpEDFBbDYyxM8M=",
         "usagesDigest": "le4nFQIsMEytUZA5Dz/GdRTwr0Ri5kyC+VIeW4HnJLI=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
         "generatedRepoSpecs": {
-          "qemu_opentitan": {
+          "qemu_opentitan_src": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
               "url": "https://github.com/lowRISC/qemu/releases/download/v9.2.0-2025-02-11/qemu-ot-earlgrey-v9.2.0-2025-02-11-x86_64-unknown-linux-gnu.tar.gz",
               "build_file": "@@//third_party/qemu:BUILD.qemu_opentitan.bazel",
-              "sha256": "85091287ee67dee337968071b7d10d39d44bb582c90991eae3d61f11a13ccf29"
+              "sha256": "85091287ee67dee337968071b7d10d39d44bb582c90991eae3d61f11a13ccf29",
+              "patch_cmds": [
+                "touch .this.is.the.archive"
+              ]
+            }
+          },
+          "qemu_opentitan": {
+            "repoRuleId": "@@//third_party/qemu:extensions.bzl%qemu_bazel_build_or_forward",
+            "attributes": {
+              "qemu_src": "@@+qemu+qemu_opentitan_src//:qemu_src"
             }
           }
         },
@@ -5150,7 +5159,7 @@
     "@@rules_rust+//crate_universe:extension.bzl%crate": {
       "general": {
         "bzlTransitiveDigest": "tTZ5psFukCVz4oibDQ/H/c8PaeLW75dVz297sraRj+s=",
-        "usagesDigest": "nBrsa8TOTE+VsunncxFVYJULkGv18jp9qQjOHu5o+GE=",
+        "usagesDigest": "y4aUC1vjFIjeME0DElLEesiBkkV0CFaf+ApZNcEHC3Q=",
         "recordedFileInputs": {
           "@@//third_party/rust/Cargo.lock": "1174b96ea73bc0976bad76e658fd1445510788585e34c4cafa9f0d61f535e2bf",
           "@@//third_party/rust/Cargo.toml": "0ee40cf528f3ae57d9b0e5e27da36bff6dbd4e4baaef912a4278d2357d7a2686",
