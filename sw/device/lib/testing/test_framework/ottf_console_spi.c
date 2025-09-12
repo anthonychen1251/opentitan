@@ -52,6 +52,8 @@ static status_t spi_device_send_data(dif_spi_device_handle_t *spi_device,
   return OK_STATUS();
 }
 
+static uint32_t next_write_address = 0;
+
 /**
  * Sends data out of the SPI device.
  *
@@ -78,8 +80,6 @@ static size_t spi_device_send_frame(ottf_console_t *console, const char *buf,
   const size_t frame_size_bytes =
       kSpiDeviceFrameHeaderSizeBytes + data_packet_size_bytes;
   uint8_t frame_header_bytes[kSpiDeviceFrameHeaderSizeBytes];
-
-  static uint32_t next_write_address = 0;
 
   if (frame_size_bytes >= kSpiDeviceReadBufferSizeBytes) {
     return 0;
@@ -246,6 +246,9 @@ static void spi_device_wait_for_sync(dif_spi_device_handle_t *spi_device) {
 
   // Clear the boot magic data in the flash buffer that the host echoed back.
   spi_device_clear_flash_buffer(spi_device);
+
+  // Reset the next write address after sync.
+  next_write_address = 0;
 }
 
 static bool spi_tx_last_data_chunk(upload_info_t *info) {
