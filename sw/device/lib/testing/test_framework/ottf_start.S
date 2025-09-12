@@ -166,7 +166,6 @@ _ottf_start:
   call crt_section_clear
 
   COVERAGE_ASM_INIT()
-  COVERAGE_ASM_TRANSPORT_INIT()
 
  /**
   * Jump into the OTTF C entry point.
