@@ -21,7 +21,7 @@ void coverage_report(void) {
     coverage_printer_run();
     base_printf("== COVERAGE PROFILE END ==\r\n");
   } else {
-    base_printf("== COVERAGE PROFILE DUMPED ==\r\n");
+    base_printf("== COVERAGE PROFILE INVALID ==\r\n");
   }
 }
 

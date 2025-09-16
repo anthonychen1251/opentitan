@@ -20,7 +20,7 @@ const COVERAGE_START_ANCHOR: &str = "== COVERAGE PROFILE START ==\r\n";
 const COVERAGE_END_ANCHOR: &str = "== COVERAGE PROFILE END ==\r\n";
 const COVERAGE_SKIP_ANCHOR: &str = "== COVERAGE PROFILE SKIP ==\r\n";
 
-#[derive(Default)]
+#[derive(Default, PartialEq)]
 pub enum BufferMode {
     #[default]
     Normal,
@@ -208,7 +208,7 @@ impl UartConsole {
         let active_buffer = self.get_active_buffer();
         if active_buffer.ends_with(COVERAGE_START_ANCHOR) {
             self.pop_buffer(COVERAGE_START_ANCHOR.len());
-            if matches!(self.buffer_mode, BufferMode::Coverage) {
+            if self.buffer_mode == BufferMode::Coverage {
                 eprintln!("WARN: Got unterminated coverage block:");
                 eprintln!("{}", self.coverage_buffer);
             }
@@ -216,7 +216,7 @@ impl UartConsole {
             self.coverage_buffer.clear();
         } else if active_buffer.ends_with(COVERAGE_END_ANCHOR) {
             self.pop_buffer(COVERAGE_END_ANCHOR.len());
-            if matches!(self.buffer_mode, BufferMode::Coverage) {
+            if self.buffer_mode == BufferMode::Coverage {
                 self.process_coverage_data()?;
             } else {
                 eprintln!("WARN: Got unexpected coverage end indicator!");
@@ -225,7 +225,7 @@ impl UartConsole {
             self.coverage_buffer.clear();
         } else if active_buffer.ends_with(COVERAGE_SKIP_ANCHOR) {
             self.pop_buffer(COVERAGE_SKIP_ANCHOR.len());
-            if matches!(self.buffer_mode, BufferMode::Coverage) {
+            if self.buffer_mode == BufferMode::Coverage {
                 eprintln!("WARN: Got unterminated coverage block:");
                 eprintln!("{}", self.coverage_buffer);
             }
@@ -237,11 +237,11 @@ impl UartConsole {
 
     fn process_coverage_data(&mut self) -> Result<()> {
         let response = hex::decode(&self.coverage_buffer)?;
-        if response.is_empty() {
-            bail!("Got empty coverage");
-        }
         if response.len() < 4 {
-            bail!("Coverage from device is too short");
+            bail!(
+                "Coverage from the device is too short: {} bytes",
+                response.len()
+            );
         }
 
         let (response, crc) = response.split_at(response.len() - 4);
@@ -263,7 +263,7 @@ impl UartConsole {
         Ok(())
     }
 
-    fn process_exit_regex(&self) -> Result<Option<ExitStatus>> {
+    fn process_exit_regex(&self) -> Option<ExitStatus> {
         let active_buffer = self.get_active_buffer();
 
         if self
@@ -272,7 +272,7 @@ impl UartConsole {
             .map(|rx| rx.is_match(active_buffer))
             == Some(true)
         {
-            return Ok(Some(ExitStatus::ExitSuccess));
+            return Some(ExitStatus::ExitSuccess);
         }
         if self
             .exit_failure
@@ -280,15 +280,15 @@ impl UartConsole {
             .map(|rx| rx.is_match(active_buffer))
             == Some(true)
         {
-            return Ok(Some(ExitStatus::ExitFailure));
+            return Some(ExitStatus::ExitFailure);
         }
-        Ok(None)
+        None
     }
 
     fn process_buffer(&mut self) -> Result<Option<ExitStatus>> {
         let exit_result = self.process_exit_regex();
         self.process_coverage_anchor()?;
-        exit_result
+        Ok(exit_result)
     }
 
     // Read from the console device and process the data read.
@@ -306,7 +306,7 @@ impl UartConsole {
         if len == 0 {
             return Ok(false);
         }
-        if matches!(self.buffer_mode, BufferMode::Normal) {
+        if self.buffer_mode == BufferMode::Normal {
             for i in 0..len {
                 if self.timestamp && self.newline {
                     let t = humantime::format_rfc3339_millis(SystemTime::now());

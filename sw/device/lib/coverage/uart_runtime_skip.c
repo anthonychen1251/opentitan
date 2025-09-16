@@ -20,8 +20,8 @@ void coverage_transport_init(void) {
 void coverage_init(void) {}
 
 void coverage_report(void) {
-  // python3 util/uart_hex.py '== COVERAGE PROFILE SKIP
-  // ==\r\n'
+  // python3 util/uart_hex.py \
+  //   '== COVERAGE PROFILE SKIP ==\r\n'
   uart_write_imm(0x5245564f43203d3d);
   uart_write_imm(0x464f525020454741);
   uart_write_imm(0x50494b5320454c49);

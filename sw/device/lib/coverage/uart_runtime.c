@@ -20,8 +20,8 @@ void coverage_transport_init(void) {
 
 void coverage_report(void) {
   if (coverage_is_valid()) {
-    // python3 util/uart_hex.py '== COVERAGE PROFILE START
-    // ==\r\n'
+    // python3 util/uart_hex.py \
+    //   '== COVERAGE PROFILE START ==\r\n'
     uart_write_imm(0x5245564f43203d3d);
     uart_write_imm(0x464f525020454741);
     uart_write_imm(0x5241545320454c49);
@@ -29,19 +29,19 @@ void coverage_report(void) {
 
     coverage_printer_run();
 
-    // python3 util/uart_hex.py '== COVERAGE PROFILE END
-    // ==\r\n'
+    // python3 util/uart_hex.py \
+    //   '== COVERAGE PROFILE END ==\r\n'
     uart_write_imm(0x5245564f43203d3d);
     uart_write_imm(0x464f525020454741);
     uart_write_imm(0x20444e4520454c49);
     uart_write_imm(0x000000000a0d3d3d);
   } else {
-    // python3 util/uart_hex.py '== COVERAGE PROFILE DUMPED
-    // ==\r\n'
+    // python3 util/uart_hex.py \
+    //   '== COVERAGE PROFILE INVALID ==\r\n'
     uart_write_imm(0x5245564f43203d3d);
     uart_write_imm(0x464f525020454741);
-    uart_write_imm(0x504d554420454c49);
-    uart_write_imm(0x000a0d3d3d204445);
+    uart_write_imm(0x41564e4920454c49);
+    uart_write_imm(0x0a0d3d3d2044494c);
   }
 
   // Wait until the report is sent.

@@ -5,6 +5,7 @@
 #ifndef OPENTITAN_SW_DEVICE_LIB_COVERAGE_PRINTER_H_
 #define OPENTITAN_SW_DEVICE_LIB_COVERAGE_PRINTER_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -20,9 +21,9 @@ extern "C" {
  * A report can be invalidated if the device resets or if
  * `coverage_invalidate()` is explicitly called.
  *
- * @return 1 if the report is valid, 0 otherwise.
+ * @return true if the report is valid.
  */
-int coverage_is_valid(void);
+bool coverage_is_valid(void);
 
 /**
  * @brief Invalidates the current coverage report.

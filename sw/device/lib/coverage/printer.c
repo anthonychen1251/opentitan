@@ -25,46 +25,57 @@ extern char _build_id_end[];
 
 #define BUILD_ID ((uint8_t *)_build_id_end - kBuildIdSize)
 
-/**
- * When the linker finds a definition of this symbol, it knows to skip loading
- * the object which contains the profiling runtime's static initializer. See
- * https://clang.llvm.org/docs/SourceBasedCodeCoverage.html#using-the-profiling-runtime-without-static-initializers
- * for more information.
- */
+OT_SET_BSS_SECTION(
+    "__ot_coverage_bss",
 
-OT_SET_BSS_SECTION("__ot_coverage_bss", int __llvm_profile_runtime;
-                   static uint32_t coverage_status;
-                   static uint32_t coverage_crc; static char send_buf[0x100];);
+    /**
+     * When the linker finds a definition of this symbol, it knows to skip
+     * loading the object which contains the profiling runtime's static
+     * initializer. See
+     * https://clang.llvm.org/docs/SourceBasedCodeCoverage.html#using-the-profiling-runtime-without-static-initializers
+     * for more information.
+     */
+    int __llvm_profile_runtime;
+
+    /**
+     * Stores the current coverage counters validity.
+     *
+     * The `coverage_status` field stores the `build_id` if the coverage report
+     * is valid. It gets cleared when the coverage report is invalidated.
+     */
+    static uint32_t coverage_status;
+
+    /**
+     * Stores the CRC of the ongoing coverage report stream.
+     */
+    static uint32_t coverage_crc;
+
+    /**
+     * End of `__ot_coverage_bss` section.
+     */
+);
 
 void coverage_printer_sink_with_crc(const void *buf, size_t size) {
-  const uint8_t *ptr = (const uint8_t *)buf;
-  while (size) {
-    size_t chunk_size = size > sizeof(send_buf) ? sizeof(send_buf) : size;
-    for (int i = 0; i < chunk_size; ++i) {
-      send_buf[i] = ptr[i];
-    }
-    crc32_add(&coverage_crc, send_buf, chunk_size);
-    coverage_printer_sink(send_buf, chunk_size);
-    size -= chunk_size;
-    ptr += chunk_size;
-  }
+  crc32_add(&coverage_crc, buf, size);
+  coverage_printer_sink(buf, size);
 }
 
 void coverage_compress_rle(uint8_t tag, uint32_t size) {
+  // assumption: the device is little-endian.
   uint32_t buf[2] = {0, size};
   if (size <= 0xfd) {
-    // 00XX
+    //  00    XX
     // [tag][size]
     buf[0] = 0x00000000 | ((uint32_t)tag << 24);
     coverage_printer_sink_with_crc((uint8_t *)buf + 3, 2);
   } else if (size <= 0xffff) {
-    // 00feXXXX
+    //  00   fe  XXXX
     // [tag][fe][size]
     buf[0] = 0xfe000000 | ((uint32_t)tag << 16);
     coverage_printer_sink_with_crc((uint8_t *)buf + 2, 4);
   } else {
-    // 00ffXXXXXX
-    // [tag][ff][size]
+    //  00   ff  XXXXXX
+    // [tag][ff][ size ]
     buf[0] = 0xff000000 | ((uint32_t)tag << 16);
     coverage_printer_sink_with_crc((uint8_t *)buf + 2, 5);
   }
@@ -73,7 +84,7 @@ void coverage_compress_rle(uint8_t tag, uint32_t size) {
 void coverage_compress(unsigned char *data, size_t size) {
   size_t i = 0;
 
-  // assumption: all bytes in data are either 0x00 or 0xff
+  // assumption: `coverage_is_valid` checks all bytes are either 0x00 or 0xff.
   while (i < size) {
     // Find next span.
     size_t start = i;
@@ -129,4 +140,19 @@ void coverage_printer_run(void) {
 
 void coverage_invalidate(void) { coverage_status = 0x42; }
 
-int coverage_is_valid(void) { return coverage_status == *(uint32_t *)BUILD_ID; }
+bool coverage_is_valid(void) {
+  if (coverage_status != *(uint32_t *)BUILD_ID) {
+    return false;
+  }
+
+  // Ensures all coverage counters are either 0x00 or 0xff.
+  uint8_t *ptr = (uint8_t *)__llvm_prf_cnts_start;
+  while (ptr < (uint8_t *)__llvm_prf_cnts_end) {
+    uint8_t counter = *ptr++;
+    if (counter != 0x00 && counter != 0xff) {
+      return false;
+    }
+  }
+
+  return true;
+}
