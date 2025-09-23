@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
-use anyhow::{anyhow, bail, Result};
-use crc::{Crc, CRC_32_ISO_HDLC};
+use anyhow::{Result, anyhow, bail};
+use crc::{CRC_32_ISO_HDLC, Crc};
 use mio::{Events, Interest, Poll, Token};
 use rand::Rng;
 use regex::{Captures, Regex};
@@ -253,7 +253,7 @@ impl UartConsole {
 
         let path = std::env::var("LLVM_PROFILE_FILE").unwrap_or("./default.profraw".to_owned());
         let path = path.replace("%h", "test.on.device");
-        let path = path.replace("%p", &rand::thread_rng().gen::<u32>().to_string());
+        let path = path.replace("%p", &rand::thread_rng().r#gen::<u32>().to_string());
         let path = path.replace("%m", "0");
         let path = path.replace(".profraw", ".xprofraw");
 
