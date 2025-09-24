@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
-use anyhow::{Result, anyhow, bail};
+use anyhow::{bail, Result};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
@@ -37,7 +37,6 @@ pub struct SpiDfu {
 
 impl SpiDfu {
     const SET_INTERFACE: u8 = 0x0b;
-    const INVALID_INTERFACE: u8 = 0xff;
 
     pub fn new(spi: Rc<dyn Target>, params: RescueParams) -> Self {
         SpiDfu {
@@ -61,46 +60,6 @@ impl SpiDfu {
                     } else {
                         return Err(e);
                     }
-                }
-            }
-        }
-    }
-
-    fn expect_usb_bad_mode_write_control(
-        &self,
-        request_type: u8,
-        request: u8,
-        value: u16,
-        index: u16,
-    ) -> Result<()> {
-        let result = self.write_control(request_type, request, value, index, &[]);
-        match result {
-            Ok(_) => Err(anyhow!("Invalid write control should fail")),
-            Err(e) => {
-                if e.to_string().contains("UsbBadSetup") {
-                    Ok(())
-                } else {
-                    Err(anyhow!("Unexpected error: {}", e.to_string()))
-                }
-            }
-        }
-    }
-    fn expect_usb_bad_mode_read_control(
-        &self,
-        request_type: u8,
-        request: u8,
-        value: u16,
-        index: u16,
-        data: &mut [u8],
-    ) -> Result<()> {
-        let result = self.read_control(request_type, request, value, index, data);
-        match result {
-            Ok(_) => Err(anyhow!("Invalid read control should fail")),
-            Err(e) => {
-                if e.to_string().contains("UsbBadSetup") {
-                    Ok(())
-                } else {
-                    Err(anyhow!("Unexpected error: {}", e.to_string()))
                 }
             }
         }
@@ -147,170 +106,6 @@ impl Rescue for SpiDfu {
     }
 
     fn set_mode(&self, mode: RescueMode) -> Result<()> {
-        // Use RescueMode::EraseOwner to trigger special test cases.
-        if mode == RescueMode::EraseOwner {
-            let setting = u32::from(mode);
-            // dfu invalid rescue mode
-            self.expect_usb_bad_mode_write_control(
-                DfuRequestType::Vendor.into(),
-                Self::SET_INTERFACE,
-                (setting >> 16) as u16,
-                setting as u16,
-            )?;
-            // dfu vendor request invalid mode
-            self.expect_usb_bad_mode_write_control(
-                DfuRequestType::Vendor.into(),
-                Self::INVALID_INTERFACE,
-                (setting >> 16) as u16,
-                setting as u16,
-            )?;
-            // dfu kUsbSetupReqSetInterface invalid mode
-            self.expect_usb_bad_mode_write_control(
-                DfuRequestType::Interface.into(),
-                // kUsbSetupReqSetInterface
-                11 as u8,
-                (setting >> 16) as u16,
-                setting as u16,
-            )?;
-
-            // dfu interface request invalid mode
-            self.expect_usb_bad_mode_write_control(
-                DfuRequestType::Interface.into(),
-                0 as u8,
-                (setting >> 16) as u16,
-                setting as u16,
-            )?;
-            // dfu control invalid request
-            self.expect_usb_bad_mode_write_control(
-                DfuRequestType::Out.into(),
-                7 as u8,
-                (setting >> 16) as u16,
-                setting as u16,
-            )?;
-
-            // dfu kUsbSetupReqGetInterface
-            let _ = self.write_control(
-                DfuRequestType::Interface.into(),
-                // kUsbSetupReqGetInterface
-                10 as u8,
-                (setting >> 16) as u16,
-                setting as u16,
-                &[],
-            )?;
-
-            // spi dfu unsupported setupdata request
-            self.expect_usb_bad_mode_write_control(
-                0 as u8,
-                // kUsbSetupReqGetInterface
-                10 as u8,
-                (setting >> 16) as u16,
-                setting as u16,
-            )?;
-
-            // spi dfu invalid flash opcode command
-            SpiFlash::send_invalid_flash_command(&*self.spi)?;
-
-            // dfu packet truncated
-            let payload = [0u8; 256];
-            let flash = self.flash.borrow();
-            flash.invalid_program(&*self.spi, 2040, &payload)?;
-
-            // spi dfu payload overflow.
-            // This test is intentionally disabled for now.
-            let payload_overflow = [0u8; 300];
-            let _ = flash.invalid_program(&*self.spi, 0, &payload_overflow);
-
-            return Ok(());
-        }
-        // Use RescueMode::GetOwnerPage1 to trigger another set of special test cases.
-        if mode == RescueMode::GetOwnerPage1 {
-            let setting = u32::from(RescueMode::BootSvcRsp);
-            self.write_control(
-                DfuRequestType::Vendor.into(),
-                Self::SET_INTERFACE,
-                (setting >> 16) as u16,
-                setting as u16,
-                &[],
-            )?;
-            // dfu control - kDfuActionNone
-            // state transition: kDfuStateIdle -> kDfuStateIdle
-            self.write_control(
-                DfuRequestType::Out.into(),
-                // kDfuReqAbort
-                6 as u8,
-                0,
-                0,
-                &[],
-            )?;
-
-            // dfu control - kDfuActionStateResponse
-            // state transition: kDfuStateIdle -> kDfuStateUpLoadIdle
-            self.write_control(
-                DfuRequestType::Out.into(),
-                // kDfuReqGetState
-                5 as u8,
-                0,
-                0,
-                &[],
-            )?;
-
-            // dfu control - kDfuActionClearError
-            // state transition: kDfuStateUpLoadIdle -> kDfuStateError
-            self.expect_usb_bad_mode_write_control(
-                DfuRequestType::Out.into(),
-                // kDfuReqClrStatus
-                4 as u8,
-                0,
-                0,
-            )?;
-            // state transition: kDfuStateError -> kDfuStateIdle
-            self.write_control(
-                DfuRequestType::Out.into(),
-                // kDfuReqClrStatus
-                4 as u8,
-                0,
-                0,
-                &[],
-            )?;
-
-            // dfu control - kDfuActionDataXfer bad length
-            // state transition: kDfuStateIdle -> kDfuStateError
-            let mut payload = [0u8; 2050];
-            self.expect_usb_bad_mode_read_control(
-                DfuRequestType::Out.into(),
-                // kDfuReqDnLoad
-                1 as u8,
-                0,
-                0,
-                // setup->length > sizeof(ctx->state.data)
-                &mut payload,
-            )?;
-
-            // state transition: kDfuStateError -> kDfuStateIdle
-            self.write_control(
-                DfuRequestType::Out.into(),
-                // kDfuReqClrStatus
-                4 as u8,
-                0,
-                0,
-                &[],
-            )?;
-
-            // dfu control - kDfuActionDataXfer invalid download
-            // state transition: kDfuStateIdle -> kDfuStateError
-            let mut payload2 = [0u8; 1];
-            self.expect_usb_bad_mode_read_control(
-                DfuRequestType::Out.into(),
-                // kDfuReqDnLoad
-                1 as u8,
-                0,
-                0,
-                // ctx->state.offset > ctx->state.flash_limit
-                &mut payload2,
-            )?;
-
-            return Ok(());
-        }
         let setting = match mode {
             // FIXME: Remap "send" modes to their corresponding "recv" mode.
             // The firmware will stage the recv data, then enter the send mode.
