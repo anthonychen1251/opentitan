@@ -684,8 +684,9 @@ EX_CW340_ROM_EXT_TESTS=(
 //sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_user_error_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_rescue_boot_svc_req_disability_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_rescue_owner_block_invalid_state_fpga_cw340_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_invalid_cmd_fpga_cw340_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_dfu_control_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_dfu_state_transitions_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_invalid_dfu_requests_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_invalid_flash_transaction_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/rescue:usbdfu_in_cancel_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_rescue_error_handling_test_fpga_cw340_rom_ext
 
