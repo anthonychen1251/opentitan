@@ -151,6 +151,12 @@ CW310_FAKE_KEYS_TESTS=(
 //sw/device/tests:kmac_app_rom_test_fpga_cw310_rom_with_fake_keys_fpga_cw310_rom_with_fake_keys
 //sw/device/tests:rstmgr_alert_info_test_fpga_cw310_rom_with_fake_keys
 
+//sw/device/tests:keymgr_derive_attestation_test_fpga_cw310_rom_with_fake_keys
+//sw/device/tests:keymgr_key_derivation_test_fpga_cw310_rom_with_fake_keys
+//sw/device/tests:keymgr_sideload_aes_test_fpga_cw310_rom_with_fake_keys
+//sw/device/tests:keymgr_sideload_kmac_test_fpga_cw310_rom_with_fake_keys
+//sw/device/tests:keymgr_sideload_otbn_test_fpga_cw310_rom_with_fake_keys
+
 # Freeze
 # //sw/device/tests:alert_handler_reverse_ping_in_deep_sleep_test_fpga_cw310_rom_with_fake_keys
 
@@ -901,6 +907,7 @@ CW340_SIVAL_TESTS=(
 //sw/device/tests:kmac_app_rom_test_fpga_cw340_sival_fpga_cw340_sival
 //sw/device/tests:kmac_entropy_test_fpga_cw340_sival
 //sw/device/tests:otbn_mem_scramble_test_fpga_cw340_sival
+//sw/device/tests:keymgr_derive_sealing_test_fpga_cw340_sival
 )
 
 CW340_FAKE_KEYS_TESTS=(
