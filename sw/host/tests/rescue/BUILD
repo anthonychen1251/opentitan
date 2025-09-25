@@ -69,8 +69,8 @@ rust_binary(
 )
 
 rust_binary(
-    name = "spi_dfu_rescue_error_handling",
-    srcs = ["spi_dfu_rescue_error_handling.rs"],
+    name = "dfu_rescue_error_handling",
+    srcs = ["dfu_rescue_error_handling.rs"],
     crate_features = [] + select({
         "//sw/device:measure_coverage_on_target": ["ot_coverage_build"],
         "//conditions:default": [],

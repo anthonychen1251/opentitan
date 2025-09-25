@@ -814,28 +814,6 @@ opentitan_test(
 )
 
 opentitan_test(
-    name = "usbdfu_in_cancel",
-    exec_env = {
-        "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
-        "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
-    },
-    fpga = fpga_params(
-        assemble = "{romext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
-        binaries = {
-            "//sw/device/silicon_creator/rom_ext:rom_ext_usbdfu": "romext",
-            "//sw/device/silicon_creator/rom_ext/e2e/attestation:print_certs": "firmware",
-        },
-        params = "-p usb-dfu -t strap -v 3",
-        test_cmd = """
-        --clear-bitstream
-        --bootstrap={firmware}
-        rescue {params} --action=usb-dfu-in-cancel
-        """,
-        test_harness = "//sw/host/tests/rescue:rescue_test",
-    ),
-)
-
-opentitan_test(
     name = "xmodem_rescue_error_handling_test",
     exec_env = {
         "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
@@ -871,9 +849,9 @@ opentitan_test(
         test_cmd = """
         --clear-bitstream
         --bootstrap={firmware}
-        rescue {params} --action=dfu-state-transitions
+        rescue {params} --action=spi-dfu-state-transitions
         """,
-        test_harness = "//sw/host/tests/rescue:spi_dfu_rescue_error_handling",
+        test_harness = "//sw/host/tests/rescue:dfu_rescue_error_handling",
     ),
 )
 
@@ -893,9 +871,9 @@ opentitan_test(
         test_cmd = """
         --clear-bitstream
         --bootstrap={firmware}
-        rescue {params} --action=invalid-dfu-requests
+        rescue {params} --action=invalid-spi-dfu-requests
         """,
-        test_harness = "//sw/host/tests/rescue:spi_dfu_rescue_error_handling",
+        test_harness = "//sw/host/tests/rescue:dfu_rescue_error_handling",
     ),
 )
 
@@ -915,8 +893,30 @@ opentitan_test(
         test_cmd = """
         --clear-bitstream
         --bootstrap={firmware}
-        rescue {params} --action=invalid-flash-transaction
+        rescue {params} --action=invalid-spi-flash-transaction
         """,
-        test_harness = "//sw/host/tests/rescue:spi_dfu_rescue_error_handling",
+        test_harness = "//sw/host/tests/rescue:dfu_rescue_error_handling",
+    ),
+)
+
+opentitan_test(
+    name = "usbdfu_out_chunk_too_big",
+    exec_env = {
+        "//hw/top_earlgrey:fpga_hyper310_rom_ext": None,
+        "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
+    },
+    fpga = fpga_params(
+        assemble = "{romext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
+        binaries = {
+            "//sw/device/silicon_creator/rom_ext:rom_ext_usbdfu": "romext",
+            ":boot_test_slot_a": "firmware",
+        },
+        params = "-p usb-dfu -t strap -v 3",
+        test_cmd = """
+        --clear-bitstream
+        --bootstrap={firmware}
+        rescue {params} --action=usb-dfu-out-chunk-too-big
+        """,
+        test_harness = "//sw/host/tests/rescue:dfu_rescue_error_handling",
     ),
 )
