@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #![allow(clippy::bool_assert_comparison)]
-use anyhow::{Context, Result, anyhow};
+use anyhow::{anyhow, Context, Result};
 use base64ct::{Base64, Decoder};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
@@ -69,29 +69,6 @@ pub enum RescueTestActions {
     GetBootLog,
     GetOwnerPage,
     Disability,
-    UsbDfuInCancel,
-}
-
-fn usb_dfu_in_transaction_cancel(
-    params: &RescueParams,
-    transport: &TransportWrapper,
-) -> Result<()> {
-    if params.protocol == RescueProtocol::UsbDfu {
-        let rescue = params.create(transport)?;
-        rescue.enter(transport, EntryMode::Reset)?;
-        rescue.set_mode(RescueMode::DeviceId)?;
-        rescue.set_mode(RescueMode::EraseOwner)?;
-        #[cfg(feature = "ot_coverage_enabled")]
-        {
-            rescue.reboot()?;
-
-            let uart = transport.uart("console")?;
-            UartConsole::wait_for(&*uart, r"CDI_0:", Duration::from_secs(5))?;
-            UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
-        }
-    }
-
-    Ok(())
 }
 
 fn get_device_id_test(
@@ -506,9 +483,6 @@ fn main() -> Result<()> {
             RescueTestActions::Disability => {
                 let mut owner_block = load_owner_block(opts.owner_block.as_deref(), &transport)?;
                 disability_test(&mut owner_block, &rescue.params, &transport)?;
-            }
-            RescueTestActions::UsbDfuInCancel => {
-                usb_dfu_in_transaction_cancel(&rescue.params, &transport)?;
             }
         },
     }

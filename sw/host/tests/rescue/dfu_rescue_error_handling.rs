@@ -12,7 +12,7 @@ use opentitanlib::app::TransportWrapper;
 use opentitanlib::io::eeprom::{AddressMode, Transaction, MODE_111};
 use opentitanlib::io::spi::SpiParams;
 use opentitanlib::rescue::dfu::{DfuOperations, DfuRequestType};
-use opentitanlib::rescue::{EntryMode, Rescue, RescueMode, RescueParams, SpiDfu};
+use opentitanlib::rescue::{EntryMode, Rescue, RescueMode, RescueParams, SpiDfu, UsbDfu};
 use opentitanlib::spiflash::SpiFlash;
 use opentitanlib::test_utils::init::InitializeTest;
 use opentitanlib::uart::console::UartConsole;
@@ -36,7 +36,7 @@ pub struct RescueCommand {
     params: RescueParams,
 
     #[arg(long)]
-    action: SpiDfuRescueTestActions,
+    action: DfuRescueTestActions,
 }
 
 #[derive(Debug, Subcommand)]
@@ -45,10 +45,11 @@ enum Commands {
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq)]
-pub enum SpiDfuRescueTestActions {
-    DfuStateTransitions,
-    InvalidDfuRequests,
-    InvalidFlashTransaction,
+pub enum DfuRescueTestActions {
+    SpiDfuStateTransitions,
+    InvalidSpiDfuRequests,
+    InvalidSpiFlashTransaction,
+    UsbDfuOutChunkTooBig,
 }
 
 const SET_INTERFACE: u8 = 0x0b;
@@ -106,7 +107,7 @@ fn expect_usb_bad_mode_read_control(
     }
 }
 
-fn invalid_dfu_requests(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
+fn invalid_spi_dfu_requests(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
     let spi_params = SpiParams::default();
     let spi = spi_params.create(transport, "BOOTSTRAP")?;
     let rescue = SpiDfu::new(spi.clone(), params.clone());
@@ -177,7 +178,10 @@ fn invalid_dfu_requests(params: &RescueParams, transport: &TransportWrapper) -> 
     Ok(())
 }
 
-fn invalid_flash_transaction(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
+fn invalid_spi_flash_transaction(
+    params: &RescueParams,
+    transport: &TransportWrapper,
+) -> Result<()> {
     let spi_params = SpiParams::default();
     let spi = spi_params.create(transport, "BOOTSTRAP")?;
     let rescue = SpiDfu::new(spi.clone(), params.clone());
@@ -228,7 +232,7 @@ fn invalid_flash_transaction(params: &RescueParams, transport: &TransportWrapper
     Ok(())
 }
 
-fn dfu_state_transitions(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
+fn spi_dfu_state_transitions(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
     let spi_params = SpiParams::default();
     let spi = spi_params.create(transport, "BOOTSTRAP")?;
     let rescue = SpiDfu::new(spi.clone(), params.clone());
@@ -315,6 +319,31 @@ fn dfu_state_transitions(params: &RescueParams, transport: &TransportWrapper) ->
     Ok(())
 }
 
+fn usb_dfu_out_chunk_too_big(
+    params: &RescueParams,
+    transport: &TransportWrapper,
+) -> Result<()> {
+    let rescue = UsbDfu::new(params.clone());
+    rescue.enter(transport, EntryMode::Reset)?;
+    rescue.set_mode(RescueMode::Rescue)?;
+    let data = vec![0u8; 4096];
+    let result = rescue.download(&data);
+
+    if result.is_ok() {
+        return Err(anyhow!("USB transaction should fail"));
+    }
+
+    #[cfg(feature = "ot_coverage_enabled")]
+    {
+        rescue.reboot()?;
+
+        let uart = transport.uart("console")?;
+        UartConsole::wait_for(&*uart, r"Finished", Duration::from_secs(5))?;
+        UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
+    }
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let opts = Opts::parse();
     opts.init.init_logging();
@@ -322,14 +351,17 @@ fn main() -> Result<()> {
 
     match opts.command {
         Commands::Rescue(rescue) => match rescue.action {
-            SpiDfuRescueTestActions::DfuStateTransitions => {
-                dfu_state_transitions(&rescue.params, &transport)?
+            DfuRescueTestActions::SpiDfuStateTransitions => {
+                spi_dfu_state_transitions(&rescue.params, &transport)?
             }
-            SpiDfuRescueTestActions::InvalidDfuRequests => {
-                invalid_dfu_requests(&rescue.params, &transport)?
+            DfuRescueTestActions::InvalidSpiDfuRequests => {
+                invalid_spi_dfu_requests(&rescue.params, &transport)?
             }
-            SpiDfuRescueTestActions::InvalidFlashTransaction => {
-                invalid_flash_transaction(&rescue.params, &transport)?
+            DfuRescueTestActions::InvalidSpiFlashTransaction => {
+                invalid_spi_flash_transaction(&rescue.params, &transport)?
+            }
+            DfuRescueTestActions::UsbDfuOutChunkTooBig => {
+                usb_dfu_out_chunk_too_big(&rescue.params, &transport)?;
             }
         },
     }
