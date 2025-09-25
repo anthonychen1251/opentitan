@@ -6,8 +6,8 @@ use anyhow::{Context, Result};
 use clap::Args;
 use std::any::Any;
 
-use opentitanlib::app::command::CommandDispatch;
 use opentitanlib::app::TransportWrapper;
+use opentitanlib::app::command::CommandDispatch;
 
 #[derive(Debug, Args)]
 /// Decode a raw status. Optionally accepts an ELF file to recover the filename.
@@ -16,7 +16,7 @@ pub struct BfvCommand {
     bfv: Vec<String>,
 }
 
-extern "C" {
+unsafe extern "C" {
     fn bfv_decoder(bfv: u32, buf: *mut u8, buf_size: usize) -> usize;
 }
 

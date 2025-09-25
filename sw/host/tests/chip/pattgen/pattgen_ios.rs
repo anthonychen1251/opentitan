@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
-use anyhow::{ensure, Context, Result};
+use anyhow::{Context, Result, ensure};
 use clap::Parser;
 use object::{Object, ObjectSymbol};
 use rand::rngs::StdRng;
@@ -112,8 +112,8 @@ impl PattGenChannelParams {
             patt_inactive_level_pda: rng.gen_range(0..=1),
             patt_inactive_level_pcl: rng.gen_range(0..=1),
             patt_div: rng.gen_range(PATTGEN_MIN_DIV..=PATTGEN_MAX_DIV),
-            patt_lower: rng.gen(),
-            patt_upper: rng.gen(),
+            patt_lower: rng.r#gen(),
+            patt_upper: rng.r#gen(),
             patt_len: rng.gen_range(1..=64),
             patt_rep: rng.gen_range(1..=PATTGEN_MAX_REP),
         }
@@ -416,7 +416,7 @@ fn pattgen_ios(
                 if res.is_err() || opts.dump_waves {
                     log::info!(
                         "====[ VCD dump ]====\n{}\n====[ end dump ]====",
-                        waves.dump_vcd()
+                        waves.dump_vcd()?
                     );
                 }
                 res.with_context(|| format!("channel {i} did not meet expectations"))?;

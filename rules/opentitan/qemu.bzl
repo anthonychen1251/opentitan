@@ -23,6 +23,12 @@ load("//rules/opentitan:toolchain.bzl", "LOCALTOOLS_TOOLCHAIN")
 _TEST_SCRIPT = """#!/bin/bash
 set -e
 
+cleanup() {{
+    rm -f {mutable_otp} {mutable_flash}
+    rm -f qemu-monitor qemu.log
+}}
+trap cleanup EXIT
+
 # QEMU requires mutable flash and OTP files but Bazel only provides RO
 # files so we have to create copies unique to this test run.
 cp {otp} {mutable_otp} && chmod +w {mutable_otp}
@@ -30,15 +36,23 @@ if [ ! -z {flash} ]; then
     cp {flash} {mutable_flash} && chmod +w {mutable_flash}
 fi
 
-echo Invoking test: {test_harness} {args} "$@"
-{test_harness} {args} "$@"
+# QEMU disconnects from `stdout` when it daemonizes so we need to stream
+# the log through a pipe:
+mkfifo qemu.log && cat qemu.log &
+
+echo "Starting QEMU: {qemu} {qemu_args}"
+{qemu} {qemu_args}
+
+TEST_CMD=({test_cmd})
+echo Invoking test: {test_harness} {args} "$@" "${{TEST_CMD[@]}}"
+{test_harness} {args} "$@" "${{TEST_CMD[@]}}"
 """
 
 def qemu_params(
         tags = [],
         timeout = "short",
         local = True,
-        test_harness = "//rules/scripts:qemu_pass",
+        test_harness = None,
         binaries = {},
         rom = None,
         rom_ext = None,
@@ -49,14 +63,17 @@ def qemu_params(
         defines = [],
         icount = 6,
         globals = {},
+        traces = [],
         qemu_args = [],
         **kwargs):
     extra_params = {
         "icount": str(icount),
+        "qemu_args": json.encode(qemu_args),
         # We have to stringify this dictionary here because `_opentitan_test` only accepts
         # a dict with string values, not more dicts.
         "globals": json.encode(globals),
-        "qemu_args": json.encode(qemu_args),
+        # The same goes for this array of strings:
+        "traces": json.encode(traces),
     }
 
     return struct(
@@ -223,6 +240,7 @@ def _sim_qemu(ctx):
         provider = SimQemuBinaryInfo,
         test_dispatch = _test_dispatch,
         transform = _transform,
+        qemu = ctx.executable.qemu,
         cfggen = ctx.attr.cfggen,
         otptool = ctx.attr.otptool,
         flashgen = ctx.attr.flashgen,
@@ -235,6 +253,17 @@ def _sim_qemu(ctx):
 sim_qemu = rule(
     implementation = _sim_qemu,
     attrs = exec_env_common_attrs() | {
+        "opentitantool": attr.label(
+            executable = True,
+            cfg = "exec",
+            default = Label("//sw/host/opentitantool"),
+        ),
+        "qemu": attr.label(
+            executable = True,
+            cfg = "exec",
+            allow_files = True,
+            default = Label("//third_party/qemu:qemu-system-riscv32"),
+        ),
         "cfggen": attr.label(
             executable = True,
             cfg = "exec",
@@ -330,7 +359,7 @@ def _test_dispatch(ctx, exec_env, firmware):
 
     test_harness, data_labels, data_files, param, action_param = common_test_setup(ctx, exec_env, firmware)
 
-    data_files += [firmware.qemu_cfg, firmware.otp]
+    data_files += [firmware.qemu_cfg, firmware.otp, exec_env.qemu]
     test_script_fmt = {}
 
     # Get the pre-test_cmd args.
@@ -366,15 +395,44 @@ def _test_dispatch(ctx, exec_env, firmware):
             "mutable_flash": "",
         }
 
-    # Forward UART0 to stdout.
-    qemu_args += ["-chardev", "stdio,id=serial0"]
-    qemu_args += ["-serial", "chardev:serial0"]
+    # Connect the monitor to a PTY for test harnesses / OpenTitanTool to speak to:
+    qemu_args += ["-chardev", "pty,id=monitor,path=qemu-monitor"]
+    qemu_args += ["-mon", "chardev=monitor,mode=control"]
+
+    # Create a chardev for the console UART:
+    qemu_args += ["-chardev", "pty,id=console"]
+    qemu_args += ["-serial", "chardev:console"]
+
+    # Create a chardev for the log device:
+    qemu_args += ["-chardev", "pty,id=log"]
+    qemu_args += ["-global", "ot-ibex_wrapper.logdev=log"]
 
     # Scale the Ibex clock by an `icount` factor.
     qemu_args += ["-icount", "shift={}".format(param["icount"])]
 
-    # Quit QEMU immediately on rstmgr fatal resets by default.
-    qemu_args += ["-global", "ot-rstmgr.fatal_reset=1"]
+    # Do not exit QEMU on resets by default.
+    qemu_args += ["-global", "ot-rstmgr.fatal_reset=0"]
+
+    # Spawn QEMU stopped and in the background so we can run OpenTitanTool.
+    # The emulation will start when OpenTitanTool releases the reset pin and `cont`
+    # is sent over the monitor.
+    qemu_args += ["-daemonize", "-S"]
+
+    # Write any QEMU log messages to a file to be read at the end of the test.
+    qemu_args += ["-D", "qemu.log"]
+    qemu_args += ["-d", "guest_errors"]
+    qemu_args += ["-d", "unimp"]
+
+    if param["traces"]:
+        traces = json.decode(param["traces"])
+        for trace in traces:
+            qemu_args += ["-d", "trace:{}".format(trace)]
+
+    # By default QEMU will exit when the test status register is written.
+    # OpenTitanTool expects to be able to do multiple resets, for example after
+    # bootstrapping, and then execute the test. Resetting could cause the test
+    # to run, finish, and exit, which we don't want to happen.
+    qemu_args += ["-global", "ot-ibex_wrapper.dv-sim-status-exit=off"]
 
     # Add parameter-specified globals.
     if param["globals"]:
@@ -385,16 +443,28 @@ def _test_dispatch(ctx, exec_env, firmware):
     if param["qemu_args"]:
         qemu_args += json.decode(param["qemu_args"])
 
-    args += " " + " ".join(qemu_args)
+    qemu_args = " ".join(qemu_args)
 
     # Construct the test script
     script = ctx.actions.declare_file(ctx.attr.name + ".bash")
 
+    # Pair the `test_cmd` with the test harness - if overridden, don't use the
+    # default `test_cmd`.
+    if ctx.attr.test_harness:
+        test_cmd = ctx.attr.test_cmd
+    else:
+        test_cmd = exec_env.test_cmd
+    test_cmd = test_cmd.format(**param)
+    test_cmd = ctx.expand_location(test_cmd, data_labels)
+
     ctx.actions.write(
         script,
         _TEST_SCRIPT.format(
-            test_harness = test_harness.executable.short_path,
+            qemu = exec_env.qemu.short_path,
+            qemu_args = qemu_args,
             args = args,
+            test_harness = test_harness.executable.short_path,
+            test_cmd = test_cmd,
             **test_script_fmt
         ),
     )

@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use clap::Parser;
 use regex::Regex;
 use std::time::Duration;
@@ -94,22 +94,28 @@ fn spi_host_config_test(
         waveform,
     )?;
 
-    let mut decoder = test_utils::bitbanging::spi::decoder::Decoder::<
+    let decoder = test_utils::bitbanging::spi::SpiBitbangDecoder::<
         SPI_PIN_D0,
         SPI_PIN_D1,
         0, // D2, not in use.
         0, // D3, not in use.
         SPI_PIN_SCL,
         SPI_PIN_CS,
-    > {
-        cpol: ctx.cpol == 1,
-        cpha: ctx.cpha == 1,
-        data_mode: test_utils::bitbanging::spi::SpiDataMode::Single,
-    };
+    >::new(
+        test_utils::bitbanging::spi::SpiBitbangConfig {
+            cpol: ctx.cpol == 1,
+            cpha: ctx.cpha == 1,
+            data_mode: test_utils::bitbanging::spi::SpiDataMode::Single,
+            bits_per_word: 8,
+        },
+        test_utils::bitbanging::spi::SpiEndpoint::Device,
+    );
     let decoded = decoder.run(samples.to_owned())?;
     assert_eq!(
         decoded,
-        vec![0x06, 0x02, 0x00, 0x00, 0x00, 0xab, 0xcd, 0xef, 0xab, 0x05, 0x80,]
+        vec![
+            0x06, 0x02, 0x00, 0x00, 0x00, 0xab, 0xcd, 0xef, 0xab, 0x05, 0x80,
+        ]
     );
     println!("decoded: {:?}", decoded);
 

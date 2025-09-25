@@ -29,6 +29,7 @@ config_setting(
     define_values = {
         "ot_coverage_enabled": "true",
     },
+    deprecation = "Please use //rules/coverage:enabled instead.",
 )
 
 cc_library(

@@ -34,9 +34,43 @@ In particular, the content of the `build/` directory will be used to support inc
 The content of this directory can change when you run Bazel command.
 Bazel will automatically watch all files in the QEMU repository so that it can rebuild it if it changes.
 
-# Troubleshooting
+## Test parameters
 
-## Bazel tells me that `+qemu+qemu_opentitan_src` is not a valid repository name
+Tests with a `sim_qemu_*` execution environment can be further configured by adding `qemu_params` to the test target.
+The currently supported parameters are:
+
+* `icount` (`int`): scale for Ibex's reported execution speed (`1GHz >> icount`) (defaults to 6).
+* `globals` (`dict[str, str]`): global properties for the QEMU machine.
+* `traces` (`[str]`): globs of QEMU traces to enable for debugging purposes.
+* `qemu_args` (`[str]`): additional command line flags to pass to QEMU.
+
+Example:
+
+```python
+opentitan_test(
+    name = "my_test",
+    exec_env = {
+      "//hw/top_earlgrey:sim_qemu_rom_with_fake_keys": None,
+    },
+    qemu = qemu_params(
+      icount = 5,
+      globals = {
+        "ot-aes.fast-mode": "false",
+      },
+      qemu_args = {
+        "-s", # spawn GDB server
+      },
+      traces = [
+        "ot_spi_device*",
+      ],
+    ),
+    # ...
+)
+```
+
+## Troubleshooting
+
+### Bazel tells me that `+qemu+qemu_opentitan_src` is not a valid repository name
 
 Unfortunately bazel requires the canonical name of the repository to be given on the command line and this name may change in the future.
 If this happens, you can run the following commands to figure out the canonical name:
@@ -47,7 +81,7 @@ If the opentitan repository is not the root repository,
 you will need to update the above command to pass the canonical name of the opentitan repository
 instead of `""`.
 
-# How does it work?
+### How does it work?
 
 When passing `--override_repository="+qemu+qemu_opentitan_src=/path/to/your/qemu/repo/"`, the `qemu_bazel_build_or_forward` repository rules
 detect the override by looking for a specific marker file which is added to the release archive.

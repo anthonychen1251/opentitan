@@ -4,7 +4,7 @@
 
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Data, DataEnum, DeriveInput, Error, Fields, Ident, Result, Variant};
+use syn::{Data, DataEnum, DeriveInput, Error, Fields, Ident, Result, Variant, parse_macro_input};
 
 /// Derives the `CommandDispatch` trait for a NewType enum.
 ///
@@ -106,7 +106,7 @@ fn dispatch_variant(name: &Ident, variant: &Variant) -> Result<TokenStream> {
         ));
     }
     Ok(quote! {
-        #name::#ident(ref __field) =>
+        #name::#ident(__field) =>
             opentitanlib::app::command::CommandDispatch::run(__field, context, backend)
     })
 }
