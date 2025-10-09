@@ -59,7 +59,6 @@ pub fn ownership_unlock(
         ecdsa_key,
         spx_key,
         enable_detached_sig,
-        ..Default::default()
     }
     .apply_to(Option::<&mut std::fs::File>::None)?;
 
@@ -107,6 +106,7 @@ pub fn ownership_unlock_any(
 }
 
 /// Prepares an OwnershipActivate command, sends it to the chip and gets the response.
+#[allow(clippy::too_many_arguments)]
 pub fn ownership_activate(
     transport: &TransportWrapper,
     rescue: &RescueSerial,

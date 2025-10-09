@@ -107,131 +107,6 @@ fn expect_usb_bad_mode_read_control(
     }
 }
 
-fn invalid_spi_dfu_requests(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
-    let spi_params = SpiParams::default();
-    let spi = spi_params.create(transport, "BOOTSTRAP")?;
-    let rescue = SpiDfu::new(spi.clone(), params.clone());
-    rescue.enter(transport, EntryMode::Reset)?;
-
-    let setting = u32::from_be_bytes(*b"INVA");
-    // Test an invalid rescue mode with a vendor SET_INTERFACE request.
-    expect_usb_bad_mode_write_control(
-        &rescue,
-        DfuRequestType::Vendor.into(),
-        SET_INTERFACE,
-        (setting >> 16) as u16,
-        setting as u16,
-    )?;
-    // Test an invalid vendor request.
-    expect_usb_bad_mode_write_control(
-        &rescue,
-        DfuRequestType::Vendor.into(),
-        INVALID_INTERFACE,
-        (setting >> 16) as u16,
-        setting as u16,
-    )?;
-    // Test an invalid rescue mode with a standard SET_INTERFACE request.
-    expect_usb_bad_mode_write_control(
-        &rescue,
-        DFU_REQUEST_TYPE_INTERFACE,
-        USB_SETUP_REQ_SET_INTERFACE,
-        (setting >> 16) as u16,
-        setting as u16,
-    )?;
-
-    // Test an invalid interface request.
-    expect_usb_bad_mode_write_control(
-        &rescue,
-        DFU_REQUEST_TYPE_INTERFACE,
-        0_u8,
-        (setting >> 16) as u16,
-        setting as u16,
-    )?;
-
-    // Test a valid GET_INTERFACE request.
-    rescue.write_control(
-        DFU_REQUEST_TYPE_INTERFACE,
-        USB_SETUP_REQ_GET_INTERFACE,
-        (setting >> 16) as u16,
-        setting as u16,
-        &[],
-    )?;
-
-    // Test an unsupported setup request type.
-    expect_usb_bad_mode_write_control(
-        &rescue,
-        0_u8,
-        USB_SETUP_REQ_GET_INTERFACE,
-        (setting >> 16) as u16,
-        setting as u16,
-    )?;
-
-    #[cfg(feature = "ot_coverage_enabled")]
-    {
-        rescue.reboot()?;
-
-        let uart = transport.uart("console")?;
-        UartConsole::wait_for(&*uart, r"Finished", Duration::from_secs(5))?;
-        UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
-    }
-
-    Ok(())
-}
-
-fn invalid_spi_flash_transaction(
-    params: &RescueParams,
-    transport: &TransportWrapper,
-) -> Result<()> {
-    let spi_params = SpiParams::default();
-    let spi = spi_params.create(transport, "BOOTSTRAP")?;
-    let rescue = SpiDfu::new(spi.clone(), params.clone());
-    rescue.enter(transport, EntryMode::Reset)?;
-
-    // Send an unsupported flash op code (CHIP_ERASE). The `rescue_protocol` on
-    // the device will report `kErrorUsbBadSetup` in the mailbox.
-    spi.run_eeprom_transactions(&mut [
-        Transaction::Command(MODE_111.cmd(SpiFlash::RESET_ENABLE)),
-        Transaction::Command(MODE_111.cmd(SpiFlash::CHIP_ERASE)),
-    ])?;
-
-    let sfdp = SpiFlash::read_sfdp(&*spi)?;
-    let address_mode = AddressMode::from(sfdp.jedec.address_modes);
-
-    // Send a packet where the offset (2040) + payload (256) exceeds the
-    // device's 2KB buffer. The `rescue_protocol` should truncate the write.
-    let payload = [0u8; 256];
-    spi.run_eeprom_transactions(&mut [
-        Transaction::Command(MODE_111.cmd(SpiFlash::WRITE_ENABLE)),
-        Transaction::Write(
-            MODE_111.cmd_addr(SpiFlash::PAGE_PROGRAM, 2040, address_mode),
-            &payload,
-        ),
-        Transaction::WaitForBusyClear,
-    ])?;
-
-    // Send a payload of 300 bytes, which is larger than the SPI device's
-    // maximum of 256 bytes.
-    let payload_overflow = [0u8; 300];
-    spi.run_eeprom_transactions(&mut [
-        Transaction::Command(MODE_111.cmd(SpiFlash::WRITE_ENABLE)),
-        Transaction::Write(
-            MODE_111.cmd_addr(SpiFlash::PAGE_PROGRAM, 0, address_mode),
-            &payload_overflow,
-        ),
-        Transaction::WaitForBusyClear,
-    ])?;
-
-    #[cfg(feature = "ot_coverage_enabled")]
-    {
-        rescue.reboot()?;
-
-        let uart = transport.uart("console")?;
-        UartConsole::wait_for(&*uart, r"Finished", Duration::from_secs(5))?;
-        UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
-    }
-    Ok(())
-}
-
 fn spi_dfu_state_transitions(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
     let spi_params = SpiParams::default();
     let spi = spi_params.create(transport, "BOOTSTRAP")?;
@@ -307,22 +182,136 @@ fn spi_dfu_state_transitions(params: &RescueParams, transport: &TransportWrapper
         setting as u16,
     )?;
 
-    #[cfg(feature = "ot_coverage_enabled")]
-    {
-        rescue.reboot()?;
+    rescue.reboot()?;
 
-        let uart = transport.uart("console")?;
-        UartConsole::wait_for(&*uart, r"Finished", Duration::from_secs(5))?;
-        UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
-    }
+    let uart = transport.uart("console")?;
+    UartConsole::wait_for(&*uart, r"Finished", Duration::from_secs(5))?;
+
+    #[cfg(feature = "ot_coverage_enabled")]
+    UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
 
     Ok(())
 }
 
-fn usb_dfu_out_chunk_too_big(
+fn invalid_spi_dfu_requests(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
+    let spi_params = SpiParams::default();
+    let spi = spi_params.create(transport, "BOOTSTRAP")?;
+    let rescue = SpiDfu::new(spi.clone(), params.clone());
+    rescue.enter(transport, EntryMode::Reset)?;
+
+    let setting = u32::from_be_bytes(*b"INVA");
+    // Test an invalid rescue mode with a vendor SET_INTERFACE request.
+    expect_usb_bad_mode_write_control(
+        &rescue,
+        DfuRequestType::Vendor.into(),
+        SET_INTERFACE,
+        (setting >> 16) as u16,
+        setting as u16,
+    )?;
+    // Test an invalid vendor request.
+    expect_usb_bad_mode_write_control(
+        &rescue,
+        DfuRequestType::Vendor.into(),
+        INVALID_INTERFACE,
+        (setting >> 16) as u16,
+        setting as u16,
+    )?;
+    // Test an invalid rescue mode with a standard SET_INTERFACE request.
+    expect_usb_bad_mode_write_control(
+        &rescue,
+        DFU_REQUEST_TYPE_INTERFACE,
+        USB_SETUP_REQ_SET_INTERFACE,
+        (setting >> 16) as u16,
+        setting as u16,
+    )?;
+
+    // Test an invalid interface request.
+    expect_usb_bad_mode_write_control(
+        &rescue,
+        DFU_REQUEST_TYPE_INTERFACE,
+        0_u8,
+        (setting >> 16) as u16,
+        setting as u16,
+    )?;
+
+    // Test a valid GET_INTERFACE request.
+    rescue.write_control(
+        DFU_REQUEST_TYPE_INTERFACE,
+        USB_SETUP_REQ_GET_INTERFACE,
+        (setting >> 16) as u16,
+        setting as u16,
+        &[],
+    )?;
+
+    // Test an unsupported setup request type.
+    expect_usb_bad_mode_write_control(
+        &rescue,
+        0_u8,
+        USB_SETUP_REQ_GET_INTERFACE,
+        (setting >> 16) as u16,
+        setting as u16,
+    )?;
+
+    rescue.reboot()?;
+
+    let uart = transport.uart("console")?;
+    UartConsole::wait_for(&*uart, r"Finished", Duration::from_secs(5))?;
+
+    Ok(())
+}
+
+fn invalid_spi_flash_transaction(
     params: &RescueParams,
     transport: &TransportWrapper,
 ) -> Result<()> {
+    let spi_params = SpiParams::default();
+    let spi = spi_params.create(transport, "BOOTSTRAP")?;
+    let rescue = SpiDfu::new(spi.clone(), params.clone());
+    rescue.enter(transport, EntryMode::Reset)?;
+
+    // Send an unsupported flash op code (CHIP_ERASE). The `rescue_protocol` on
+    // the device will report `kErrorUsbBadSetup` in the mailbox.
+    spi.run_eeprom_transactions(&mut [
+        Transaction::Command(MODE_111.cmd(SpiFlash::RESET_ENABLE)),
+        Transaction::Command(MODE_111.cmd(SpiFlash::CHIP_ERASE)),
+    ])?;
+
+    let sfdp = SpiFlash::read_sfdp(&*spi)?;
+    let address_mode = AddressMode::from(sfdp.jedec.address_modes);
+
+    // Send a packet where the offset (2040) + payload (256) exceeds the
+    // device's 2KB buffer. The `rescue_protocol` should truncate the write.
+    let payload = [0u8; 256];
+    spi.run_eeprom_transactions(&mut [
+        Transaction::Command(MODE_111.cmd(SpiFlash::WRITE_ENABLE)),
+        Transaction::Write(
+            MODE_111.cmd_addr(SpiFlash::PAGE_PROGRAM, 2040, address_mode),
+            &payload,
+        ),
+        Transaction::WaitForBusyClear,
+    ])?;
+
+    // Send a payload of 300 bytes, which is larger than the SPI device's
+    // maximum of 256 bytes.
+    let payload_overflow = [0u8; 300];
+    spi.run_eeprom_transactions(&mut [
+        Transaction::Command(MODE_111.cmd(SpiFlash::WRITE_ENABLE)),
+        Transaction::Write(
+            MODE_111.cmd_addr(SpiFlash::PAGE_PROGRAM, 0, address_mode),
+            &payload_overflow,
+        ),
+        Transaction::WaitForBusyClear,
+    ])?;
+
+    rescue.reboot()?;
+
+    let uart = transport.uart("console")?;
+    UartConsole::wait_for(&*uart, r"Finished", Duration::from_secs(5))?;
+
+    Ok(())
+}
+
+fn usb_dfu_out_chunk_too_big(params: &RescueParams, transport: &TransportWrapper) -> Result<()> {
     let rescue = UsbDfu::new(params.clone());
     rescue.enter(transport, EntryMode::Reset)?;
     rescue.set_mode(RescueMode::Rescue)?;
@@ -333,14 +322,14 @@ fn usb_dfu_out_chunk_too_big(
         return Err(anyhow!("USB transaction should fail"));
     }
 
-    #[cfg(feature = "ot_coverage_enabled")]
-    {
-        rescue.reboot()?;
+    rescue.reboot()?;
 
-        let uart = transport.uart("console")?;
-        UartConsole::wait_for(&*uart, r"Finished", Duration::from_secs(5))?;
-        UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
-    }
+    let uart = transport.uart("console")?;
+    UartConsole::wait_for(&*uart, r"Finished", Duration::from_secs(5))?;
+
+    #[cfg(feature = "ot_coverage_enabled")]
+    UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
+
     Ok(())
 }
 
@@ -361,7 +350,7 @@ fn main() -> Result<()> {
                 invalid_spi_flash_transaction(&rescue.params, &transport)?
             }
             DfuRescueTestActions::UsbDfuOutChunkTooBig => {
-                usb_dfu_out_chunk_too_big(&rescue.params, &transport)?;
+                usb_dfu_out_chunk_too_big(&rescue.params, &transport)?
             }
         },
     }

@@ -376,7 +376,7 @@ common_binary_attrs = {
     ),
     "_check_initial_coverage": attr.label(
         doc = "Tool to check the coverage counter initialization.",
-        default = "//util/coverage_new:check_initial_coverage",
+        default = "//util/coverage:check_initial_coverage",
         executable = True,
         cfg = "exec",
     ),
@@ -513,7 +513,7 @@ opentitan_test = rv_rule(
             cfg = "exec",
         ),
         "_collect_cc_coverage": attr.label(
-            default = "//util/coverage_new/collect_cc_coverage",
+            default = "//util/coverage/collect_cc_coverage",
             executable = True,
             cfg = "exec",
         ),

@@ -39,6 +39,12 @@ dual_cc_library(
     ),
 )
 
+# Make the non-mock version of CRC32 visible outside of this package.
+alias(
+    name = "crc32_device_library",
+    actual = dual_cc_device_library_of(":crc32"),
+)
+
 cc_test(
     name = "crc32_unittest",
     srcs = ["crc32_unittest.cc"],
@@ -256,7 +262,19 @@ cc_library(
     name = "random_order",
     srcs = ["random_order.c"],
     hdrs = ["random_order.h"],
-    deps = [":bitfield"],
+    deps = [
+        ":bitfield",
+        ":hardened",
+    ],
+)
+
+cc_test(
+    name = "random_order_unittest",
+    srcs = ["random_order_unittest.cc"],
+    deps = [
+        ":random_order",
+        "@googletest//:gtest_main",
+    ],
 )
 
 cc_library(

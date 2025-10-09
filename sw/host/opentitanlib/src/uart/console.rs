@@ -189,9 +189,8 @@ impl UartConsole {
 
     // Maintain a buffer for the exit regexes to match against.
     fn append_buffer(&mut self, data: &[u8]) {
-        let data = &String::from_utf8_lossy(data);
         let active_buffer = self.get_active_buffer_mut();
-        active_buffer.push_str(data);
+        active_buffer.push_str(&String::from_utf8_lossy(data));
         while active_buffer.len() > UartConsole::BUFFER_LEN {
             active_buffer.remove(0);
         }

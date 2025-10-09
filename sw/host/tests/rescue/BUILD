@@ -51,10 +51,6 @@ rust_binary(
 rust_binary(
     name = "xmodem_rescue_error_handling",
     srcs = ["xmodem_rescue_error_handling.rs"],
-    crate_features = [] + select({
-        "//sw/device:measure_coverage_on_target": ["ot_coverage_build"],
-        "//conditions:default": [],
-    }),
     deps = [
         "//sw/host/opentitanlib",
         "@crate_index//:anyhow",
@@ -71,10 +67,6 @@ rust_binary(
 rust_binary(
     name = "dfu_rescue_error_handling",
     srcs = ["dfu_rescue_error_handling.rs"],
-    crate_features = [] + select({
-        "//sw/device:measure_coverage_on_target": ["ot_coverage_build"],
-        "//conditions:default": [],
-    }),
     deps = [
         "//sw/host/opentitanlib",
         "@crate_index//:anyhow",

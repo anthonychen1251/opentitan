@@ -2,7 +2,7 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-load("//rules/opentitan:cc.bzl", "create_cc_instrumented_files_info")
+load("//rules/coverage:info.bzl", "create_cc_instrumented_files_info")
 
 def _asm_source_with_coverage(ctx):
     """A rule that processes assembly source files for coverage.
@@ -12,35 +12,29 @@ def _asm_source_with_coverage(ctx):
     through the original source files.
 
     The assembly sources need to be pre-instrumented, either manually or using
-    the `util/coverage_new/instrument_asm.py` tool.
+    the `util/coverage/asm/instrument.py` tool.
     """
     inputs = ctx.files.srcs
 
     if ctx.coverage_instrumented():
-        asm_srcs, other_srcs = [], []
+        asm_srcs, outputs = [], []
         for f in inputs:
             if f.extension in ["s", "S"]:
                 asm_srcs.append(f)
             else:
-                other_srcs.append(f)
+                outputs.append(f)
 
-        outputs = [ctx.actions.declare_file(f.basename) for f in asm_srcs]
+        for inp in asm_srcs:
+            out = ctx.actions.declare_file(inp.basename)
+            outputs.append(out)
 
-        arguments = []
-        arguments.append("--input")
-        arguments.extend([f.path for f in asm_srcs])
-        arguments.append("--output")
-        arguments.extend([f.path for f in outputs])
-
-        ctx.actions.run(
-            outputs = outputs,
-            inputs = asm_srcs,
-            arguments = arguments,
-            executable = ctx.executable._asm_prf_data_tool,
-            mnemonic = "AddAsmPrfData",
-        )
-
-        outputs.extend(other_srcs)
+            ctx.actions.run(
+                outputs = [out],
+                inputs = [inp],
+                arguments = ["--file", inp.path, "--output", out.path],
+                executable = ctx.executable._asm_prf_data_tool,
+                mnemonic = "AddAsmPrfData",
+            )
     else:
         outputs = inputs
 
@@ -58,7 +52,7 @@ asm_source_with_coverage = rule(
         ),
         "_asm_prf_data_tool": attr.label(
             doc = "Tool to add asm profiling and mapping data.",
-            default = "//util/coverage_new:add_asm_prf_data",
+            default = "//util/coverage/asm:generate_mapping",
             executable = True,
             cfg = "exec",
         ),

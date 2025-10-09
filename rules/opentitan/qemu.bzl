@@ -8,8 +8,10 @@ load(
 )
 load(
     "@lowrisc_opentitan//rules/opentitan:util.bzl",
+    "assemble_for_test",
     "get_fallback",
     "get_override",
+    "recursive_format",
 )
 load(
     "//rules/opentitan:exec_env.bzl",
@@ -192,24 +194,38 @@ def gen_flash(ctx, **kwargs):
     firmware_bin = get_override(ctx, "file.firmware_bin", kwargs)
     firmware_elf = get_override(ctx, "file.firmware_elf", kwargs)
 
+    check_elfs = get_override(ctx, "file.check_elfs", kwargs)
+
     flashgen = get_override(ctx, "executable.flashgen", kwargs)
 
+    flashgen_inputs = []
+    flashgen_args = []
+
+    # Add the firmware binary, which will be placed at 0x0 and as such
+    # should contain relevant padding to offset from the start of flash.
+    # Firmware binaries can be placed across flash banks, i.e. they can
+    # be mirrored.
+    if firmware_bin:
+        flashgen_inputs += [firmware_bin]
+        flashgen_args += ["-t", "{}@0x0".format(firmware_bin.path)]
+        # TODO: currently firmware_elf is unused due to lacking support in QEMU
+
+    if check_elfs:
+        # Skip `flashgen`'s ELF/binary mtime checks - it will fail if the
+        # binary is older than the ELF which usually suggests that the
+        # binary has not been regenerated, however Bazel often messes with
+        # mtimes causing false negatives.
+        flashgen_args += ["--ignore-time"]
+    else:
+        flashgen_args += ["--unsafe-elf"]
+
+    flashgen_args += [out.path]
+
     ctx.actions.run(
-        inputs = [firmware_bin, firmware_elf],
+        inputs = flashgen_inputs,
         outputs = [out],
         executable = flashgen[DefaultInfo].files_to_run,
-        arguments = [
-            "-x",
-            firmware_bin.path,
-            "-X",
-            firmware_elf.path,
-            # Skip `flashgen`'s ELF/binary mtime checks - it will fail if the
-            # binary is older than the ELF which usually suggests that the
-            # binary has not been regenerated, however Bazel often messes with
-            # mtimes causing false negatives.
-            "--ignore-time",
-            out.path,
-        ],
+        arguments = flashgen_args,
         mnemonic = "FlashGen",
     )
     return out
@@ -219,11 +235,15 @@ qemu_flash = rule(
     attrs = {
         "firmware_bin": attr.label(
             allow_single_file = True,
-            doc = "Binary firmware to be run after the ROM, usually signed",
+            doc = "Binary firmware to be run after the ROM, usually signed, placed at the start of flash",
         ),
         "firmware_elf": attr.label(
             allow_single_file = True,
             doc = "ELF version of the `firmware_bin` attribute for symbol tracking",
+        ),
+        "check_elfs": attr.bool(
+            default = True,
+            doc = "Whether to sanity check ELF sizes against binaries. Should be `false` if using signed binaries",
         ),
         "flashgen": attr.label(
             executable = True,
@@ -307,30 +327,10 @@ def _transform(ctx, exec_env, name, elf, binary, signed_bin, disassembly, mapfil
         default = elf
         rom = None
     elif ctx.attr.kind == "flash":
-        default = gen_flash(
-            ctx,
-            flashgen = exec_env.flashgen,
-            firmware_bin = signed_bin or binary,
-            firmware_elf = elf,
-        )
-        rom = exec_env.rom[SimQemuBinaryInfo].rom
+        default = signed_bin if signed_bin else binary
+        rom = None
     else:
         fail("Not implemented: kind == ", ctx.attr.kind)
-
-    otp = gen_otp(
-        ctx,
-        otptool = exec_env.otptool,
-        vmem = get_fallback(ctx, "file.otp", exec_env),
-    )
-
-    qemu_cfg = gen_cfg(
-        ctx,
-        cfggen = exec_env.cfggen,
-        otp_sv = exec_env.otp_sv,
-        lc_sv = exec_env.lc_sv,
-        top_hjson = exec_env.top_hjson,
-        top_name = exec_env.design,
-    )
 
     return {
         "elf": elf,
@@ -342,8 +342,6 @@ def _transform(ctx, exec_env, name, elf, binary, signed_bin, disassembly, mapfil
         "disassembly": disassembly,
         "mapfile": mapfile,
         "hashfile": None,
-        "qemu_cfg": qemu_cfg,
-        "otp": otp,
     }
 
 def _test_dispatch(ctx, exec_env, firmware):
@@ -359,41 +357,90 @@ def _test_dispatch(ctx, exec_env, firmware):
 
     test_harness, data_labels, data_files, param, action_param = common_test_setup(ctx, exec_env, firmware)
 
-    data_files += [firmware.qemu_cfg, firmware.otp, exec_env.qemu]
+    # If the test requested an assembled image, then use opentitantool to
+    # assemble the image.  Replace the firmware param with the newly assembled
+    # image.
+    if "assemble" in param:
+        assemble = param.get("assemble")
+        assemble = recursive_format(assemble, action_param)
+        assemble = ctx.expand_location(assemble, data_labels)
+        image = assemble_for_test(
+            ctx,
+            name = ctx.attr.name,
+            spec = assemble.strip().split(" "),
+            data_files = data_files,
+            opentitantool = exec_env._opentitantool,
+        )
+        param["firmware"] = image.short_path
+        action_param["firmware"] = image.path
+        data_files.append(image)
+    else:
+        image = firmware.signed_bin or firmware.default
+
+    data_files += [exec_env.qemu]
+
+    # Add arguments to pass directly to QEMU.
+    qemu_args = []
     test_script_fmt = {}
+
+    qemu_args += ["-display", "none"]
+    qemu_args += ["-M", "ot-{}".format(exec_env.design)]
+
+    # Generate the OpenTitan machine config for QEMU emulation
+    qemu_cfg = gen_cfg(
+        ctx,
+        cfggen = exec_env.cfggen,
+        otp_sv = exec_env.otp_sv,
+        lc_sv = exec_env.lc_sv,
+        top_hjson = exec_env.top_hjson,
+        top_name = exec_env.design,
+    )
+    data_files += [qemu_cfg]
+    qemu_args += ["-readconfig", "{}".format(qemu_cfg.short_path)]
+
+    # Attach the ROM that QEMU should run
+    qemu_args += ["-object", "ot-rom_img,id=rom,file={}".format(param["rom"])]
+
+    # Generate the OTP backend image for QEMU emulation
+    otp_image = gen_otp(
+        ctx,
+        otptool = exec_env.otptool,
+        vmem = get_fallback(ctx, "file.otp", exec_env),
+    )
+    data_files += [otp_image]
+    qemu_args += ["-drive", "if=pflash,file=otp_img.raw,format=raw"]
+    test_script_fmt |= {
+        "mutable_otp": "otp_img.raw",
+        "otp": otp_image.short_path,
+    }
+
+    # Generate the flash backend image for QEMU emulation
+    # TODO: when bootstrapping is available, this should always create a blank
+    # flash image and bootstrap the data. Ideally, relevant info pages would
+    # be spliced in at this step, but that is not yet supported by either
+    # flashgen or by Bazel.
+    flash_image = gen_flash(
+        ctx,
+        flashgen = exec_env.flashgen,
+        firmware_bin = image,
+        # TODO: no support for convenience debug symbols from ELFs for now
+        firmware_elf = None,
+        # Do not sanity check ELFs, because we do not expect the binary to
+        # match the ELF because of the added manifest extensions (e.g. SPX
+        # signatures) present in the signed binary.
+        check_elfs = False,
+    )
+    data_files += [flash_image]
+    qemu_args += ["-drive", "if=mtd,id=eflash,bus=2,file=flash_img.bin,format=raw"]
+    test_script_fmt |= {
+        "flash": flash_image.short_path,
+        "mutable_flash": "flash_img.bin",
+    }
 
     # Get the pre-test_cmd args.
     args = get_fallback(ctx, "attr.args", exec_env)
     args = " ".join(args).format(**param)
     args = ctx.expand_location(args, data_labels)
-
-    # Add arguments to pass directly to QEMU.
-    qemu_args = []
-
-    qemu_args += ["-display", "none"]
-    qemu_args += ["-M", "ot-{}".format(exec_env.design)]
-
-    # Provide top-specific files.
-    qemu_args += ["-readconfig", "{}".format(firmware.qemu_cfg.short_path)]
-    qemu_args += ["-object", "ot-rom_img,id=rom,file={}".format(firmware.rom.short_path)]
-
-    qemu_args += ["-drive", "if=pflash,file=otp_img.raw,format=raw"]
-    test_script_fmt |= {
-        "mutable_otp": "otp_img.raw",
-        "otp": firmware.otp.short_path,
-    }
-
-    if firmware.signed_bin != None and firmware.binary != None:
-        qemu_args += ["-drive", "if=mtd,id=eflash,bus=2,file=flash_img.bin,format=raw"]
-        test_script_fmt |= {
-            "flash": firmware.default.short_path,
-            "mutable_flash": "flash_img.bin",
-        }
-    else:
-        test_script_fmt |= {
-            "flash": "",
-            "mutable_flash": "",
-        }
 
     # Connect the monitor to a PTY for test harnesses / OpenTitanTool to speak to:
     qemu_args += ["-chardev", "pty,id=monitor,path=qemu-monitor"]
@@ -406,6 +453,9 @@ def _test_dispatch(ctx, exec_env, firmware):
     # Create a chardev for the log device:
     qemu_args += ["-chardev", "pty,id=log"]
     qemu_args += ["-global", "ot-ibex_wrapper.logdev=log"]
+
+    # Create a chardev for the SPI device:
+    qemu_args += ["-chardev", "pty,id=spidev"]
 
     # Scale the Ibex clock by an `icount` factor.
     qemu_args += ["-icount", "shift={}".format(param["icount"])]
@@ -426,7 +476,17 @@ def _test_dispatch(ctx, exec_env, firmware):
     if param["traces"]:
         traces = json.decode(param["traces"])
         for trace in traces:
-            qemu_args += ["-d", "trace:{}".format(trace)]
+            qemu_args += ["--trace", "{}".format(trace)]
+
+    # Because flash info pages are not spliced and QEMU does not currently
+    # support flash scrambling/ECCs, any uninitialised seeds read from the flash
+    # creator/owner secret pages will be all `0xFF...`. This will cause the
+    # keymgr to error when advancing to the OwnerIntermediate state, preventing
+    # further use. Temporarily disable the relevant keymgr data validity check
+    # via an opt-in QEMU property.
+    # TODO: remove this property when either QEMU flash info page splicing
+    # is available, or the QEMU `flash_ctrl` implements scrambling & ECC support.
+    qemu_args += ["-global", "ot-keymgr.disable-flash-seed-check=true"]
 
     # By default QEMU will exit when the test status register is written.
     # OpenTitanTool expects to be able to do multiple resets, for example after

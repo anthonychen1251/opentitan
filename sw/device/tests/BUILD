@@ -1086,6 +1086,7 @@ opentitan_test(
         EARLGREY_TEST_ENVS,
         EARLGREY_SILICON_OWNER_ROM_EXT_ENVS,
         {
+            "//hw/top_earlgrey:fpga_cw340_test_rom": None,
             "//hw/top_earlgrey:silicon_creator": None,
         },
     ),
@@ -1095,7 +1096,6 @@ opentitan_test(
         "//sw/device/lib/base:macros",
         "//sw/device/lib/base:stdasm",
         "//sw/device/lib/coverage:api",
-        "//sw/device/lib/coverage:asm_runtime",
         "//sw/device/lib/coverage:ottf_runtime",
         "//sw/device/lib/dif:uart",
         "//sw/device/lib/runtime:ibex",
@@ -3960,6 +3960,12 @@ opentitan_test(
         """,
         test_harness = "//sw/host/tests/chip/spi_device:spi_device_flash_smoketest",
     ),
+    qemu = qemu_params(
+        test_cmd = """
+            "{firmware:elf}"
+        """,
+        test_harness = "//sw/host/tests/chip/spi_device:spi_device_flash_smoketest",
+    ),
     silicon = silicon_params(
         test_cmd = """
             --bootstrap={firmware}
@@ -4318,13 +4324,9 @@ opentitan_test(
 opentitan_test(
     name = "sram_ctrl_execution_test",
     srcs = ["sram_ctrl_execution_test.c"],
-    exec_env = dicts.omit(
-        dicts.add(
-            EARLGREY_TEST_ENVS,
-            EARLGREY_SILICON_OWNER_ROM_EXT_ENVS,
-        ),
-        # TODO (#26100): QEMU's `flashgen.py` script does not like this test.
-        ["//hw/top_earlgrey:sim_qemu_rom_with_fake_keys"],
+    exec_env = dicts.add(
+        EARLGREY_TEST_ENVS,
+        EARLGREY_SILICON_OWNER_ROM_EXT_ENVS,
     ),
     deps = [
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
@@ -7705,6 +7707,10 @@ opentitan_test(
         },
     ),
     fpga = fpga_params(
+        exit_failure = "FAIL!",
+        exit_success = "Alert 3 is asserted",
+    ),
+    silicon = silicon_params(
         exit_failure = "FAIL!",
         exit_success = "Alert 3 is asserted",
     ),

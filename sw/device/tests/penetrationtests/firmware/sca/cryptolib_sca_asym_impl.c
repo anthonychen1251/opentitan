@@ -14,9 +14,9 @@
 #include "sw/device/lib/crypto/include/datatypes.h"
 #include "sw/device/lib/crypto/include/ecc_p256.h"
 #include "sw/device/lib/crypto/include/ecc_p384.h"
-#include "sw/device/lib/crypto/include/hash.h"
 #include "sw/device/lib/crypto/include/key_transport.h"
 #include "sw/device/lib/crypto/include/rsa.h"
+#include "sw/device/lib/crypto/include/sha2.h"
 #include "sw/device/lib/runtime/log.h"
 #include "sw/device/lib/testing/test_framework/check.h"
 #include "sw/device/lib/testing/test_framework/ujson_ottf.h"
@@ -251,7 +251,7 @@ status_t cryptolib_sca_p256_ecdh_impl(
   uint32_t share1[kPentestP256Words];
   uint32_t ss[kPentestP256Words];
   TRY(otcrypto_export_blinded_key(
-      shared_secret,
+      &shared_secret,
       (otcrypto_word32_buf_t){.data = share0, .len = ARRAYSIZE(share0)},
       (otcrypto_word32_buf_t){.data = share1, .len = ARRAYSIZE(share1)}));
   for (size_t i = 0; i < kPentestP256Words; i++) {
@@ -407,7 +407,13 @@ status_t cryptolib_sca_rsa_sign_impl(
     pentest_set_trigger_high();
   }
   // Hash the message.
-  TRY(otcrypto_hash(msg_buf, msg_digest));
+  if (hash_mode == kOtcryptoHashModeSha256) {
+    TRY(otcrypto_sha2_256(msg_buf, &msg_digest));
+  } else if (hash_mode == kOtcryptoHashModeSha384) {
+    TRY(otcrypto_sha2_384(msg_buf, &msg_digest));
+  } else {
+    TRY(otcrypto_sha2_512(msg_buf, &msg_digest));
+  }
   if (trigger & kPentestTrigger2) {
     pentest_set_trigger_low();
   }
@@ -583,7 +589,7 @@ status_t cryptolib_sca_p384_ecdh_impl(
   uint32_t share1[kPentestP384Words];
   uint32_t ss[kPentestP384Words];
   TRY(otcrypto_export_blinded_key(
-      shared_secret,
+      &shared_secret,
       (otcrypto_word32_buf_t){.data = share0, .len = ARRAYSIZE(share0)},
       (otcrypto_word32_buf_t){.data = share1, .len = ARRAYSIZE(share1)}));
   for (size_t i = 0; i < kPentestP384Words; i++) {

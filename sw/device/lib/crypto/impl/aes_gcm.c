@@ -67,15 +67,46 @@ static inline void gcm_context_restore(otcrypto_aes_gcm_context_t *api_ctx,
 }
 
 /**
+ * Remask the key if it is not sideloaded.
+ *
+ * Generate a fresh mask and apply it to the current key.
+ *
+ * @param[in,out] internal_ctx Internal context object.
+ * @return Result of the operation.
+ */
+status_t gcm_remask_key(aes_gcm_context_t *internal_ctx) {
+  if (launder32(internal_ctx->key.sideload) == kHardenedBoolFalse) {
+    HARDENED_CHECK_EQ(internal_ctx->key.sideload, kHardenedBoolFalse);
+
+    // Generate a fresh mask the size of one share.
+    uint32_t mask[internal_ctx->key.key_len];
+    hardened_memshred(mask, internal_ctx->key.key_len);
+
+    // XOR each share with the mask.
+    hardened_xor((uint32_t *)internal_ctx->key.key_shares[0], mask,
+                 internal_ctx->key.key_len);
+    hardened_xor((uint32_t *)internal_ctx->key.key_shares[1], mask,
+                 internal_ctx->key.key_len);
+  } else {
+    HARDENED_CHECK_EQ(internal_ctx->key.sideload, kHardenedBoolTrue);
+  }
+
+  return OTCRYPTO_OK;
+}
+
+/**
  * Construct the underlying AES key for AES-GCM.
  *
  * Also performs integrity, mode, and null-pointer checks on the key.
+ *
+ * Re-masks the key after checking its integrity. The caller should ensure the
+ * entropy complex is up before calling this function.
  *
  * @param blinded_key Blinded key struct.
  * @param[out] aes_key Destination AES key struct.
  * @return Result of the operation.
  */
-static status_t aes_gcm_key_construct(const otcrypto_blinded_key_t *blinded_key,
+static status_t aes_gcm_key_construct(otcrypto_blinded_key_t *blinded_key,
                                       aes_key_t *aes_key) {
   // Key integrity check.
   if (launder32(integrity_blinded_key_check(blinded_key)) !=
@@ -116,6 +147,10 @@ static status_t aes_gcm_key_construct(const otcrypto_blinded_key_t *blinded_key,
     aes_key->sideload = launder32(kHardenedBoolTrue);
   } else if (launder32(blinded_key->config.hw_backed) == kHardenedBoolFalse) {
     HARDENED_CHECK_EQ(blinded_key->config.hw_backed, kHardenedBoolFalse);
+
+    // Remask the key.
+    HARDENED_TRY(keyblob_remask(blinded_key));
+
     // Get pointers to the individual shares.
     uint32_t *share0;
     uint32_t *share1;
@@ -229,7 +264,7 @@ static status_t clear_key_if_sideloaded(const aes_key_t key) {
   return keymgr_sideload_clear_aes();
 }
 
-otcrypto_status_t otcrypto_aes_gcm_encrypt(const otcrypto_blinded_key_t *key,
+otcrypto_status_t otcrypto_aes_gcm_encrypt(otcrypto_blinded_key_t *key,
                                            otcrypto_const_byte_buf_t plaintext,
                                            otcrypto_const_word32_buf_t iv,
                                            otcrypto_const_byte_buf_t aad,
@@ -241,6 +276,9 @@ otcrypto_status_t otcrypto_aes_gcm_encrypt(const otcrypto_blinded_key_t *key,
   if (key == NULL || iv.data == NULL || auth_tag.data == NULL) {
     return OTCRYPTO_BAD_ARGS;
   }
+
+  // Ensure entropy complex is initialized.
+  HARDENED_TRY(entropy_complex_check());
 
   // Conditionally check for null pointers in data buffers that may be
   // 0-length.
@@ -274,7 +312,7 @@ otcrypto_status_t otcrypto_aes_gcm_encrypt(const otcrypto_blinded_key_t *key,
 }
 
 otcrypto_status_t otcrypto_aes_gcm_decrypt(
-    const otcrypto_blinded_key_t *key, otcrypto_const_byte_buf_t ciphertext,
+    otcrypto_blinded_key_t *key, otcrypto_const_byte_buf_t ciphertext,
     otcrypto_const_word32_buf_t iv, otcrypto_const_byte_buf_t aad,
     otcrypto_aes_gcm_tag_len_t tag_len, otcrypto_const_word32_buf_t auth_tag,
     otcrypto_byte_buf_t plaintext, hardened_bool_t *success) {
@@ -291,6 +329,9 @@ otcrypto_status_t otcrypto_aes_gcm_decrypt(
       (plaintext.len != 0 && plaintext.data == NULL)) {
     return OTCRYPTO_BAD_ARGS;
   }
+
+  // Ensure entropy complex is initialized.
+  HARDENED_TRY(entropy_complex_check());
 
   // Construct the AES key.
   aes_key_t aes_key;
@@ -316,11 +357,14 @@ otcrypto_status_t otcrypto_aes_gcm_decrypt(
 }
 
 otcrypto_status_t otcrypto_aes_gcm_encrypt_init(
-    const otcrypto_blinded_key_t *key, otcrypto_const_word32_buf_t iv,
+    otcrypto_blinded_key_t *key, otcrypto_const_word32_buf_t iv,
     otcrypto_aes_gcm_context_t *ctx) {
   if (key == NULL || key->keyblob == NULL || iv.data == NULL || ctx == NULL) {
     return OTCRYPTO_BAD_ARGS;
   }
+
+  // Ensure entropy complex is initialized.
+  HARDENED_TRY(entropy_complex_check());
 
   // Construct the AES key.
   aes_key_t aes_key;
@@ -338,11 +382,14 @@ otcrypto_status_t otcrypto_aes_gcm_encrypt_init(
 }
 
 otcrypto_status_t otcrypto_aes_gcm_decrypt_init(
-    const otcrypto_blinded_key_t *key, otcrypto_const_word32_buf_t iv,
+    otcrypto_blinded_key_t *key, otcrypto_const_word32_buf_t iv,
     otcrypto_aes_gcm_context_t *ctx) {
   if (key == NULL || key->keyblob == NULL || iv.data == NULL || ctx == NULL) {
     return OTCRYPTO_BAD_ARGS;
   }
+
+  // Ensure entropy complex is initialized.
+  HARDENED_TRY(entropy_complex_check());
 
   // Construct the AES key.
   aes_key_t aes_key;
@@ -364,6 +411,9 @@ otcrypto_status_t otcrypto_aes_gcm_update_aad(otcrypto_aes_gcm_context_t *ctx,
   if (ctx == NULL || aad.data == NULL) {
     return OTCRYPTO_BAD_ARGS;
   }
+
+  // Ensure entropy complex is initialized.
+  HARDENED_TRY(entropy_complex_check());
 
   if (aad.len == 0) {
     // Nothing to do.
@@ -393,6 +443,9 @@ otcrypto_status_t otcrypto_aes_gcm_update_encrypted_data(
   }
   *output_bytes_written = 0;
 
+  // Ensure entropy complex is initialized.
+  HARDENED_TRY(entropy_complex_check());
+
   if (input.len == 0) {
     // Nothing to do.
     return OTCRYPTO_OK;
@@ -402,6 +455,8 @@ otcrypto_status_t otcrypto_aes_gcm_update_encrypted_data(
   aes_gcm_context_t internal_ctx;
   gcm_context_restore(ctx, &internal_ctx);
   HARDENED_TRY(load_key_if_sideloaded(internal_ctx.key));
+  // Remask the key if it is not sideloaded.
+  HARDENED_TRY(gcm_remask_key(&internal_ctx));
 
   // The output buffer must be long enough to hold all full blocks that will
   // exist after `input` is added.
@@ -439,7 +494,7 @@ otcrypto_status_t otcrypto_aes_gcm_encrypt_final(
   }
   *ciphertext_bytes_written = 0;
 
-  // Entropy complex needs to be initialized for `memshred`.
+  // Ensure entropy complex is initialized.
   HARDENED_TRY(entropy_complex_check());
 
   // Check the tag length.
@@ -449,6 +504,8 @@ otcrypto_status_t otcrypto_aes_gcm_encrypt_final(
   aes_gcm_context_t internal_ctx;
   gcm_context_restore(ctx, &internal_ctx);
   HARDENED_TRY(load_key_if_sideloaded(internal_ctx.key));
+  // Remask the key if it is not sideloaded.
+  HARDENED_TRY(gcm_remask_key(&internal_ctx));
 
   // If the partial block is nonempty, the output must be at least as long as
   // the partial block.
@@ -492,6 +549,8 @@ otcrypto_status_t otcrypto_aes_gcm_decrypt_final(
   aes_gcm_context_t internal_ctx;
   gcm_context_restore(ctx, &internal_ctx);
   HARDENED_TRY(load_key_if_sideloaded(internal_ctx.key));
+  // Remask the key if it is not sideloaded.
+  HARDENED_TRY(gcm_remask_key(&internal_ctx));
 
   // If the partial block is nonempty, the output must be at least as long as
   // the partial block.

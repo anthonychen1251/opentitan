@@ -12,9 +12,7 @@ use std::time::Duration;
 use opentitanlib::app::TransportWrapper;
 use opentitanlib::io::uart::Uart;
 use opentitanlib::rescue::xmodem::XmodemError;
-use opentitanlib::rescue::Rescue;
-use opentitanlib::rescue::RescueSerial;
-use opentitanlib::rescue::{EntryMode, RescueMode};
+use opentitanlib::rescue::{EntryMode, Rescue, RescueMode, RescueSerial};
 use opentitanlib::test_utils::init::InitializeTest;
 use opentitanlib::uart::console::UartConsole;
 
@@ -54,13 +52,11 @@ fn send_packet_timeout(
 
     uart.write(&[STX])?;
 
-    #[cfg(feature = "ot_coverage_build")]
-    {
-        // Ensure we can still boot into Owner SW.
-        UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
-        UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
-    }
+    // Ensure we can still boot into Owner SW.
+    UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
 
+    #[cfg(feature = "ot_coverage_build")]
+    UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
     Ok(())
 }
 
@@ -77,12 +73,11 @@ fn send_data_timeout(
 
     uart.write(&[STX, 1, 254])?;
 
+    // Ensure we can still boot into Owner SW.
+    UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
+
     #[cfg(feature = "ot_coverage_build")]
-    {
-        // Ensure we can still boot into Owner SW.
-        UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
-        UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
-    }
+    UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
 
     Ok(())
 }
@@ -104,12 +99,11 @@ fn send_crc_timeout(
     buf[2] = 255 - buf[1];
     uart.write(&buf)?;
 
+    // Ensure we can still boot into Owner SW.
+    UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
+
     #[cfg(feature = "ot_coverage_build")]
-    {
-        // Ensure we can still boot into Owner SW.
-        UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
-        UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
-    }
+    UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
 
     Ok(())
 }
@@ -137,12 +131,12 @@ fn send_data_crc_error_cancel(
     uart.read(std::slice::from_mut(&mut ch))?;
     assert_eq!(ch, CAN);
 
+
+    // Ensure we can still boot into Owner SW.
+    UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
+
     #[cfg(feature = "ot_coverage_build")]
-    {
-        // Ensure we can still boot into Owner SW.
-        UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
-        UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
-    }
+    UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
 
     Ok(())
 }
@@ -177,12 +171,11 @@ fn send_packet_bad_len(
     uart.write(&[STX, 3, 252])?;
     uart.write(&buf_1k)?;
 
+    // Ensure we can still boot into Owner SW.
+    UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
+
     #[cfg(feature = "ot_coverage_enabled")]
-    {
-        // Ensure we can still boot into Owner SW.
-        UartConsole::wait_for(&*uart, r"Finished", Duration::from_secs(5))?;
-        UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
-    }
+    UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
 
     Ok(())
 }
@@ -197,12 +190,11 @@ fn recv_start_timeout(
     let buf = vec![0xff; 29];
     uart.write(&buf)?;
 
+    // Ensure we can still boot into Owner SW.
+    UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
+
     #[cfg(feature = "ot_coverage_build")]
-    {
-        // Ensure we can still boot into Owner SW.
-        UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
-        UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
-    }
+    UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
 
     Ok(())
 }
@@ -216,12 +208,11 @@ fn recv_start_cancel(
     rescue.set_mode(RescueMode::BootLog)?;
     uart.write(&[CAN, CAN])?;
 
+    // Ensure we can still boot into Owner SW.
+    UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
+
     #[cfg(feature = "ot_coverage_build")]
-    {
-        // Ensure we can still boot into Owner SW.
-        UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
-        UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
-    }
+    UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
 
     Ok(())
 }
@@ -235,12 +226,11 @@ fn recv_start_nak(
     rescue.set_mode(RescueMode::BootLog)?;
     uart.write(&[NAK, NAK])?;
 
+    // Ensure we can still boot into Owner SW.
+    UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
+
     #[cfg(feature = "ot_coverage_build")]
-    {
-        // Ensure we can still boot into Owner SW.
-        UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
-        UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
-    }
+    UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
 
     Ok(())
 }
@@ -255,12 +245,13 @@ fn recv_data_timeout(
     uart.write(&[CRC])?;
     uart.write(&[NAK])?;
 
-    #[cfg(feature = "ot_coverage_build")]
-    {
-        // Ensure we can still boot into Owner SW.
-        UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
-        UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
     }
+
+    // Ensure we can still boot into Owner SW.
+    UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
+
+    #[cfg(feature = "ot_coverage_build")]
+    UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
 
     Ok(())
 }
@@ -275,12 +266,13 @@ fn recv_data_cancel(
     uart.write(&[CRC])?;
     uart.write(&[CAN, CAN])?;
 
-    #[cfg(feature = "ot_coverage_build")]
-    {
-        // Ensure we can still boot into Owner SW.
-        UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
-        UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
     }
+
+    // Ensure we can still boot into Owner SW.
+    UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
+
+    #[cfg(feature = "ot_coverage_build")]
+    UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
 
     Ok(())
 }
@@ -295,12 +287,13 @@ fn recv_data_nak(
     uart.write(&[CRC])?;
     uart.write(&[NAK, NAK])?;
 
-    #[cfg(feature = "ot_coverage_build")]
-    {
-        // Ensure we can still boot into Owner SW.
-        UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
-        UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
     }
+
+    // Ensure we can still boot into Owner SW.
+    UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
+
+    #[cfg(feature = "ot_coverage_build")]
+    UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
 
     Ok(())
 }
@@ -394,14 +387,15 @@ fn recv_finish_nak(
         }
     }
 
-    #[cfg(feature = "ot_coverage_build")]
-    {
-        rescue.reboot()?;
-        // Ensure we can still boot into Owner SW.
-        UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
-        UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
     }
 
+    rescue.reboot()?;
+
+    // Ensure we can still boot into Owner SW.
+    UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
+
+    #[cfg(feature = "ot_coverage_build")]
+    UartConsole::wait_for_coverage(uart, Duration::from_secs(5))?;
     Ok(())
 }
 
