@@ -245,8 +245,6 @@ fn recv_data_timeout(
     uart.write(&[CRC])?;
     uart.write(&[NAK])?;
 
-    }
-
     // Ensure we can still boot into Owner SW.
     UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
 
@@ -266,8 +264,6 @@ fn recv_data_cancel(
     uart.write(&[CRC])?;
     uart.write(&[CAN, CAN])?;
 
-    }
-
     // Ensure we can still boot into Owner SW.
     UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
 
@@ -286,8 +282,6 @@ fn recv_data_nak(
     rescue.set_mode(RescueMode::BootLog)?;
     uart.write(&[CRC])?;
     uart.write(&[NAK, NAK])?;
-
-    }
 
     // Ensure we can still boot into Owner SW.
     UartConsole::wait_for(uart, r"Finished", Duration::from_secs(5))?;
@@ -385,8 +379,6 @@ fn recv_finish_nak(
         if errors >= 2 {
             return Err(XmodemError::ExhaustedRetries(errors).into());
         }
-    }
-
     }
 
     rescue.reboot()?;

@@ -27,7 +27,7 @@
   .global _asm_exception_handler
   .type _asm_exception_handler, @function
 _asm_exception_handler:
-  COVERAGE_ASM_MANUAL_MARK(t6, 0)
+  COVERAGE_ASM_MANUAL_MARK(t6,0)
   COVERAGE_ASM_REPORT()
 
 .L_exception_loop:

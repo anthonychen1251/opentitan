@@ -44,7 +44,7 @@ _imm_section_start_boot:
   // NOTE: Coverage transport isn't re-initialized to reuse ROM's settings.
   COVERAGE_ASM_INIT()
 
-  // PRAGMA_COVERAGE: start autogen
+  // PRAGMA_COVERAGE: autogen start
 
   /**
    * Disable Interrupts.
@@ -54,7 +54,7 @@ _imm_section_start_boot:
    */
 
   // Clear `MIE` field of `mstatus` (disable interrupts globally).
-  COVERAGE_ASM_AUTOGEN_MARK(t6, 0)
+  COVERAGE_ASM_AUTOGEN_MARK(t6,0)
   csrci mstatus, 0x8
 
   /**
@@ -81,6 +81,7 @@ _imm_section_start_boot:
    * We do this despite zeroing all of SRAM above, so that we still zero `.bss`
    * once we've enabled SRAM scrambling.
    */
+  COVERAGE_ASM_AUTOGEN_MARK(t6,1)
   la   a0, _bss_start
   la   a1, _bss_end
   call crt_section_clear
@@ -88,6 +89,7 @@ _imm_section_start_boot:
   /**
    * Restore registers.
    */
+  COVERAGE_ASM_AUTOGEN_MARK(t6,2)
   lw ra, 4(sp)
   addi sp, sp, 8
 

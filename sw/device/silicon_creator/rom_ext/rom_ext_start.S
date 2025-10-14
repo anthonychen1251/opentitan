@@ -95,7 +95,7 @@ _rom_ext_start_boot:
   // It's no-op when coverage mode is not enabled.
   COVERAGE_ASM_INIT()
   COVERAGE_ASM_TRANSPORT_INIT()
-  COVERAGE_ASM_MANUAL_MARK(t6, 0)
+  COVERAGE_ASM_MANUAL_MARK(t6,0)
 
   /**
    * Call the .rom_ext_immutable first if it's not called by ROM.
@@ -110,7 +110,7 @@ _rom_ext_start_boot:
   // Re-initialize after returning from immutable section.
   COVERAGE_ASM_INIT()
   COVERAGE_ASM_TRANSPORT_INIT()
-  COVERAGE_ASM_MANUAL_MARK(t6, 1)
+  COVERAGE_ASM_MANUAL_MARK(t6,1)
 
   /**
    * Continue booting the mutable rom_ext.
@@ -151,6 +151,8 @@ _rom_ext_start_boot:
    */
   la   sp, _stack_end
 
+  // PRAGMA_COVERAGE: autogen start
+
   /**
    * Setup C Runtime
    */
@@ -158,6 +160,7 @@ _rom_ext_start_boot:
   /**
    * Initialize the `.data` section in RAM from ROM.
    */
+  COVERAGE_ASM_AUTOGEN_MARK(t6,2)
   la   a0, _data_start
   la   a1, _data_end
   la   a2, _data_init_start
@@ -169,11 +172,13 @@ _rom_ext_start_boot:
    * We do this despite zeroing all of SRAM above, so that we still zero `.bss`
    * once we've enabled SRAM scrambling.
    */
+  COVERAGE_ASM_AUTOGEN_MARK(t6,3)
   la   a0, _bss_start
   la   a1, _bss_end
   call crt_section_clear
 
   // Re-clobber all of the temporary registers.
+  COVERAGE_ASM_AUTOGEN_MARK(t6,4)
   li t0, 0x0
   li t1, 0x0
   li t2, 0x0
