@@ -69,6 +69,7 @@ HYPER310_ROM_EXT_TESTS=(
   '//sw/device/silicon_creator/rom_ext/e2e/ownership:transfer_spx_pure_to_spx_prehash_test_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/ownership:unlock_detached_sig_test_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/ownership:unlock_when_recovery_state_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_config_module_mismatch_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_enter_on_fail_usbdfu_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_firmware_slot_b_usbdfu_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_get_owner_page_usbdfu_fpga_hyper310_rom_ext'
