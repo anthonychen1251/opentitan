@@ -112,6 +112,7 @@ cc_library(
     deps = [
         ":printer",
         "//sw/device/lib/arch:device",
+        "//sw/device/silicon_creator/lib:dbg_print",
         "//sw/device/silicon_creator/lib/drivers:pinmux",
         "//sw/device/silicon_creator/lib/drivers:uart",
     ],
@@ -124,6 +125,7 @@ cc_library(
     features = ["-coverage"],
     deps = [
         "//sw/device/lib/arch:device",
+        "//sw/device/silicon_creator/lib:dbg_print",
         "//sw/device/silicon_creator/lib/drivers:pinmux",
         "//sw/device/silicon_creator/lib/drivers:uart",
     ],

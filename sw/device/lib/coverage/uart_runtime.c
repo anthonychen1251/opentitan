@@ -4,6 +4,7 @@
 
 #include "sw/device/lib/arch/device.h"
 #include "sw/device/lib/coverage/printer.h"
+#include "sw/device/silicon_creator/lib/dbg_print.h"
 #include "sw/device/silicon_creator/lib/drivers/pinmux.h"
 #include "sw/device/silicon_creator/lib/drivers/uart.h"
 
@@ -11,42 +12,23 @@ void coverage_transport_init(void) {
   pinmux_init_uart0_tx();
   uart_init(kUartNCOValue);
 
-  // python3 util/uart_hex.py 'COVERAGE:UART\r\n'
-  uart_write_imm(0x4547415245564f43);
-  uart_write_imm(0x000a0d545241553a);
-  while (!uart_tx_idle())
-    ;
+  dbg_puts("COVERAGE:UART\r\n");
+  while (!uart_tx_idle()) {
+  }
 }
 
 void coverage_report(void) {
   if (coverage_is_valid()) {
-    // python3 util/uart_hex.py \
-    //   '== COVERAGE PROFILE START ==\r\n'
-    uart_write_imm(0x5245564f43203d3d);
-    uart_write_imm(0x464f525020454741);
-    uart_write_imm(0x5241545320454c49);
-    uart_write_imm(0x00000a0d3d3d2054);
-
+    dbg_puts("== COVERAGE PROFILE START ==\r\n");
     coverage_printer_run();
-
-    // python3 util/uart_hex.py \
-    //   '== COVERAGE PROFILE END ==\r\n'
-    uart_write_imm(0x5245564f43203d3d);
-    uart_write_imm(0x464f525020454741);
-    uart_write_imm(0x20444e4520454c49);
-    uart_write_imm(0x000000000a0d3d3d);
+    dbg_puts("== COVERAGE PROFILE END ==\r\n");
   } else {
-    // python3 util/uart_hex.py \
-    //   '== COVERAGE PROFILE INVALID ==\r\n'
-    uart_write_imm(0x5245564f43203d3d);
-    uart_write_imm(0x464f525020454741);
-    uart_write_imm(0x41564e4920454c49);
-    uart_write_imm(0x0a0d3d3d2044494c);
+    dbg_puts("== COVERAGE PROFILE INVALID ==\r\n");
   }
 
   // Wait until the report is sent.
-  while (!uart_tx_idle())
-    ;
+  while (!uart_tx_idle()) {
+  }
 }
 
 void coverage_printer_sink(const void *data, size_t size) {
