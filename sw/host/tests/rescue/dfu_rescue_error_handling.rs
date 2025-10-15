@@ -11,7 +11,7 @@ use std::time::Duration;
 use opentitanlib::app::TransportWrapper;
 use opentitanlib::io::eeprom::{AddressMode, Transaction, MODE_111};
 use opentitanlib::io::spi::SpiParams;
-use opentitanlib::rescue::dfu::{DfuOperations, DfuRequestType};
+use opentitanlib::rescue::dfu::{DfuOperations, DfuRequest, DfuRequestType};
 use opentitanlib::rescue::{EntryMode, Rescue, RescueMode, RescueParams, SpiDfu, UsbDfu};
 use opentitanlib::spiflash::SpiFlash;
 use opentitanlib::test_utils::init::InitializeTest;
@@ -50,6 +50,7 @@ pub enum DfuRescueTestActions {
     InvalidSpiDfuRequests,
     InvalidSpiFlashTransaction,
     UsbDfuOutChunkTooBig,
+    UsbDfuInTransactionCancel,
 }
 
 const SET_INTERFACE: u8 = 0x0b;
@@ -333,6 +334,40 @@ fn usb_dfu_out_chunk_too_big(params: &RescueParams, transport: &TransportWrapper
     Ok(())
 }
 
+fn usb_dfu_in_transaction_cancel(
+    params: &RescueParams,
+    transport: &TransportWrapper,
+) -> Result<()> {
+    let rescue = UsbDfu::new(params.clone());
+    rescue.enter(transport, EntryMode::Reset)?;
+    rescue.set_mode(RescueMode::DeviceId)?;
+    let usb = rescue.device();
+    let mut data = vec![0u8; 2048];
+    //  Issue a USB control request with minimal timeout to cancel the transaction.
+    let result = usb.handle().read_control(
+        DfuRequestType::In.into(),
+        DfuRequest::UpLoad.into(),
+        0,
+        rescue.get_interface() as u16,
+        &mut data,
+        Duration::from_millis(1),
+    );
+
+    if result.is_ok() {
+        return Err(anyhow!("Invalid read control should fail"));
+    }
+
+    rescue.reboot()?;
+
+    let uart = transport.uart("console")?;
+    UartConsole::wait_for(&*uart, r"Finished", Duration::from_secs(5))?;
+
+    #[cfg(feature = "ot_coverage_enabled")]
+    UartConsole::wait_for_coverage(&*uart, Duration::from_secs(5))?;
+
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let opts = Opts::parse();
     opts.init.init_logging();
@@ -351,6 +386,9 @@ fn main() -> Result<()> {
             }
             DfuRescueTestActions::UsbDfuOutChunkTooBig => {
                 usb_dfu_out_chunk_too_big(&rescue.params, &transport)?
+            }
+            DfuRescueTestActions::UsbDfuInTransactionCancel => {
+                usb_dfu_in_transaction_cancel(&rescue.params, &transport)?
             }
         },
     }

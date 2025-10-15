@@ -33,7 +33,7 @@ impl UsbDfu {
         }
     }
 
-    fn device(&self) -> Ref<'_, UsbBackend> {
+    pub fn device(&self) -> Ref<'_, UsbBackend> {
         let device = self.usb.borrow();
         Ref::map(device, |d| d.as_ref().expect("device handle"))
     }
