@@ -903,6 +903,27 @@ opentitan_test(
     ),
 )
 
+opentitan_test(
+    name = "usbdfu_in_transaction_cancel",
+    exec_env = {
+        "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
+    },
+    fpga = fpga_params(
+        assemble = "{romext}@{rom_ext_slot_a} {firmware}@{owner_slot_a}",
+        binaries = {
+            "//sw/device/silicon_creator/rom_ext:rom_ext_usbdfu": "romext",
+            ":boot_test_slot_a": "firmware",
+        },
+        params = "-p usb-dfu -t strap -v 3",
+        test_cmd = """
+        --clear-bitstream
+        --bootstrap={firmware}
+        rescue {params} --action=usb-dfu-in-transaction-cancel
+        """,
+        test_harness = "//sw/host/tests/rescue:dfu_rescue_error_handling",
+    ),
+)
+
 # Check that when we are not configured to rescue on watchdog timeout that
 # a watchdog timeout event simply boots the firmware normally.
 opentitan_test(
@@ -957,6 +978,8 @@ opentitan_test(
             --exec="fpga load-bitstream {bitstream}"
             --exec="bootstrap --clear-uart=true {firmware}"
             --exec="console --non-interactive --exit-success='{exit_success}' --exit-failure='{exit_failure}'"
+            # Try the `REBO` mode and make sure we reboot without crash.
+            --exec="console --non-interactive --send='REBO\r' --exit-success='ROM:' --exit-failure='BFV:.*\r\n'"
             no-op
         """,
     ),
