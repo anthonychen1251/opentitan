@@ -979,6 +979,11 @@ OTBN_TESTS=(
 //sw/otbn/crypto/tests:p256_testcase_p256_check_public_key_y_too_large
 //sw/otbn/crypto/tests:p256_testcase_p256_isoncurve_valid
 //sw/otbn/crypto/tests:p256_testcase_p256_keygen_valid
+//sw/otbn/crypto/tests:p256_isoncurve_proj_test
+//sw/otbn/crypto/tests:p256_scalar_reblind_test
+//sw/otbn/crypto/tests:p384_internal_mult_test
+//sw/otbn/crypto/tests:p384_isoncurve_proj_test
+//sw/otbn/crypto/tests:p384_masked_scalar_reblind_test
 
 # Passed, but unused.
 # //sw/otbn/crypto/tests:div_consttime
