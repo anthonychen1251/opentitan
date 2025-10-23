@@ -24,11 +24,14 @@ pub struct Monitor {
 
     /// Incrementing ID attached to each command and checked with each response.
     id_counter: usize,
+
+    /// Whether to quit QEMU when dropped.
+    quit_qemu: bool,
 }
 
 impl Monitor {
     /// Connect to the QEMU monitor over a given TTY.
-    pub fn new<P: AsRef<Path>>(tty_path: P) -> anyhow::Result<Self> {
+    pub fn new<P: AsRef<Path>>(tty_path: P, quit_qemu: bool) -> anyhow::Result<Self> {
         let tty = serialport::new(
             tty_path.as_ref().to_str().context("TTY path not UTF8")?,
             115200,
@@ -55,46 +58,50 @@ impl Monitor {
             micro = version.qemu.micro
         );
 
-        let mut monitor = Monitor { tty, id_counter: 0 };
+        let mut monitor = Monitor {
+            tty,
+            id_counter: 0,
+            quit_qemu,
+        };
 
         // Negotiate capabilities.
         // We don't need any, but the protocol requires us to do this.
-        monitor.send_cmd("qmp_capabilities")?;
+        monitor.send_cmd("qmp_capabilities", None)?;
 
         Ok(monitor)
     }
 
     /// Send a continue command either starting or resuming the emulation.
     pub fn cont(&mut self) -> anyhow::Result<()> {
-        self.send_cmd("cont")?;
+        self.send_cmd("cont", None)?;
 
         Ok(())
     }
 
     /// Stop the emulation (resumable, does not quit QEMU).
     pub fn stop(&mut self) -> anyhow::Result<()> {
-        self.send_cmd("stop")?;
+        self.send_cmd("stop", None)?;
 
         Ok(())
     }
 
     /// Reset the system within the emulation.
     pub fn reset(&mut self) -> anyhow::Result<()> {
-        self.send_cmd("system_reset")?;
+        self.send_cmd("system_reset", None)?;
 
         Ok(())
     }
 
     /// Gracefully shut down QEMU and terminate the process.
     pub fn quit(&mut self) -> anyhow::Result<()> {
-        self.send_cmd("quit")?;
+        self.send_cmd("quit", None)?;
 
         Ok(())
     }
 
     /// List the IDs of the currently configured `chardev`s.
     pub fn query_chardevs(&mut self) -> anyhow::Result<Vec<Chardev>> {
-        let response = self.send_cmd("query-chardev")?;
+        let response = self.send_cmd("query-chardev", None)?;
         let serde_json::Value::Array(response) = response else {
             bail!("expected array of chardevs");
         };
@@ -108,6 +115,15 @@ impl Monitor {
         Ok(chardevs)
     }
 
+    pub fn send_chardev_break(&mut self, id: &str) -> anyhow::Result<()> {
+        self.send_cmd(
+            "chardev-send-break",
+            Some(format!(r#"{{"id": "{id}"}}"#).as_str()),
+        )?;
+
+        Ok(())
+    }
+
     /// Send a command over the JSON QMP interface.
     ///
     /// The protocol goes:
@@ -118,13 +134,17 @@ impl Monitor {
     ///
     /// We only support synchronous commands, i.e. we wait for a response before
     /// sending anything new.
-    fn send_cmd(&mut self, cmd: &str) -> anyhow::Result<serde_json::Value> {
+    fn send_cmd(&mut self, cmd: &str, args: Option<&str>) -> anyhow::Result<serde_json::Value> {
         let id = self.id_counter;
 
-        writeln!(
-            self.tty.get_mut(),
-            r#"{{ "execute": "{cmd}", "id": {id} }}"#
-        )?;
+        let command = match args {
+            Some(arguments) => {
+                format!(r#"{{ "execute": "{cmd}", "arguments": {arguments}, "id": {id} }}"#)
+            }
+            None => format!(r#"{{ "execute": "{cmd}", "id": {id} }}"#),
+        };
+
+        writeln!(self.tty.get_mut(), "{}", command.as_str())?;
 
         // Increment the ID for the next message.
         self.id_counter += 1;
@@ -160,6 +180,15 @@ impl Monitor {
                 bail!("monitor returned error: {error:#?}");
             }
             MonitorResponse::Event { .. } => unreachable!("should have been skipped"),
+        }
+    }
+}
+
+impl Drop for Monitor {
+    fn drop(&mut self) {
+        // Quit QEMU when dropped if requested.
+        if self.quit_qemu {
+            self.quit().ok();
         }
     }
 }

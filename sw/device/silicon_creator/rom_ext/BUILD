@@ -267,7 +267,6 @@ asm_library_with_coverage(
             "//sw/device/lib/base:memory",
             "//sw/device/lib/base:stdasm",
             "//sw/device/lib/coverage:api",
-            "//sw/device/lib/coverage:api_asm",
             "//sw/device/lib/coverage:uart_runtime",
             "//sw/device/lib/runtime:hart",
             "//sw/device/silicon_creator/lib:boot_data",

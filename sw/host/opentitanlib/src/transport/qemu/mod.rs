@@ -5,6 +5,7 @@
 pub mod monitor;
 pub mod reset;
 pub mod spi;
+pub mod uart;
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -20,6 +21,7 @@ use crate::transport::common::uart::SerialPortUart;
 use crate::transport::qemu::monitor::{Chardev, ChardevKind, Monitor};
 use crate::transport::qemu::reset::QemuReset;
 use crate::transport::qemu::spi::QemuSpi;
+use crate::transport::qemu::uart::QemuUart;
 use crate::transport::{
     Capabilities, Capability, Transport, TransportError, TransportInterfaceType,
 };
@@ -48,9 +50,6 @@ pub struct Qemu {
 
     /// QEMU log modelled as a UART.
     log: Option<Rc<dyn Uart>>,
-
-    /// Whether to quit QEMU when dropped.
-    quit: bool,
 }
 
 impl Qemu {
@@ -66,10 +65,13 @@ impl Qemu {
     /// to a device using one of the flags in the list above. The kind must
     /// match what OpenTitanLib expects to be accepted.
     pub fn from_options(options: QemuOpts) -> anyhow::Result<Self> {
-        let mut monitor = Monitor::new(options.qemu_monitor_tty.unwrap())?;
+        let monitor = Rc::new(RefCell::new(Monitor::new(
+            options.qemu_monitor_tty.unwrap(),
+            options.qemu_quit,
+        )?));
 
         // Get list of configured chardevs from QEMU.
-        let chardevs = monitor.query_chardevs()?;
+        let chardevs = monitor.borrow_mut().query_chardevs()?;
         fn find_chardev<'a>(chardevs: &'a [Chardev], id: &str) -> Option<&'a ChardevKind> {
             chardevs
                 .iter()
@@ -79,10 +81,11 @@ impl Qemu {
         // Console UART:
         let console = match find_chardev(&chardevs, "console") {
             Some(ChardevKind::Pty { path }) => {
-                let uart: Rc<dyn Uart> = Rc::new(
+                let serial_port =
                     SerialPortUart::open_pseudo(path.to_str().unwrap(), CONSOLE_BAUDRATE)
-                        .context("failed to open QEMU console PTY")?,
-                );
+                        .context("failed to open QEMU console PTY")?;
+                let uart: Rc<dyn Uart> =
+                    Rc::new(QemuUart::new(Rc::clone(&monitor), "console", serial_port));
                 Some(uart)
             }
             _ => {
@@ -119,8 +122,6 @@ impl Qemu {
             }
         };
 
-        let monitor = Rc::new(RefCell::new(monitor));
-
         // Resetting is done over the monitor, but we model it like a pin to enable strapping it.
         let reset = QemuReset::new(Rc::clone(&monitor));
         let reset = Rc::new(reset);
@@ -131,17 +132,7 @@ impl Qemu {
             console,
             log,
             spi,
-            quit: options.qemu_quit,
         })
-    }
-}
-
-impl Drop for Qemu {
-    fn drop(&mut self) {
-        // Quit QEMU when dropped if requested.
-        if self.quit {
-            self.monitor.borrow_mut().quit().ok();
-        }
     }
 }
 

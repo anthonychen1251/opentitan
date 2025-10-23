@@ -22,34 +22,6 @@ load(
 )
 load("//rules/opentitan:toolchain.bzl", "LOCALTOOLS_TOOLCHAIN")
 
-_TEST_SCRIPT = """#!/bin/bash
-set -e
-
-cleanup() {{
-    rm -f {mutable_otp} {mutable_flash}
-    rm -f qemu-monitor qemu.log
-}}
-trap cleanup EXIT
-
-# QEMU requires mutable flash and OTP files but Bazel only provides RO
-# files so we have to create copies unique to this test run.
-cp {otp} {mutable_otp} && chmod +w {mutable_otp}
-if [ ! -z {flash} ]; then
-    cp {flash} {mutable_flash} && chmod +w {mutable_flash}
-fi
-
-# QEMU disconnects from `stdout` when it daemonizes so we need to stream
-# the log through a pipe:
-mkfifo qemu.log && cat qemu.log &
-
-echo "Starting QEMU: {qemu} {qemu_args}"
-{qemu} {qemu_args}
-
-TEST_CMD=({test_cmd})
-echo Invoking test: {test_harness} {args} "$@" "${{TEST_CMD[@]}}"
-{test_harness} {args} "$@" "${{TEST_CMD[@]}}"
-"""
-
 def qemu_params(
         tags = [],
         timeout = "short",
@@ -267,6 +239,7 @@ def _sim_qemu(ctx):
         otp_sv = ctx.file.otp_sv,
         lc_sv = ctx.file.lc_sv,
         top_hjson = ctx.file.top_hjson,
+        test_script = ctx.file._test_script,
         **fields
     )
 
@@ -314,6 +287,10 @@ sim_qemu = rule(
         "top_hjson": attr.label(
             allow_single_file = True,
             default = Label("//hw/top_earlgrey/data:autogen/top_earlgrey.gen.hjson"),
+        ),
+        "_test_script": attr.label(
+            allow_single_file = True,
+            default = "//rules/scripts:qemu_test.sh",
         ),
     },
     toolchains = [LOCALTOOLS_TOOLCHAIN],
@@ -470,8 +447,7 @@ def _test_dispatch(ctx, exec_env, firmware):
 
     # Write any QEMU log messages to a file to be read at the end of the test.
     qemu_args += ["-D", "qemu.log"]
-    qemu_args += ["-d", "guest_errors"]
-    qemu_args += ["-d", "unimp"]
+    qemu_args += ["-d", "guest_errors,unimp"]
 
     if param["traces"]:
         traces = json.decode(param["traces"])
@@ -493,6 +469,12 @@ def _test_dispatch(ctx, exec_env, firmware):
     # bootstrapping, and then execute the test. Resetting could cause the test
     # to run, finish, and exit, which we don't want to happen.
     qemu_args += ["-global", "ot-ibex_wrapper.dv-sim-status-exit=off"]
+
+    # To enable limited support for UART rescue in the ROM_EXT, we need to
+    # be able to toggle break signals on/off in QEMU's UART and mock this
+    # in the oversampled `VAL` register.
+    qemu_args += ["-global", "ot-uart.oversample-break=true"]
+    qemu_args += ["-global", "ot-uart.toggle-break=true"]
 
     # Add parameter-specified globals.
     if param["globals"]:
@@ -517,16 +499,21 @@ def _test_dispatch(ctx, exec_env, firmware):
     test_cmd = test_cmd.format(**param)
     test_cmd = ctx.expand_location(test_cmd, data_labels)
 
-    ctx.actions.write(
-        script,
-        _TEST_SCRIPT.format(
-            qemu = exec_env.qemu.short_path,
-            qemu_args = qemu_args,
-            args = args,
-            test_harness = test_harness.executable.short_path,
-            test_cmd = test_cmd,
-            **test_script_fmt
-        ),
+    test_script_fmt.update({
+        "qemu": exec_env.qemu.short_path,
+        "qemu_args": qemu_args,
+        "args": args,
+        "test_harness": test_harness.executable.short_path,
+        "test_cmd": test_cmd,
+    })
+    ctx.actions.expand_template(
+        template = exec_env.test_script,
+        output = script,
+        is_executable = True,
+        substitutions = {
+            "__" + key + "__": val
+            for (key, val) in test_script_fmt.items()
+        },
     )
 
     return script, data_files
