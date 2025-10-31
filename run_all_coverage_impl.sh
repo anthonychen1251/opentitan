@@ -128,6 +128,9 @@ fi
 echo "Save test target list"
 printf '%s\n' "${TARGETS[@]}" | sort | uniq > "${COVERAGE_OUTPUT_DIR}/test_targets.txt"
 
+echo "Save testlogs"
+python3 util/coverage/bundle_logs.py "${COVERAGE_OUTPUT_DIR}/testlogs"
+
 echo "Save ToE source diff"
 python3 util/coverage/show_diff.py > "${COVERAGE_OUTPUT_DIR}/toe_source.diff"
 

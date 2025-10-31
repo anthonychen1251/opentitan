@@ -1,9 +1,10 @@
+import sys
 import shutil
 from pathlib import Path
 
 
 all_dirs = {}
-output = Path('/tmp/testlogs')
+output = Path(sys.argv[1])
 
 with open('./bazel-out/_coverage/lcov_files.tmp') as f:
   for line in f:
@@ -17,8 +18,6 @@ with open('./bazel-out/_coverage/lcov_files.tmp') as f:
     assert dst not in all_dirs, dst
     all_dirs[dst] = line
 
-print(len(all_dirs))
-
 if output.exists():
   shutil.rmtree(output)
 
@@ -26,4 +25,6 @@ for key, value in all_dirs.items():
   key = output / key
   key.parent.mkdir(parents=True, exist_ok=True)
   shutil.copyfile(value, key)
-  print(key, '->', value)
+  # print(key, '->', value)
+
+print(f'[+] Collected {len(all_dirs)} testlogs.')
