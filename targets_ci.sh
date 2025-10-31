@@ -162,8 +162,8 @@ CW310_FAKE_KEYS_TESTS=(
 # //sw/device/tests:alert_handler_reverse_ping_in_deep_sleep_test_fpga_cw310_rom_with_fake_keys
 
 # Prebuilt?
-//sw/device/silicon_creator/rom_ext/e2e/dice_chain:variation_interop_cwt_first_test_fpga_cw310_rom_with_fake_keys
-//sw/device/silicon_creator/rom_ext/e2e/dice_chain:variation_interop_x509_first_test_fpga_cw310_rom_with_fake_keys
+# //sw/device/silicon_creator/rom_ext/e2e/dice_chain:variation_interop_cwt_first_test_fpga_cw310_rom_with_fake_keys
+# //sw/device/silicon_creator/rom_ext/e2e/dice_chain:variation_interop_x509_first_test_fpga_cw310_rom_with_fake_keys
 
 # ???
 # //sw/device/tests:alert_handler_lpg_sleep_mode_pings_test_fpga_cw310_rom_with_fake_keys
@@ -554,10 +554,10 @@ CW310_SIVAL_ROMEXT_TESTS=(
 //sw/device/silicon_creator/lib/ownership:owner_verify_functest_fpga_cw310_sival_rom_ext
 
 //sw/device/tests:crt_test_fpga_cw310_sival_rom_ext
-//sw/device/tests:ottf_alert_catch_test_fpga_cw310_sival_rom_ext
 //sw/device/lib/crypto/drivers:rv_core_ibex_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:keymgr_sideload_otbn_simple_test_fpga_cw310_sival_rom_ext
 
+# //sw/device/tests:ottf_alert_catch_test_fpga_cw310_sival_rom_ext
 # //sw/device/tests:rv_core_ibex_isa_test_test_unlocked0_fpga_cw310_sival_rom_ext
 # //sw/device/tests:rv_core_ibex_mem_test_test_unlocked0_fpga_cw310_sival_rom_ext
 
