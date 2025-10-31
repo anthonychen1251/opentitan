@@ -470,8 +470,6 @@ LABEL_FOR_TEST(kRomStartWatchdogEnabled)
   COVERAGE_ASM_RESTORE_COUNTERS(s10, s11)
   COVERAGE_ASM_MANUAL_MARK(t6,29)
 
-  // PRAGMA_COVERAGE: autogen stop
-
   /**
    * Clean Device State Part 1 (Please refer to `boot.md` section "Cleaning Device
    * State").
@@ -517,6 +515,7 @@ LABEL_FOR_TEST(kRomStartWatchdogEnabled)
    */
 
   // Initialize the `.bss` section.
+  COVERAGE_ASM_AUTOGEN_MARK(t6,30)
   la   a0, _bss_start
   la   a1, _bss_end
   call crt_section_clear
@@ -528,6 +527,7 @@ LABEL_FOR_TEST(kRomStartWatchdogEnabled)
   //
   // If an exception fires, the handler is conventionally only allowed to clobber
   // memory at addresses below `sp`.
+  COVERAGE_ASM_AUTOGEN_MARK(t6,31)
   la sp, _stack_end
 
   // PRAGMA_COVERAGE: skip start
