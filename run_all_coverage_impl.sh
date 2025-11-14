@@ -67,7 +67,7 @@ rm -f "${COVERAGE_DAT}"
 python3 ./util/coverage/collect_coverage_json.py \
     --output="${VIEWER_DIR}/coverage.json.gz"
 
-cp ./util/coverage/viewer.html "${VIEWER_DIR}"
+cp ./util/coverage/viewer.html "${VIEWER_DIR}/index.html"
 
 if [[ "${#CACHED_VIEWS[@]}" == "0" ]]; then
     bash ./run_genhtml.sh \
@@ -145,6 +145,3 @@ python3 util/coverage/bundle_logs.py "${COVERAGE_OUTPUT_DIR}/testlogs"
 
 echo "Save ToE source diff"
 python3 util/coverage/show_diff.py > "${COVERAGE_OUTPUT_DIR}/toe_source.diff"
-
-# echo "Save ROM source diff"
-# python3 util/coverage/show_rom_diff.py > "${COVERAGE_OUTPUT_DIR}/taped_out_rom.diff"
