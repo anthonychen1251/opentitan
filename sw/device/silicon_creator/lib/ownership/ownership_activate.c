@@ -24,8 +24,14 @@ rom_error_t ownership_activate(boot_data_t *bootdata,
   // Seal page one to this chip.
   ownership_seal_page(/*page=*/1);
 
-  // If requested, reset the mim security version of the application firmware.
-  if (owner_page[1].min_security_version_bl0 != UINT32_MAX) {
+  // If requested, reset the min security version of the application firmware.
+  // Only a cross-owner transfer (UnlockedAny/UnlockedEndorsed) may lower the
+  // floor; same-owner updates (LockedOwner NEWV / UnlockedSelf) are monotonic.
+  if (owner_page[1].min_security_version_bl0 != UINT32_MAX &&
+      (bootdata->ownership_state == kOwnershipStateUnlockedAny ||
+       bootdata->ownership_state == kOwnershipStateUnlockedEndorsed ||
+       owner_page[1].min_security_version_bl0 >
+           bootdata->min_security_version_bl0)) {
     bootdata->min_security_version_bl0 = owner_page[1].min_security_version_bl0;
   }
 

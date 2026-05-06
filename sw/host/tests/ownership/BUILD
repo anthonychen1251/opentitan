@@ -90,8 +90,8 @@ rust_binary(
 )
 
 rust_binary(
-    name = "bl0_secver_persistence_test",
-    srcs = ["bl0_secver_persistence_test.rs"],
+    name = "bl0_secver_test",
+    srcs = ["bl0_secver_test.rs"],
     deps = [
         ":transfer_lib",
         "//sw/host/opentitanlib",

@@ -1059,11 +1059,49 @@ ownership_transfer_test(
     shared_params = {
         "rom_ext": "//sw/device/silicon_creator/rom_ext:rom_ext_owner_update_newversion",
         "test_cmd": """
-            --next-owner-key=$(location //sw/device/silicon_creator/lib/ownership/keys/fake:owner_key)
-            --next-unlock-key=$(location //sw/device/silicon_creator/lib/ownership/keys/fake:unlock_key)
-            --next-activate-key=$(location //sw/device/silicon_creator/lib/ownership/keys/fake:activate_key)
-            --next-application-key=sw/device/silicon_creator/lib/ownership/keys/fake/app_prod_ecdsa_p256.pub.der
+            --test-mode=persistence
+            --fake-owner-key=$(location //sw/device/silicon_creator/lib/ownership/keys/fake:owner_key)
+            --fake-unlock-key=$(location //sw/device/silicon_creator/lib/ownership/keys/fake:unlock_key)
+            --fake-activate-key=$(location //sw/device/silicon_creator/lib/ownership/keys/fake:activate_key)
+            --fake-app-key=sw/device/silicon_creator/lib/ownership/keys/fake/app_prod_ecdsa_p256.pub.der
         """,
-        "test_harness": "//sw/host/tests/ownership:bl0_secver_persistence_test",
+        "test_harness": "//sw/host/tests/ownership:bl0_secver_test",
+    },
+)
+
+ownership_transfer_test(
+    name = "bl0_secver_monotonic_test",
+    ecdsa_key = {
+        "//sw/device/silicon_creator/lib/ownership/keys/fake:ecdsa_keyset": "app_prod_0",
+    },
+    manifest = ":manifest_secver5",
+    shared_params = {
+        "rom_ext": "//sw/device/silicon_creator/rom_ext:rom_ext_owner_update_newversion",
+        "test_cmd": """
+            --test-mode=monotonic
+            --fake-owner-key=$(location //sw/device/silicon_creator/lib/ownership/keys/fake:owner_key)
+            --fake-unlock-key=$(location //sw/device/silicon_creator/lib/ownership/keys/fake:unlock_key)
+            --fake-activate-key=$(location //sw/device/silicon_creator/lib/ownership/keys/fake:activate_key)
+            --fake-app-key=sw/device/silicon_creator/lib/ownership/keys/fake/app_prod_ecdsa_p256.pub.der
+        """,
+        "test_harness": "//sw/host/tests/ownership:bl0_secver_test",
+    },
+)
+
+ownership_transfer_test(
+    name = "bl0_secver_transfer_reset_test",
+    manifest = ":manifest_secver5",
+    shared_params = {
+        "test_cmd": """
+            --test-mode=transfer-reset
+            --fake-owner-key=$(location //sw/device/silicon_creator/lib/ownership/keys/fake:owner_key)
+            --fake-unlock-key=$(location //sw/device/silicon_creator/lib/ownership/keys/fake:unlock_key)
+            --fake-activate-key=$(location //sw/device/silicon_creator/lib/ownership/keys/fake:activate_key)
+            --dummy-owner-key=$(location //sw/device/silicon_creator/lib/ownership/keys/dummy:owner_key)
+            --dummy-unlock-key=$(location //sw/device/silicon_creator/lib/ownership/keys/dummy:unlock_key)
+            --dummy-activate-key=$(location //sw/device/silicon_creator/lib/ownership/keys/dummy:activate_key)
+            --dummy-app-key=sw/device/silicon_creator/lib/ownership/keys/dummy/app_prod_ecdsa_p256.pub.der
+        """,
+        "test_harness": "//sw/host/tests/ownership:bl0_secver_test",
     },
 )
