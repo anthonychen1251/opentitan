@@ -281,7 +281,8 @@ TEST_P(OwnershipActivateValidStateTest, OwnerPageValid) {
       .WillOnce(Return(kErrorOk));
 
   if (state != kOwnershipStateUnlockedSelf) {
-    EXPECT_CALL(ownership_key_, secret_new(_, _)).WillOnce(Return(kErrorOk));
+    EXPECT_CALL(ownership_key_, secret_update(&bootdata_))
+        .WillOnce(Return(kErrorOk));
   }
 
   // The nonce will be regenerated.
@@ -351,7 +352,8 @@ TEST_P(OwnershipActivateValidStateTest, UpdateBootdataBl0MinSecVer) {
       .WillOnce(Return(kErrorOk));
 
   if (state != kOwnershipStateUnlockedSelf) {
-    EXPECT_CALL(ownership_key_, secret_new(_, _)).WillOnce(Return(kErrorOk));
+    EXPECT_CALL(ownership_key_, secret_update(&bootdata_))
+        .WillOnce(Return(kErrorOk));
   }
 
   // The nonce will be regenerated.
@@ -417,7 +419,8 @@ TEST_P(OwnershipActivateNextBl0Slot, UpdateBootdataPrimaryBl0Slot) {
       .WillOnce(Return(kErrorOk));
 
   // The transfer will regenerate the owner secret.
-  EXPECT_CALL(ownership_key_, secret_new(_, _)).WillOnce(Return(kErrorOk));
+  EXPECT_CALL(ownership_key_, secret_update(&bootdata_))
+      .WillOnce(Return(kErrorOk));
 
   // The nonce will be regenerated.
   EXPECT_CALL(rnd_, Uint32()).WillRepeatedly(Return(99));
