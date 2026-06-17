@@ -88,3 +88,23 @@ rust_binary(
         "@crate_index//:serde_json",
     ],
 )
+
+rust_binary(
+    name = "flash_external_flash",
+    testonly = True,
+    srcs = [
+        "src/flash_external_flash.rs",
+    ],
+    data = [
+        "//sw/device/tests:flash_programmer_fpga_cw340_sival_rom_ext",
+    ],
+    deps = [
+        "//sw/host/opentitanlib",
+        "@crate_index//:anyhow",
+        "@crate_index//:arrayvec",
+        "@crate_index//:clap",
+        "@crate_index//:humantime",
+        "@crate_index//:log",
+        "@crate_index//:sha2",
+    ],
+)

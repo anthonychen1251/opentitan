@@ -5813,6 +5813,41 @@ opentitan_test(
     ],
 )
 
+opentitan_test(
+    name = "flash_programmer",
+    srcs = ["flash_programmer.c"],
+    exec_env = dicts.add(
+        EARLGREY_TEST_ENVS,
+        EARLGREY_SILICON_OWNER_ROM_EXT_ENVS,
+        {
+            "//hw/top_earlgrey:fpga_cw310_sival_rom_ext": "hyper310",
+            "//hw/top_earlgrey:fpga_cw340_sival_rom_ext": "hyper340",
+        },
+    ),
+    hyper310 = fpga_params(
+        tags = ["manual"],
+        test_cmd = "{firmware:elf}",
+    ),
+    hyper340 = fpga_params(
+        tags = ["manual"],
+        test_cmd = "{firmware:elf}",
+    ),
+    deps = [
+        "//sw/device/lib/arch:device",
+        "//sw/device/lib/base:status",
+        "//sw/device/lib/dif:pinmux",
+        "//sw/device/lib/dif:spi_device",
+        "//sw/device/lib/dif:spi_host",
+        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/runtime:hart",
+        "//sw/device/lib/testing:spi_device_testutils",
+        "//sw/device/lib/testing:spi_host_testutils",
+        "//sw/device/lib/testing:spi_flash_testutils",
+        "//sw/device/lib/testing/test_framework:check",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+    ],
+)
+
 otp_json(
     name = "flash_scrambling_smoketest_otp_overlay",
     partitions = [
