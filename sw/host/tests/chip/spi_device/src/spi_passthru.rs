@@ -19,8 +19,8 @@ use opentitanlib::spiflash::{EraseMode, ReadMode, Sfdp, SpiFlash};
 use opentitanlib::test_utils::init::InitializeTest;
 use opentitanlib::test_utils::mem::MemWrite32Req;
 use opentitanlib::test_utils::spi_passthru::{
-    ConfigJedecId, SfdpData, SpiFlashEraseSector, SpiFlashReadSfdp, SpiFlashWrite, SpiMailboxMap,
-    SpiMailboxWrite, SpiPassthruSwapMap, StatusRegister, UploadInfo,
+    ConfigJedecId, SfdpData, SfdpData512, SpiFlashEraseSector, SpiFlashReadSfdp, SpiFlashWrite,
+    SpiMailboxMap, SpiMailboxWrite, SpiPassthruSwapMap, StatusRegister, UploadInfo,
 };
 use opentitanlib::transport::Capability;
 use opentitanlib::uart::console::UartConsole;
@@ -372,15 +372,24 @@ fn test_read_flash(
     let uart = transport.uart("console")?;
     let spi = transport.spi(&opts.spi)?;
 
-    let sfdp_read = SpiFlashReadSfdp {
+    let mut sfdp_read = SpiFlashReadSfdp {
         address: 0u32,
         length: 256u16,
     };
-    let sfdp_data = sfdp_read.execute(&*uart)?;
+    let mut sfdp_data = sfdp_read.execute(&*uart)?;
 
     // Parse SFDP and adjust wait states for the read pipeline.
     let sfdp = {
-        let mut sfdp = Sfdp::try_from(sfdp_data.data.as_slice())?;
+        let sfdp = match Sfdp::try_from(&sfdp_data.data[..sfdp_read.length as usize]) {
+            Ok(sfdp) => sfdp,
+            Err(_) => {
+                let len = Sfdp::length_required(&sfdp_data.data[..sfdp_read.length as usize])?;
+                sfdp_read.length = len as u16;
+                sfdp_data = sfdp_read.execute(&*uart)?;
+                Sfdp::try_from(&sfdp_data.data[..sfdp_read.length as usize])?
+            }
+        };
+        let mut sfdp = sfdp;
         if read_pipeline_mode != ReadPipelineMode::ZeroStages {
             sfdp.jedec.param_112.wait_states += 2;
             sfdp.jedec.param_114.wait_states += 2;

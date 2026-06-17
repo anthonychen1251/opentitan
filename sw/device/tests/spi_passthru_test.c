@@ -12,6 +12,7 @@
 #include "sw/device/lib/dif/dif_pinmux.h"
 #include "sw/device/lib/dif/dif_spi_device.h"
 #include "sw/device/lib/dif/dif_spi_host.h"
+#include "sw/device/lib/runtime/hart.h"
 #include "sw/device/lib/runtime/log.h"
 #include "sw/device/lib/testing/json/command.h"
 #include "sw/device/lib/testing/spi_device_testutils.h"
@@ -104,12 +105,12 @@ status_t spi_flash_read_sfdp(ujson_t *uj, dif_spi_host_t *spih,
   spi_flash_read_sfdp_t op;
   TRY(UJSON_WITH_CRC(ujson_deserialize_spi_flash_read_sfdp_t, uj, &op));
 
-  sfdp_data_t sfdp;
+  sfdp_data_512_t sfdp = {0};
   CHECK(op.length <= sizeof(sfdp.data));
   TRY(spi_flash_testutils_read_sfdp(spih, op.address, sfdp.data, op.length));
   TRY(dif_spi_device_set_passthrough_mode(spid, kDifToggleEnabled));
 
-  return RESP_OK(ujson_serialize_sfdp_data_t, uj, &sfdp);
+  return RESP_OK(ujson_serialize_sfdp_data_512_t, uj, &sfdp);
 }
 
 status_t spi_flash_erase_sector(ujson_t *uj, dif_spi_host_t *spih,
@@ -240,6 +241,28 @@ status_t command_processor(ujson_t *uj) {
   return INTERNAL();
 }
 
+static status_t reset_flash_chip(dif_spi_host_t *spih) {
+  // Send RESET_ENABLE (0x66)
+  dif_spi_host_segment_t reset_enable[] = {
+      {.type = kDifSpiHostSegmentTypeOpcode,
+       .opcode = {.opcode = 0x66, .width = kDifSpiHostWidthStandard}},
+  };
+  TRY(dif_spi_host_transaction(spih, /*csid=*/0, reset_enable,
+                               ARRAYSIZE(reset_enable)));
+
+  // Send RESET (0x99)
+  dif_spi_host_segment_t reset[] = {
+      {.type = kDifSpiHostSegmentTypeOpcode,
+       .opcode = {.opcode = 0x99, .width = kDifSpiHostWidthStandard}},
+  };
+  TRY(dif_spi_host_transaction(spih, /*csid=*/0, reset,
+                               ARRAYSIZE(reset)));
+
+  // Wait for reset to complete (typically at least 100 microseconds)
+  busy_spin_micros(150);
+  return OK_STATUS();
+}
+
 bool test_main(void) {
   if (kDeviceType == kDeviceSilicon) {
     // On teacup board, we need to enable pull-ups on the pins connected to `WP`
@@ -291,6 +314,9 @@ bool test_main(void) {
   };
   CHECK_DIF_OK(dif_spi_host_configure(&spih, config));
   CHECK_DIF_OK(dif_spi_host_output_set_enabled(&spih, /*enabled=*/true));
+
+  // Reset the external SPI flash chip to clear any leftover 4-byte mode.
+  CHECK_STATUS_OK(reset_flash_chip(&spih));
 
   CHECK_DIF_OK(dif_spi_device_init_handle(
       mmio_region_from_addr(TOP_EARLGREY_SPI_DEVICE_BASE_ADDR), &spid));

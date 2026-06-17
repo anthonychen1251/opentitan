@@ -65,10 +65,10 @@ impl SpiFlashReadId {
 }
 
 impl SpiFlashReadSfdp {
-    pub fn execute(&self, uart: &dyn Uart) -> Result<SfdpData> {
+    pub fn execute(&self, uart: &dyn Uart) -> Result<SfdpData512> {
         TestCommand::SpiFlashReadSfdp.send_with_crc(uart)?;
         self.send_with_crc(uart)?;
-        let sfdp = SfdpData::recv(uart, Duration::from_secs(300), false, false)?;
+        let sfdp = SfdpData512::recv(uart, Duration::from_secs(300), false, false)?;
         Ok(sfdp)
     }
 }

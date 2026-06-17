@@ -28,6 +28,10 @@ UJSON_SERDE_STRUCT(StatusRegister, status_register_t, STRUCT_STATUS_REGISTER);
     field(data, uint8_t, 256)
 UJSON_SERDE_STRUCT(SfdpData, sfdp_data_t, STRUCT_SFDP_DATA);
 
+#define STRUCT_SFDP_DATA_512(field, string) \
+    field(data, uint8_t, 512)
+UJSON_SERDE_STRUCT(SfdpData512, sfdp_data_512_t, STRUCT_SFDP_DATA_512);
+
 #define STRUCT_UPLOAD_INFO(field, string) \
     field(opcode, uint8_t) \
     field(has_address, bool) \

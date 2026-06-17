@@ -5764,6 +5764,7 @@ opentitan_test(
         EARLGREY_SILICON_OWNER_ROM_EXT_ENVS,
         {
             "//hw/top_earlgrey:fpga_cw310_sival_rom_ext": "hyper310",
+            "//hw/top_earlgrey:fpga_cw340_sival_rom_ext": "hyper340",
         },
     ),
     fpga = fpga_params(
@@ -5774,6 +5775,12 @@ opentitan_test(
         tags = ["manual"],  # TODO: QE bit handling
         test_cmd = "{firmware:elf}",
         test_harness = "//sw/host/tests/chip/spi_device:spi_passthru",
+    ),
+    hyper340 = fpga_params(
+        tags = ["manual"],  # TODO: QE bit handling
+        test_cmd = "{firmware:elf}",
+        test_harness = "//sw/host/tests/chip/spi_device:spi_passthru",
+        timeout = "eternal",
     ),
     qemu = qemu_params(
         test_cmd = """
