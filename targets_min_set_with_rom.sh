@@ -1,0 +1,183 @@
+CW310_ROM_EXT_TESTS=(
+  '//sw/device/silicon_creator/rom_ext/e2e/dice_chain:debug_mode_on_dice_cwt_test_fpga_cw310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_dice_cwt_test_fpga_cw310_rom_ext'
+)
+
+CW310_SIVAL_ROM_EXT_TESTS=(
+  '//sw/device/silicon_creator/lib/ownership:owner_verify_functest_fpga_cw310_sival_rom_ext'
+  '//sw/device/silicon_creator/lib/sigverify:spx_verify_functest_fpga_cw310_sival_rom_ext'
+  '//sw/device/tests/crypto:drbg_functest_fpga_cw310_sival_rom_ext'
+  '//sw/device/tests:crt_test_fpga_cw310_sival_rom_ext'
+  '//sw/device/tests:spi_host_irq_test_fpga_cw310_sival_rom_ext'
+)
+
+CW310_SIVAL_TESTS=(
+  '//sw/device/silicon_creator/lib:boot_data_functest_fpga_cw310_sival'
+  '//sw/device/silicon_creator/lib:otbn_boot_services_functest_fpga_cw310_sival'
+)
+
+CW340_A2_ROM_EXT_TESTS=(
+)
+
+HYPER310_ROM_EXT_TESTS=(
+  '//sw/device/silicon_creator/rom_ext/e2e/boot_svc:boot_svc_bad_next_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/boot_svc:boot_svc_bad_primary_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/boot_svc:boot_svc_empty_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/boot_svc:boot_svc_enter_rescue_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/boot_svc:boot_svc_next_aab_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/flash_ecc_error:a_corrupt_b_valid_manifest_entry_point_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/flash_ecc_error:a_valid_b_corrupt_manifest_extension_spx_signature_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/flash_ecc_error:flash_exc_handler_disabled_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/handoff:sram_exec_disabled_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/handoff:sram_exec_enabled_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/isfb:isfb_product_expr_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/ownership:bad_ownership_key_alg_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/ownership:bad_ownership_key_alg_with_detached_sig_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/ownership:bad_unlock_signature_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/ownership:bad_unlock_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/ownership:flash_error_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/ownership:invalid_device_id_request_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/ownership:invalid_key_alg_activate_request_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/ownership:invalid_nonce_request_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/ownership:newversion_noupdate_with_bad_owner_block_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/ownership:newversion_pq_downgrade_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/ownership:newversion_update_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/ownership:rescue_permission_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/ownership:transfer_pq_to_pq_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/ownership:transfer_spx_pure_to_spx_prehash_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/ownership:unlock_detached_sig_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/ownership:unlock_when_recovery_state_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_config_module_mismatch_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_enter_on_fail_usbdfu_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_firmware_slot_b_usbdfu_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_get_owner_page_usbdfu_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_inactivity_timeout_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_rate_230400_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_rom_ext_slot_b_update_slot_b_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_unsupported_rate_1M33_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_unsupported_rate_1M50_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_unsupported_rate_460K_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_unsupported_rate_921K_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_unsupported_rate_INVALID_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_watchdog_enabled_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_dfu_state_transitions_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_invalid_dfu_requests_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_invalid_flash_transaction_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:spidfu_rescue_boot_svc_req_disability_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:usbdfu_out_chunk_too_big_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_rescue_error_handling_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/rescue:xmodem_restricted_commands_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/secver:secver_write_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/verified_boot:bad_manifest_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/verified_boot:bad_spx_manifest_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/verified_boot:key_dev_hybrid_spx_prehashed_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/verified_boot:key_unauthorized_fpga_hyper310_rom_ext'
+)
+
+INS_ROM_CW310_ROM_EXT_TESTS=(
+  '//sw/device/silicon_creator/rom/e2e/address_translation:rom_ext_a_flash_a_bad_addr_trans_fpga_cw310_rom_ext'
+)
+
+INS_ROM_CW310_ROM_WITH_FAKE_KEYS_TESTS=(
+  '//sw/device/silicon_creator/rom/e2e/boot_policy_bad_manifest:boot_policy_bad_manifest_rma_rollback_b_fpga_cw310_rom_with_fake_keys'
+  '//sw/device/silicon_creator/rom/e2e/boot_policy_bad_manifest:boot_policy_bad_manifest_test_unlocked0_resizable_rom_ext_b_fpga_cw310_rom_with_fake_keys'
+  '//sw/device/silicon_creator/rom/e2e/boot_policy_rollback:boot_policy_rollback_rma_a_0_b_1_fpga_cw310_rom_with_fake_keys'
+  '//sw/device/silicon_creator/rom/e2e/bootstrap:e2e_bootstrap_rma_fpga_cw310_rom_with_fake_keys'
+  '//sw/device/silicon_creator/rom/e2e/clkmgr:jitter_enabled_test_fpga_cw310_rom_with_fake_keys'
+  '//sw/device/silicon_creator/rom/e2e/keymgr:rom_e2e_keymgr_init_otp_meas_fpga_cw310_rom_with_fake_keys'
+  '//sw/device/silicon_creator/rom/e2e/reset_reason:reset_reason_check_enabled_with_fault_fpga_cw310_rom_with_fake_keys'
+  '//sw/device/silicon_creator/rom/e2e/retention_ram:rom_e2e_ret_ram_keep_fpga_cw310_rom_with_fake_keys'
+  '//sw/device/silicon_creator/rom/e2e/rstmgr:alert_info_enabled_test_fpga_cw310_rom_with_fake_keys'
+  '//sw/device/silicon_creator/rom/e2e/rstmgr:cpu_info_enabled_test_fpga_cw310_rom_with_fake_keys'
+  '//sw/device/silicon_creator/rom/e2e/sigverify_key_type:sigverify_key_type_dev_ecdsa_test_key_0_fpga_cw310_rom_with_fake_keys'
+  '//sw/device/silicon_creator/rom/e2e/sigverify_key_type:sigverify_key_type_dev_spx_dev_key_0_fpga_cw310_rom_with_fake_keys'
+  '//sw/device/silicon_creator/rom/e2e/sigverify_key_type:sigverify_key_type_prod_end_spx_dev_key_0_fpga_cw310_rom_with_fake_keys'
+  '//sw/device/silicon_creator/rom/e2e/sigverify_key_type:sigverify_key_type_prod_spx_test_key_0_fpga_cw310_rom_with_fake_keys'
+  '//sw/device/silicon_creator/rom/e2e/sigverify_key_validity:sigverify_key_validity_spx_blank_rma_dev_key_0_dev_key_0_fpga_cw310_rom_with_fake_keys'
+  '//sw/device/silicon_creator/rom/e2e/sigverify_key_validity:sigverify_key_validity_spx_blank_test_unlocked0_dev_key_0_dev_key_0_fpga_cw310_rom_with_fake_keys'
+  '//sw/device/silicon_creator/rom/e2e/watchdog:watchdog_disable_test_unlocked0_fpga_cw310_rom_with_fake_keys'
+)
+
+INS_ROM_CW310_SIVAL_TESTS=(
+  '//sw/device/silicon_creator/rom/e2e/immutable_rom_ext_section:immutable_section_exec_enabled_hash_valid_virtual_b_fpga_cw310_sival'
+)
+
+OTBN_TESTS=(
+  '//sw/otbn/crypto/tests:boot_testcase_boot_key_endorse_valid'
+  '//sw/otbn/crypto/tests:boot_testcase_boot_key_save_valid'
+  '//sw/otbn/crypto/tests:boot_testcase_boot_keygen_valid'
+  '//sw/otbn/crypto/tests:boot_testcase_boot_mode_invalid'
+  '//sw/otbn/crypto/tests:boot_testcase_boot_sigverify_valid'
+  '//sw/otbn/crypto/tests:p256_arithmetic_to_boolean_mod_test'
+  '//sw/otbn/crypto/tests:p256_arithmetic_to_boolean_test'
+  '//sw/otbn/crypto/tests:p256_base_mult_test'
+  '//sw/otbn/crypto/tests:p256_ecdh_shared_key_test'
+  '//sw/otbn/crypto/tests:p256_ecdsa_sign_test'
+  '//sw/otbn/crypto/tests:p256_ecdsa_verify_test'
+  '//sw/otbn/crypto/tests:p256_isoncurve_proj_test'
+  '//sw/otbn/crypto/tests:p256_isoncurve_test'
+  '//sw/otbn/crypto/tests:p256_key_from_seed_test'
+  '//sw/otbn/crypto/tests:p256_mul_modp_test'
+  '//sw/otbn/crypto/tests:p256_proj_add_test'
+  '//sw/otbn/crypto/tests:p256_proj_double_test'
+  '//sw/otbn/crypto/tests:p256_scalar_mult_test'
+  '//sw/otbn/crypto/tests:p256_scalar_reblind_test'
+  '//sw/otbn/crypto/tests:p256_testcase_p256_check_public_key_not_on_curve'
+  '//sw/otbn/crypto/tests:p256_testcase_p256_check_public_key_x_too_large'
+  '//sw/otbn/crypto/tests:p256_testcase_p256_check_public_key_y_too_large'
+  '//sw/otbn/crypto/tests:p256_testcase_p256_keygen_valid'
+)
+
+PROVISIONING_TESTS=(
+  '//sw/host/provisioning/orchestrator/tests:e2e_emulation_dice_cwt_cw340_test'
+)
+
+UNIT_TESTS=(
+  '//sw/device/lib/base:hardened_memory_unittest'
+  '//sw/device/lib/base:memory_unittest'
+  '//sw/device/lib/crypto/impl:status_unittest'
+  '//sw/device/silicon_creator/lib/boot_svc:boot_svc_header_unittest'
+  '//sw/device/silicon_creator/lib/cert:cert_unittest'
+  '//sw/device/silicon_creator/lib/cert:tpm_ek_template_unittest'
+  '//sw/device/silicon_creator/lib/drivers:alert_unittest'
+  '//sw/device/silicon_creator/lib/drivers:ast_unittest'
+  '//sw/device/silicon_creator/lib/drivers:flash_ctrl_unittest'
+  '//sw/device/silicon_creator/lib/drivers:keymgr_unittest'
+  '//sw/device/silicon_creator/lib/drivers:kmac_unittest'
+  '//sw/device/silicon_creator/lib/drivers:lifecycle_unittest'
+  '//sw/device/silicon_creator/lib/drivers:otbn_unittest'
+  '//sw/device/silicon_creator/lib/drivers:rnd_unittest'
+  '//sw/device/silicon_creator/lib/drivers:watchdog_unittest'
+  '//sw/device/silicon_creator/lib/ownership:isfb_unittest'
+  '//sw/device/silicon_creator/lib/ownership:owner_block_unittest'
+  '//sw/device/silicon_creator/lib/ownership:ownership_activate_unittest'
+  '//sw/device/silicon_creator/lib/ownership:ownership_unittest'
+  '//sw/device/silicon_creator/lib/ownership:ownership_unlock_unittest'
+  '//sw/device/silicon_creator/lib:boot_data_unittest'
+  '//sw/device/silicon_creator/lib:boot_log_unittest'
+  '//sw/device/silicon_creator/lib:dbg_print_unittest'
+  '//sw/device/silicon_creator/lib:epmp_unittest'
+  '//sw/device/silicon_creator/lib:manifest_unittest'
+  '//sw/device/silicon_creator/lib:shutdown_unittest'
+  '//sw/device/silicon_creator/manuf/base:perso_tlv_data_unittest'
+  '//sw/device/silicon_creator/rom:boot_policy_unittest'
+  '//sw/device/silicon_creator/rom:bootstrap_unittest'
+  '//sw/device/silicon_creator/rom_ext:rom_ext_boot_policy_unittest'
+  '//sw/device/silicon_creator/rom_ext:rom_ext_boot_services_unittest'
+)
+
+
+TEST_GROUPS=(
+  'EXTRA_TESTS'
+  'CW310_ROM_EXT_TESTS'
+  'CW310_SIVAL_ROM_EXT_TESTS'
+  'CW310_SIVAL_TESTS'
+  'CW340_A2_ROM_EXT_TESTS'
+  'HYPER310_ROM_EXT_TESTS'
+  'INS_ROM_CW310_ROM_EXT_TESTS'
+  'INS_ROM_CW310_ROM_WITH_FAKE_KEYS_TESTS'
+  'INS_ROM_CW310_SIVAL_TESTS'
+  'OTBN_TESTS'
+  'PROVISIONING_TESTS'
+  'UNIT_TESTS'
+)

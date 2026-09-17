@@ -24,7 +24,7 @@ function merge_dir() {
   mkdir -p "${OUTPUT_DIR}/${dir}"
   find "${INPUT_DIR}" -type d -name "${dir}" \
     -exec echo "Merging {} to ${dir}" \; \
-    -exec rsync -a {}/ "${OUTPUT_DIR}/${dir}/" \;
+    -exec rsync -a --copy-dirlinks {}/ "${OUTPUT_DIR}/${dir}/" \;
 }
 merge_dir "test_coverages"
 merge_dir "source_files"
@@ -45,7 +45,7 @@ if [[ -d "${SOURCES}/bazel-out" ]]; then
   mkdir -p "${SOURCES}/generated/"
   find "${SOURCES}/bazel-out" -maxdepth 1 -type d -name "k8-*" \
     -exec echo "Merging {} to generated/" \; \
-    -exec rsync -a {}/ "${SOURCES}/generated/" \;
+    -exec rsync -a --copy-dirlinks {}/ "${SOURCES}/generated/" \;
   sed -i 's|bazel-out/k8-[^/]*/|generated/|g' "${COVERAGE}"
 fi
 
@@ -73,6 +73,9 @@ if ! genhtml --version | grep -q 'LCOV version 1'; then
     --ignore-errors unsupported
     --ignore-errors inconsistent
     --ignore-errors category
+    --ignore-errors source
+    --ignore-errors missing
+    --ignore-errors range
   )
 fi
 

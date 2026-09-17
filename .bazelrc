@@ -72,6 +72,7 @@ build:ot_coverage --test_env=PATH
 build:ot_coverage --repo_env=PATH
 build:ot_coverage --cxxopt='-D__alloc_align__(x)='
 build:ot_coverage --host_cxxopt='-D__alloc_align__(x)='
+build:ot_coverage --host_copt='-fPIC'
 
 # Disable ccache if it happens to be installed
 build --define=CCACHE_DISABLE=true
