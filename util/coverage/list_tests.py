@@ -12,7 +12,7 @@ def query_tests(path, extended=False):
   proc = subprocess.run([
     './bazelisk.sh', 'query',
       f'tests({path}) ' +
-      f'except attr("tags", "\\b({skip_in_ci}manual|broken|silicon|verilator|qemu|dv)\\b", //sw/device/...) ' +
+      f'except attr("tags", "\\b({skip_in_ci}manual|broken|coverage_broken|silicon|verilator|qemu|dv)\\b", //sw/device/...) ' +
       f'',
   ], stdout=subprocess.PIPE, check=True)
   return dict.fromkeys(proc.stdout.decode().splitlines(), True)
