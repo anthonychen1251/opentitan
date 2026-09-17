@@ -1,0 +1,108 @@
+# Rerun targets that failed or failed to build during full coverage run
+
+# 1. Fixed by build:ot_coverage --host_copt='-fPIC' (54 tests)
+FPIC_FIXED_TESTS=(
+  "//sw/device/silicon_creator/rom_ext/e2e/handoff:rom_ext_device_status_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:anyversion_transfer_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:anyversion_unlock_transfer_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:anyversion_unlock_update_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:anyversion_update_fails_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:anyversion_update_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:anyversion_wildcard_nonce_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:bad_activate_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:bad_app_key_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:bad_appkey_constraint_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:bad_endorsee_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:bad_locked_update_no_exec_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:bad_locked_update_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:bad_owner_block_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:bad_ownership_key_alg_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:bad_ownership_key_alg_with_detached_sig_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:bad_unlock_signature_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:bad_unlock_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:bl0_secver_persistence_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:flash_error_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:flash_permission_test_slot_aa_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:flash_permission_test_slot_ab_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:flash_permission_test_slot_ba_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:flash_permission_test_slot_bb_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:good_appkey_constraint_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:install_owner_upgrade_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:invalid_device_id_request_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:invalid_key_alg_activate_request_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:invalid_nonce_request_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:locked_update_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:newversion_badlock_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:newversion_nodelock_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:newversion_noupdate_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:newversion_noupdate_with_bad_owner_block_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:newversion_pq_downgrade_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:newversion_pq_to_pq_update_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:newversion_update_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:rescue_limit_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:rescue_permission_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:rom_ext_e2e_owner_transfer_manifest_invalid_test_fpga_cw340_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:rom_ext_e2e_owner_transfer_manifest_test_fpga_cw340_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:transfer_any_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:transfer_bl0_slot_b_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:transfer_ecdsa_to_pq_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:transfer_endorsed_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:transfer_keymgr_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:transfer_pq_to_pq_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:transfer_spx_pure_to_spx_prehash_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:unlock_detached_sig_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:unlock_when_recovery_state_test_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/ownership:unlock_with_owner_recovery_key_test_fpga_hyper310_rom_ext"
+  "//sw/host/provisioning/orchestrator/tests:e2e_emulation_cw340_test"
+  "//sw/host/provisioning/orchestrator/tests:e2e_emulation_dice_cwt_cw340_test"
+  "//sw/host/provisioning/orchestrator/tests:e2e_emulation_tpm_cw340_test"
+)
+
+# 2. Timed out under coverage overhead (rerun with --test_timeout=1800) (6 tests)
+TIMEOUT_TESTS=(
+  "//sw/device/tests/crypto/cryptotest:aes_gcm_kat_fpga_cw310_sival_rom_ext"
+  "//sw/device/tests/crypto/cryptotest:rsa_acvp_fpga_cw310_sival_rom_ext"
+  "//sw/device/tests/crypto/cryptotest:rsa_kat_fpga_cw310_sival_rom_ext"
+  "//sw/device/tests/crypto/cryptotest:rsa_keygen_kat_fpga_cw310_sival_rom_ext"
+  "//sw/device/tests/crypto/cryptotest:x25519_kat_fpga_cw310_sival_rom_ext"
+  "//sw/device/tests/embedpqc:mldsa87_tiny_test_fpga_cw310_sival_rom_ext"
+)
+
+# 3. Other potentially flaky FPGA tests (4 tests)
+OTHER_FPGA_TESTS=(
+  "//sw/device/silicon_creator/rom/e2e/boot_policy_big_image:boot_policy_big_image_rma_bigger_than_64k_fpga_cw310_rom_with_fake_keys"
+  "//sw/device/silicon_creator/rom/e2e/bootstrap:e2e_bootstrap_rma_fpga_cw310_rom_with_fake_keys"
+  "//sw/device/tests/crypto:kats_functest_fips_fpga_cw340_sival_rom_ext"
+  "//sw/device/tests/crypto:pct_functest_fips_fpga_cw340_sival_rom_ext"
+)
+
+# 4. USB device / USB DFU tests (requires target USB port cabled to host) (21 tests)
+USB_TESTS=(
+  "//sw/device/silicon_creator/lib/drivers:usb_functest_fpga_cw310_sival_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/rescue:next_slot_usbdfu_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/rescue:primary_slot_usbdfu_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_firmware_slot_a_usbdfu_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_firmware_slot_b_usbdfu_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_get_boot_log_usbdfu_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_get_device_id_usbdfu_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_get_owner_page_usbdfu_fpga_hyper310_rom_ext"
+  "//sw/device/silicon_creator/rom_ext/e2e/rescue:usbdfu_out_chunk_too_big_fpga_hyper310_rom_ext"
+  "//sw/device/tests:usbdev_aon_pullup_test_fpga_cw310_sival_rom_ext"
+  "//sw/device/tests:usbdev_config_host_test_fpga_cw310_sival_rom_ext"
+  "//sw/device/tests:usbdev_iso_test_fpga_cw310_sival_rom_ext"
+  "//sw/device/tests:usbdev_mixed_test_fpga_cw310_sival_rom_ext"
+  "//sw/device/tests:usbdev_pincfg_test_fpga_cw310_sival_rom_ext"
+  "//sw/device/tests:usbdev_pullup_test_fpga_cw310_sival_rom_ext"
+  "//sw/device/tests:usbdev_setuprx_test_fpga_cw310_sival_rom_ext"
+  "//sw/device/tests:usbdev_sleep_reset_test_fpga_cw310_sival_rom_ext"
+  "//sw/device/tests:usbdev_sleep_resume_test_fpga_cw310_sival_rom_ext"
+  "//sw/device/tests:usbdev_stream_test_fpga_cw310_sival_rom_ext"
+  "//sw/device/tests:usbdev_suspend_resume_test_fpga_cw310_sival_rom_ext"
+)
+
+TEST_GROUPS=(
+  "FPIC_FIXED_TESTS"
+  "TIMEOUT_TESTS"
+  "OTHER_FPGA_TESTS"
+  "USB_TESTS"
+)
