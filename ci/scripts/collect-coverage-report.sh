@@ -13,44 +13,42 @@ COVERAGE="${OUTPUT_DIR}/coverage.dat"
 
 LCOV_FILES="bazel-out/_coverage/lcov_files.tmp"
 
-if [[ ! -f "${LCOV_FILES}" ]]; then
-  echo "[!] Coverage metadata ${LCOV_FILES} not found. Skipping coverage report."
-  echo "coverageReport=missing" >> "${GITHUB_OUTPUT:-/dev/null}"
-  exit 0
-fi
-
 echo "Collect coverage metadata"
 mkdir -p "${OUTPUT_DIR}"
-if [[ -f "${OUTPUT_DIR}/lcov_files.tmp" && -f "${LCOV_FILES}" ]]; then
-  cat "${LCOV_FILES}" "${OUTPUT_DIR}/lcov_files.tmp" | sort -u > "${OUTPUT_DIR}/lcov_files.tmp.merged"
-  cp -r bazel-out/_coverage/* "${OUTPUT_DIR}" || true
-  mv "${OUTPUT_DIR}/lcov_files.tmp.merged" "${OUTPUT_DIR}/lcov_files.tmp"
-  cp "${OUTPUT_DIR}/lcov_files.tmp" "${LCOV_FILES}"
+mkdir -p bazel-out/_coverage
+find bazel-out/*/testlogs \( -name "coverage.dat" -o -name "baseline_coverage.dat" \) > "${OUTPUT_DIR}/lcov_files.tmp.found" 2>/dev/null || true
+
+if [[ -f "${OUTPUT_DIR}/lcov_files.tmp" ]]; then
+  cat "${OUTPUT_DIR}/lcov_files.tmp.found" "${OUTPUT_DIR}/lcov_files.tmp" "${LCOV_FILES}" 2>/dev/null \
+    | sed 's/\.datbazel-out/\.dat\nbazel-out/g' \
+    | sort -u > "${OUTPUT_DIR}/lcov_files.tmp.merged"
 else
-  cp -r bazel-out/_coverage/* "${OUTPUT_DIR}" || true
+  cat "${OUTPUT_DIR}/lcov_files.tmp.found" "${LCOV_FILES}" 2>/dev/null \
+    | sed 's/\.datbazel-out/\.dat\nbazel-out/g' \
+    | sort -u > "${OUTPUT_DIR}/lcov_files.tmp.merged"
 fi
+
+cp -r bazel-out/_coverage/* "${OUTPUT_DIR}" 2>/dev/null || true
+mv -f "${OUTPUT_DIR}/lcov_files.tmp.merged" "${OUTPUT_DIR}/lcov_files.tmp"
+rm -f "${OUTPUT_DIR}/lcov_files.tmp.found" "${LCOV_FILES}"
+cp -f "${OUTPUT_DIR}/lcov_files.tmp" "${LCOV_FILES}"
 find "${OUTPUT_DIR}" -type f -exec chmod 644 {} +
 
 echo "Collect all test coverage data"
 mkdir -p "${TESTS}"
-rsync -a --copy-dirlinks --ignore-missing-args --files-from="${LCOV_FILES}" . "${TESTS}/"
+for dat_file in $(find bazel-out/*/testlogs \( -name "coverage.dat" -o -name "baseline_coverage.dat" \) 2>/dev/null); do
+  mkdir -p "${TESTS}/$(dirname "${dat_file}")"
+  cp -f "${dat_file}" "${TESTS}/${dat_file}"
+done
 
 echo "Merge all coverage data"
 find "${TESTS}" -type f -name "*.dat" -exec cat {} + > "${COVERAGE}"
 
 echo "Collect all test logs"
 mkdir -p "${LOGS}"
-cat "${LCOV_FILES}" | while read -r lcov; do
-  test_dir=$(dirname "${lcov}")
-  if [[ -f "${test_dir}/test.xml" ]]; then
-    if [[ ! -f "${LOGS}/${test_dir}/test.xml" ]]; then
-      mkdir -p "${LOGS}/${test_dir}"
-      cp "${test_dir}/test.xml" "${LOGS}/${test_dir}/"
-      echo "Copied ${test_dir}/test.xml"
-    else
-      echo "Skipping copy of ${test_dir}/test.xml"
-    fi
-  fi
+for xml_file in $(find bazel-out/*/testlogs -name "test.xml" 2>/dev/null); do
+  mkdir -p "${LOGS}/$(dirname "${xml_file}")"
+  cp -f "${xml_file}" "${LOGS}/${xml_file}"
 done
 
 echo "Collect all source files listed in coverage data"

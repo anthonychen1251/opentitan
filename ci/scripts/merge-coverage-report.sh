@@ -32,8 +32,9 @@ merge_dir "test_logs"
 
 echo "Merge all coverage data"
 find "${TESTS}" -type f -name "*.dat" -exec cat {} + > "${COVERAGE}"
-find "${INPUT_DIR}" -type f -name "lcov_files.tmp" \
-  -exec cat {} + > "${LCOV_FILES}"
+find "${INPUT_DIR}" -type f -name "lcov_files.tmp" -exec cat {} + \
+  | sed 's/\.datbazel-out/\.dat\nbazel-out/g' \
+  | sort -u > "${LCOV_FILES}"
 
 echo "Merge static inline copies"
 # i.e. Replace all `FN:lineno,xxx:name` to FN:lineno,name

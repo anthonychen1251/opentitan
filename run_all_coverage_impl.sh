@@ -75,9 +75,11 @@ if [[ "${#TARGETS[@]}" == "0" ]]; then
     done
 fi
 
-echo "Collect overall coverage"
-rm -f "${COVERAGE_DAT}"
-./bazelisk.sh coverage "${TARGETS[@]}" "${COVERAGE_VIEWS[@]}" "${BAZEL_ARGS[@]}" "$@" || true
+if [[ "${#TEST_GROUPS[@]}" == "0" ]]; then
+    echo "Collect overall coverage"
+    rm -f "${COVERAGE_DAT}"
+    ./bazelisk.sh coverage "${TARGETS[@]}" "${COVERAGE_VIEWS[@]}" "${BAZEL_ARGS[@]}" "$@" || true
+fi
 
 ci/scripts/collect-coverage-report.sh \
   "${COVERAGE_OUTPUT_DIR}/ci-cov-collect/"
