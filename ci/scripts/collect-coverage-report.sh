@@ -21,12 +21,19 @@ fi
 
 echo "Collect coverage metadata"
 mkdir -p "${OUTPUT_DIR}"
-cp -r bazel-out/_coverage/* "${OUTPUT_DIR}" || true
+if [[ -f "${OUTPUT_DIR}/lcov_files.tmp" && -f "${LCOV_FILES}" ]]; then
+  cat "${LCOV_FILES}" "${OUTPUT_DIR}/lcov_files.tmp" | sort -u > "${OUTPUT_DIR}/lcov_files.tmp.merged"
+  cp -r bazel-out/_coverage/* "${OUTPUT_DIR}" || true
+  mv "${OUTPUT_DIR}/lcov_files.tmp.merged" "${OUTPUT_DIR}/lcov_files.tmp"
+  cp "${OUTPUT_DIR}/lcov_files.tmp" "${LCOV_FILES}"
+else
+  cp -r bazel-out/_coverage/* "${OUTPUT_DIR}" || true
+fi
 find "${OUTPUT_DIR}" -type f -exec chmod 644 {} +
 
 echo "Collect all test coverage data"
 mkdir -p "${TESTS}"
-rsync -a --ignore-missing-args --files-from="${LCOV_FILES}" . "${TESTS}/"
+rsync -a --copy-dirlinks --ignore-missing-args --files-from="${LCOV_FILES}" . "${TESTS}/"
 
 echo "Merge all coverage data"
 find "${TESTS}" -type f -name "*.dat" -exec cat {} + > "${COVERAGE}"
@@ -49,6 +56,6 @@ done
 echo "Collect all source files listed in coverage data"
 mkdir -p "${SOURCES}"
 grep -h '^SF:' "${COVERAGE}" | sed 's/^SF://' | sort -u \
-| rsync -a --ignore-missing-args --files-from=- . "${SOURCES}/"
+| rsync -a --copy-dirlinks --ignore-missing-args --files-from=- . "${SOURCES}/"
 
 echo "coverageReport=ok" >> "${GITHUB_OUTPUT:-/dev/null}"
