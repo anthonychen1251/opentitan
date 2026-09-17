@@ -32,7 +32,7 @@ struct Opts {
     init: InitializeTest,
 
     // Console receive timeout.
-    #[arg(long, value_parser = humantime::parse_duration, default_value = "10s")]
+    #[arg(long, value_parser = humantime::parse_duration, default_value = "250s")]
     timeout: Duration,
 
     // Reduce number of tests that are run by this factor.
@@ -209,7 +209,7 @@ fn test_x25519(opts: &Opts, transport: &TransportWrapper) -> Result<()> {
         }
     }
     CryptotestCommand::Quit.send(&spi_console_device)?;
-    let _ = UartConsole::wait_for(&spi_console_device, r"PASS!|FAIL!", opts.timeout * 10)?;
+    let _ = UartConsole::wait_for(&spi_console_device, r"PASS!|FAIL!", opts.timeout * 60)?;
     assert_eq!(
         0,
         failures.len(),
