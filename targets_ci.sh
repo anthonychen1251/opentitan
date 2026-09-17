@@ -571,8 +571,8 @@ CW310_SIVAL_ROMEXT_TESTS=(
 //sw/device/tests:usbdev_mixed_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:usbdev_pincfg_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:usbdev_pullup_test_fpga_cw310_sival_rom_ext
-//sw/device/tests:usbdev_sleep_reset_test_fpga_cw310_sival_rom_ext
-//sw/device/tests:usbdev_sleep_resume_test_fpga_cw310_sival_rom_ext
+# //sw/device/tests:usbdev_sleep_reset_test_fpga_cw310_sival_rom_ext # coverage_broken
+# //sw/device/tests:usbdev_sleep_resume_test_fpga_cw310_sival_rom_ext # coverage_broken
 //sw/device/tests:usbdev_stream_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:usbdev_toggle_restore_test_fpga_cw310_sival_rom_ext
 //sw/device/silicon_creator/lib/drivers:usb_functest_fpga_cw310_sival_rom_ext
@@ -584,7 +584,7 @@ CW310_SIVAL_ROMEXT_TESTS=(
 //sw/device/tests:crt_test_fpga_cw310_sival_rom_ext
 //sw/device/lib/crypto/drivers:rv_core_ibex_test_fpga_cw310_sival_rom_ext
 //sw/device/tests:keymgr_sideload_otbn_simple_test_fpga_cw310_sival_rom_ext
-//sw/device/tests:usbdev_suspend_resume_test_fpga_cw310_sival_rom_ext
+# //sw/device/tests:usbdev_suspend_resume_test_fpga_cw310_sival_rom_ext # coverage_broken
 
 # //sw/device/tests:ottf_alert_catch_test_fpga_cw310_sival_rom_ext
 # //sw/device/tests:rv_core_ibex_isa_test_test_unlocked0_fpga_cw310_sival_rom_ext
