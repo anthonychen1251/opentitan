@@ -129,10 +129,13 @@ else
         mv "${temp_dat}" "${output_dat}"
     }
 
-    view_files="$(cat "${LCOV_FILES}" | grep "_coverage_view/coverage.dat$")"
-    for view_dat in $view_files; do
-        view_dir="${view_dat%/*}"
-        view_name="${view_dir##*/}"
+    view_files=()
+    for view_target in "${COVERAGE_VIEWS[@]}"; do
+        rel_path="${view_target#//}"
+        rel_path="${rel_path//://}"
+        view_dat="${TEST_LOGS_DIR}${rel_path}/coverage.dat"
+        view_name="${rel_path##*/}"
+        view_files+=( "${view_dat}" )
         generate_report "${view_name}" "${view_dat}"
     done
 
@@ -147,7 +150,7 @@ else
         generate_report "${group_name}" "${group[@]}"
     done
 
-    generate_report "all_views" $view_files
+    generate_report "all_views" "${view_files[@]}"
 fi
 
 echo "Save test target list"
