@@ -16,7 +16,7 @@ LCOV_FILES="bazel-out/_coverage/lcov_files.tmp"
 echo "Collect coverage metadata"
 mkdir -p "${OUTPUT_DIR}"
 mkdir -p bazel-out/_coverage
-find bazel-out/*/testlogs \( -name "coverage.dat" -o -name "baseline_coverage.dat" \) > "${OUTPUT_DIR}/lcov_files.tmp.found" 2>/dev/null || true
+find bazel-out/*/testlogs ! -path "*/test.outputs/*" \( -name "coverage.dat" -o -name "baseline_coverage.dat" \) > "${OUTPUT_DIR}/lcov_files.tmp.found" 2>/dev/null || true
 
 if [[ -f "${OUTPUT_DIR}/lcov_files.tmp" ]]; then
   cat "${OUTPUT_DIR}/lcov_files.tmp.found" "${OUTPUT_DIR}/lcov_files.tmp" "${LCOV_FILES}" 2>/dev/null \
@@ -36,13 +36,13 @@ find "${OUTPUT_DIR}" -type f -exec chmod 644 {} +
 
 echo "Collect all test coverage data"
 mkdir -p "${TESTS}"
-for dat_file in $(find bazel-out/*/testlogs \( -name "coverage.dat" -o -name "baseline_coverage.dat" \) 2>/dev/null); do
+for dat_file in $(find bazel-out/*/testlogs ! -path "*/test.outputs/*" \( -name "coverage.dat" -o -name "baseline_coverage.dat" \) 2>/dev/null); do
   mkdir -p "${TESTS}/$(dirname "${dat_file}")"
   cp -f "${dat_file}" "${TESTS}/${dat_file}"
 done
 
 echo "Merge all coverage data"
-find "${TESTS}" -type f -name "*.dat" -exec cat {} + > "${COVERAGE}"
+find "${TESTS}" -type f -name "*.dat" ! -path "*_coverage_view*" ! -path "*/test.outputs/*" -exec cat {} + > "${COVERAGE}"
 
 echo "Collect all test logs"
 mkdir -p "${LOGS}"
