@@ -2,16 +2,19 @@ set -euo pipefail
 
 GENHTML_ARGS=(
     --prefix "${PWD}"
-    --ignore-errors unsupported
-    --ignore-errors inconsistent
-    --ignore-errors category
-    # --ignore-errors corrupt
     --exclude sw/device/lib/coverage/
     --exclude sw/otbn/crypto/run_p256.s
     --exclude sw/otbn/crypto/tests/
-    --ignore-errors unused
     --html-epilog util/coverage/report_epilog.html
 )
+if genhtml --version 2>/dev/null | grep -qE "version 2\."; then
+    GENHTML_ARGS+=(
+        --ignore-errors unsupported
+        --ignore-errors inconsistent
+        --ignore-errors category
+        --ignore-errors unused
+    )
+fi
 
 # function to run genhtml
 lcov_file="$1"

@@ -13,12 +13,25 @@ else
     TESTS=("$@")
 fi
 
+if ! command -v updatemem &>/dev/null; then
+    for vivado_dir in "${HOME}/.Xilinx/Vivado_Lab/"*/bin "${HOME}/.Xilinx/Vivado/"*/bin /tools/Xilinx/Vivado/*/bin /opt/Xilinx/Vivado/*/bin; do
+        if [[ -x "${vivado_dir}/updatemem" ]]; then
+            export PATH="${vivado_dir}:${PATH}"
+            break
+        fi
+    done
+fi
+
 COVERAGE_DAT="${REPO_DIR}/bazel-out/_coverage/_coverage_report.dat"
 rm -f "${COVERAGE_DAT}"
 
 "${REPO_DIR}/bazelisk.sh" coverage --config=ot_coverage --test_output=all "${TESTS[@]}"
 
+GENHTML_EXTRA=()
+if genhtml --version 2>/dev/null | grep -qE "version 2\."; then
+    GENHTML_EXTRA+=(--ignore-errors inconsistent,unsupported,category,range)
+fi
 genhtml -o "${COVERAGE_OUTPUT_DIR}" \
     --prefix "${REPO_DIR}" \
-    --ignore-errors inconsistent,unsupported,category,range \
+    "${GENHTML_EXTRA[@]}" \
     "${COVERAGE_DAT}"

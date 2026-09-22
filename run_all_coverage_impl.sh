@@ -24,11 +24,6 @@ fi
 mkdir -p "${VIEWER_DIR}"
 
 OUTPUT_BASE="$(./bazelisk.sh info output_base)"
-LLVM_BIN="${OUTPUT_BASE}/external/toolchains_llvm++llvm+llvm_toolchain_llvm/bin"
-if [[ ! -d "${LLVM_BIN}" ]]; then
-    ./bazelisk.sh fetch @llvm_toolchain_llvm//:all
-fi
-export PATH="${LLVM_BIN}:${PATH}"
 
 if ! command -v updatemem &>/dev/null; then
     for vivado_dir in "${HOME}/.Xilinx/Vivado_Lab/"*/bin "${HOME}/.Xilinx/Vivado/"*/bin /tools/Xilinx/Vivado/*/bin /opt/Xilinx/Vivado/*/bin; do
@@ -63,7 +58,7 @@ fi
 if [[ "${#TARGETS[@]}" == "0" ]]; then
     for test_group_name in "${TEST_GROUPS[@]}"; do
         test_group_expr="${test_group_name}[@]"
-        test_group=( "${!test_group_expr}" )
+        set +u; test_group=( "${!test_group_expr}" ); set -u
         TARGETS+=( "${test_group[@]}" )
         if [[ "${#test_group[@]}" != "0" ]]; then
             echo "Running test group ${test_group_name}"
@@ -141,7 +136,7 @@ else
 
     for group_name in "${COVERAGE_VIEW_GROUPS[@]}"; do
         group_expr="${group_name}[@]"
-        group=( "${!group_expr}" )
+        set +u; group=( "${!group_expr}" ); set -u
         group=( "${group[@]//:/\/}" )  # replace : with /
         group=( "${group[@]/#\/\//$TEST_LOGS_DIR}" )  # TEST_LOGS_DIR prefix
         group=( "${group[@]/%/\/coverage.dat}" )  # coverage.dat suffix
