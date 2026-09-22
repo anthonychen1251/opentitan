@@ -171,4 +171,11 @@ RUN BAZELISK_PATH="/usr/local/bin/bazelisk"; \
 
 RUN runuser dev -c "bazel > /dev/null"
 
+RUN add-apt-repository -y ppa:git-core/ppa \
+    && apt-get update \
+    && apt-get install -y git usbutils \
+    && apt-get clean \
+    && usermod -aG root,plugdev,dialout dev \
+    && sed -i 's/gosu dev:dev/gosu dev/' /start.sh
+
 ENTRYPOINT [ "/start.sh" ]
