@@ -7,6 +7,7 @@ CW310_SIVAL_ROM_EXT_TESTS=(
   '//sw/device/silicon_creator/lib/ownership:owner_verify_functest_fpga_cw310_sival_rom_ext'
   '//sw/device/silicon_creator/lib/sigverify:spx_verify_functest_fpga_cw310_sival_rom_ext'
   '//sw/device/tests/crypto:drbg_functest_fpga_cw310_sival_rom_ext'
+  '//sw/device/tests/embedpqc:mldsa44_tiny_test_fpga_cw310_sival_rom_ext'
   '//sw/device/tests:crt_test_fpga_cw310_sival_rom_ext'
   '//sw/device/tests:spi_host_irq_test_fpga_cw310_sival_rom_ext'
 )
@@ -164,6 +165,7 @@ UNIT_TESTS=(
   '//sw/device/silicon_creator/rom:bootstrap_unittest'
   '//sw/device/silicon_creator/rom_ext:rom_ext_boot_policy_unittest'
   '//sw/device/silicon_creator/rom_ext:rom_ext_boot_services_unittest'
+  '//sw/device/tests/embedpqc:mldsa_tiny_common_unittest'
 )
 
 
