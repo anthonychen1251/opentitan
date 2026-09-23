@@ -143,6 +143,7 @@ UNIT_TESTS=(
 //sw/device/silicon_creator/rom_ext/imm_section/e2e/exec_env:env_independent_dice_mldsa_slot_a_test
 //sw/device/silicon_creator/rom_ext/imm_section/e2e/exec_env:env_independent_dice_mldsa_slot_b_test
 //sw/device/silicon_creator/rom_ext/imm_section/e2e/exec_env:env_independent_dice_mldsa_slot_virtual_test
+//sw/device/tests/embedpqc:mldsa_tiny_common_unittest
 //sw/device/tests/crypto:otcrypto_pic_test
 )
 
