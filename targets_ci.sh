@@ -1018,6 +1018,8 @@ CW340_FAKE_KEYS_TESTS=(
 
 CW340_ROM_EXT_TESTS=(
 //sw/device/silicon_creator/rom_ext/e2e/dice_chain:corrupted_digest_test_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/dice_chain:corrupted_digest_dice_mldsa_test_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/dice_chain:on_demand_refresh_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/ownership:rom_ext_e2e_owner_transfer_manifest_invalid_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/ownership:rom_ext_e2e_owner_transfer_manifest_test_fpga_cw340_rom_ext
 )
