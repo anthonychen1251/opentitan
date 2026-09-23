@@ -17,10 +17,10 @@ if [[ -n "${REMOTE_DIR}" && -d "${REMOTE_DIR}" ]]; then
   fi
 fi
 
-# Copy any newly built _coverage_view/coverage.dat from local bazel-out into COLLECT_DIR
-for view_dat in $(find bazel-out/*/testlogs -path "*_coverage_view/coverage.dat" 2>/dev/null); do
-  mkdir -p "${COLLECT_DIR}/test_coverages/$(dirname "${view_dat}")"
-  cp -f "${view_dat}" "${COLLECT_DIR}/test_coverages/${view_dat}"
+# Sync any newly run test coverage.dat, baseline_coverage.dat, and test.xml from local bazel-out into COLLECT_DIR
+for f in $(find bazel-out/*/testlogs ! -path "*/test.outputs/*" \( -name "coverage.dat" -o -name "baseline_coverage.dat" -o -name "test.xml" \) 2>/dev/null); do
+  mkdir -p "${COLLECT_DIR}/test_coverages/$(dirname "${f}")"
+  cp -f "${f}" "${COLLECT_DIR}/test_coverages/${f}"
 done
 
 echo "[2/4] Generating unified lcov_files.tmp and coverage.dat..."
@@ -29,6 +29,7 @@ find "${COLLECT_DIR}/test_coverages/bazel-out" -type f \( -name "coverage.dat" -
 # Exclude _coverage_view targets from test lcov list and overall coverage.dat
 grep -v "_coverage_view" "${COLLECT_DIR}/all_lcov_files.tmp" > "${COLLECT_DIR}/lcov_files.tmp"
 xargs cat < "${COLLECT_DIR}/lcov_files.tmp" > "${COLLECT_DIR}/coverage.dat"
+sed -i "s|^${COLLECT_DIR}/test_coverages/||" "${COLLECT_DIR}/lcov_files.tmp"
 
 if [[ -n "${REMOTE_DIR}" && -d "${REMOTE_DIR}" ]]; then
   echo "[3/4] Re-running merge-coverage-report.sh..."

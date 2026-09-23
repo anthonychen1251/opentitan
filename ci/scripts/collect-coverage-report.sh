@@ -21,10 +21,12 @@ find bazel-out/*/testlogs ! -path "*/test.outputs/*" \( -name "coverage.dat" -o 
 if [[ -f "${OUTPUT_DIR}/lcov_files.tmp" ]]; then
   cat "${OUTPUT_DIR}/lcov_files.tmp.found" "${OUTPUT_DIR}/lcov_files.tmp" "${LCOV_FILES}" 2>/dev/null \
     | sed 's/\.datbazel-out/\.dat\nbazel-out/g' \
+    | sed 's|^.*/test_coverages/||' \
     | sort -u > "${OUTPUT_DIR}/lcov_files.tmp.merged"
 else
   cat "${OUTPUT_DIR}/lcov_files.tmp.found" "${LCOV_FILES}" 2>/dev/null \
     | sed 's/\.datbazel-out/\.dat\nbazel-out/g' \
+    | sed 's|^.*/test_coverages/||' \
     | sort -u > "${OUTPUT_DIR}/lcov_files.tmp.merged"
 fi
 
