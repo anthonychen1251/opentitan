@@ -56,6 +56,7 @@ opentitan_binary(
         "//hw/top_earlgrey:fpga_cw310_rom_ext",
         "//hw/top_earlgrey:fpga_cw340_rom_ext",
     ],
+    linker_script = "//sw/device/lib/testing/test_framework:ottf_ld_silicon_owner_slot_virtual",
     manifest = ":manifest_allow_isfb_erase",
     deps = [
         "//hw/top_earlgrey/ip_autogen/flash_ctrl:flash_ctrl_c_regs",
