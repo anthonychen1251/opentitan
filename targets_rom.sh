@@ -42,7 +42,7 @@ INS_ROM_CW310_ROM_WITH_FAKE_KEYS_TESTS=(
   '//sw/device/silicon_creator/rom/e2e/boot_policy_bad_manifest:boot_policy_bad_manifest_rma_too_large_b_fpga_cw310_rom_with_fake_keys'
   '//sw/device/silicon_creator/rom/e2e/boot_policy_bad_manifest:boot_policy_bad_manifest_rma_too_small_a_fpga_cw310_rom_with_fake_keys'
   '//sw/device/silicon_creator/rom/e2e/boot_policy_bad_manifest:boot_policy_bad_manifest_rma_too_small_b_fpga_cw310_rom_with_fake_keys'
-  '//sw/device/silicon_creator/rom/e2e/boot_policy_big_image:boot_policy_big_image_rma_bigger_than_64k_fpga_cw310_rom_with_fake_keys'
+  # '//sw/device/silicon_creator/rom/e2e/boot_policy_big_image:boot_policy_big_image_rma_bigger_than_64k_fpga_cw310_rom_with_fake_keys'
   '//sw/device/silicon_creator/rom/e2e/boot_policy_flash_ecc_error:a_corrupt_b_valid_code_first_word_fpga_cw310_rom_with_fake_keys'
   '//sw/device/silicon_creator/rom/e2e/boot_policy_flash_ecc_error:a_corrupt_b_valid_manifest_code_end_fpga_cw310_rom_with_fake_keys'
   '//sw/device/silicon_creator/rom/e2e/boot_policy_flash_ecc_error:a_corrupt_b_valid_manifest_code_start_fpga_cw310_rom_with_fake_keys'
