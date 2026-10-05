@@ -343,6 +343,7 @@ manifest(d = {
         name = "ft_personalize_{}".format(sku),
         testonly = True,
         srcs = ["ft_personalize.c"],
+        collect_code_coverage = 0 if "mldsa" in sku else 1,
         ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:ecdsa_keyset": "prod_key_0"},
         exec_env = {
             "//hw/top_earlgrey:fpga_hyper310_rom_with_fake_keys": None,
