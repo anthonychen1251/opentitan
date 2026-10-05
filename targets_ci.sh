@@ -797,6 +797,7 @@ HYPER310_ROMEXT_TESTS=(
 //sw/device/silicon_creator/rom_ext/e2e/verified_boot:position_romext_virtual_a_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/verified_boot:position_romext_virtual_b_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/boot_svc:boot_svc_enter_rescue_test_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/verified_boot:unprovisioned_secret1_test_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/rescue:next_slot_spidfu_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/rescue:next_slot_xmodem_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/rescue:primary_slot_xmodem_fpga_hyper310_rom_ext

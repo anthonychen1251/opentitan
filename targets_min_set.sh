@@ -85,6 +85,7 @@ UNIT_TESTS=(
   '//sw/device/silicon_creator/lib/drivers:kmac_unittest'
   '//sw/device/silicon_creator/lib/drivers:lifecycle_unittest'
   '//sw/device/silicon_creator/lib/drivers:otbn_unittest'
+  '//sw/device/silicon_creator/lib/drivers:otp_unittest'
   '//sw/device/silicon_creator/lib/drivers:rnd_unittest'
   '//sw/device/silicon_creator/lib/drivers:uart_unittest'
   '//sw/device/silicon_creator/lib/ownership:owner_block_unittest'
