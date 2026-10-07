@@ -113,7 +113,10 @@ fpga_cw310(
     base_bitstream = "//hw/bitstream:bitstream",
     exec_env = "fpga_cw310_test_rom",
     mmi = "//hw/bitstream:cw310_mmi",
-    openocd_adapter_config = "//third_party/openocd:jtag_olimex_cfg",
+    openocd_adapter_config = select({
+        "//rules:use_cw340": None,
+        "//conditions:default": "//third_party/openocd:jtag_olimex_cfg",
+    }),
     otp = "//hw/ip/otp_ctrl/data:img_rma",
     param = {
         "testopt_bootstrap": "True",
