@@ -16,6 +16,7 @@
 #include "sw/device/lib/testing/rv_plic_testutils.h"
 #include "sw/device/lib/testing/sram_ctrl_testutils.h"
 #include "sw/device/lib/testing/test_framework/check.h"
+#include "sw/device/lib/testing/test_framework/ottf_alerts.h"
 #include "sw/device/silicon_creator/lib/drivers/retention_sram.h"
 
 #include "hw/top_earlgrey/sw/autogen/top_earlgrey.h"
@@ -212,6 +213,10 @@ bool execute_sram_ctrl_sleep_ret_sram_contents_test(bool scramble) {
     set_up_reset_request();
   } else if (rstmgr_reset_info & kDifRstmgrResetInfoWatchdog) {
     LOG_INFO("watchdog reset");
+    if (scramble) {
+      CHECK_STATUS_OK(
+          ottf_alerts_ignore_alert(kTopEarlgreyAlertIdRvCoreIbexFatalHwErr));
+    }
     // reset due to a reset request, if scramble data is not preserved.
     retention_sram_check(
         (check_config_t){.do_write = false, .is_equal = !scramble});

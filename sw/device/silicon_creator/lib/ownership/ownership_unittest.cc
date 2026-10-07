@@ -117,8 +117,8 @@ INSTANTIATE_TEST_SUITE_P(AllCases, OwnershipInitInvalidPagesTest,
 
 TEST_F(OwnershipInitTest, LockedOwnerSelfHealingMinSecVerBl0) {
   boot_data_t bootdata = {
-      .ownership_state = kOwnershipStateLockedOwner,
       .min_security_version_bl0 = 1,
+      .ownership_state = kOwnershipStateLockedOwner,
   };
   owner_config_t config = {};
   owner_application_keyring_t keyring = {};

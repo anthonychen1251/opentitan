@@ -133,8 +133,9 @@ static status_t verify_handover(void) {
     return OK_STATUS();
   }
 
-  // Handle IDs-only response (Cold Boot)
-  if (type == kDiceCertGenIds) {
+  // Handle IDs-only response (Cold Boot) or partial response when CDI_0 was
+  // cached in Flash Info Pages across bootstrap.
+  if (type == kDiceCertGenIds || msg->res.mldsa_cdi0_cert_len == 0) {
     LOG_INFO(
         "Cold boot: ML-DSA Key IDs are present, but certificates are not "
         "generated yet.");

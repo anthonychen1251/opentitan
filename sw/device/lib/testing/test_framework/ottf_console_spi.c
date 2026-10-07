@@ -176,16 +176,37 @@ static size_t spi_device_send_frame(ottf_console_t *console, const char *buf,
     }
   }
 
-  // Send frame header.
-  if (!status_ok(spi_device_send_data(spi_device, frame_header_bytes,
-                                      kSpiDeviceFrameHeaderSizeBytes,
+  uint32_t next_frame_address =
+      (next_write_address + frame_size_bytes) % kSpiDeviceReadBufferSizeBytes;
+
+  // Clear the upcoming frame header slot before committing the current frame
+  // so that when the circular buffer wraps around, the host polling SPI never
+  // sees stale header words at the next read address.
+  if (console->data.spi.tx_ready_gpio == kOttfSpiNoTxGpio) {
+    const uint8_t kEmptyHeader[kSpiDeviceFrameHeaderSizeBytes] = {0};
+    if (!status_ok(spi_device_send_data(spi_device, kEmptyHeader,
+                                        kSpiDeviceFrameHeaderSizeBytes,
+                                        next_frame_address))) {
+      return 0;
+    }
+  }
+
+  // Send frame header: write frame_num and data_len first, then magic number
+  // last so the host polling SPI never sees a valid magic number before
+  // frame_num and data_len are written.
+  if (!status_ok(spi_device_send_data(
+          spi_device, frame_header_bytes + 4,
+          kSpiDeviceFrameHeaderSizeBytes - 4,
+          (next_write_address + 4) % kSpiDeviceReadBufferSizeBytes))) {
+    return 0;
+  }
+  if (!status_ok(spi_device_send_data(spi_device, frame_header_bytes, 4,
                                       next_write_address))) {
     return 0;
   }
 
   // Update the next write address and frame number.
-  next_write_address =
-      (next_write_address + frame_size_bytes) % kSpiDeviceReadBufferSizeBytes;
+  next_write_address = next_frame_address;
   console->data.spi.frame_num++;
 
   // If using the GPIO TX-ready indicator pin, toggle it high to signal to the
