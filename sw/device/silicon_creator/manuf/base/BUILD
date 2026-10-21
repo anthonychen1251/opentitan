@@ -333,8 +333,8 @@ manifest(d = {
     "identifier": hex(CONST.ROM_EXT),
     "manuf_state_creator": hex(CONST.MANUF_STATE.PERSO_INITIAL),
     "version_major": "0",
-    # Release: 2026-03-18-RC00
-    "version_minor": "2026031800",
+    # Release: 2026-10-14-RC00
+    "version_minor": "2026101400",
     "security_version": "0xFFFFFFFF",
 })
 
@@ -439,6 +439,19 @@ manifest(d = {
     for sku, config in EARLGREY_SKUS.items()
 ]
 
+# Use a pre-compiled scrambling binary if the SKU defines it,
+# else use the label of the opentitan_binary for the SKU.
+[
+    alias(
+        name = "ft_flash_scramble_bin_{}".format(sku),
+        actual = config.get(
+            "scrambling_bin",
+            ":ft_flash_scramble_{}".format(sku),
+        ),
+    )
+    for sku, config in EARLGREY_SKUS.items()
+]
+
 # Use a pre-compiled perso binary if the SKU defines it,
 # else use the label of the opentitan_binary for the SKU.
 [
@@ -506,7 +519,7 @@ filegroup(
     name = "ft_flash_scramble_bin_all",
     testonly = True,
     srcs = [
-        ":ft_flash_scramble_{}".format(sku)
+        ":ft_flash_scramble_bin_{}".format(sku)
         for sku, config in EARLGREY_SKUS.items()
     ],
 )

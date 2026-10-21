@@ -123,6 +123,7 @@ otcrypto_status_t otcrypto_rsa_public_key_construct(
     case kOtcryptoRsaSize2048: {
       if (public_key->key_length != sizeof(rsa_2048_public_key_t) ||
           modulus->len != kRsa2048NumWords) {
+        // COVERAGE (MISSING) We do not cover bad key lengths.
         return OTCRYPTO_BAD_ARGS;
       }
       rsa_2048_public_key_t *pk = (rsa_2048_public_key_t *)public_key->key;
@@ -132,6 +133,7 @@ otcrypto_status_t otcrypto_rsa_public_key_construct(
     case kOtcryptoRsaSize3072: {
       if (public_key->key_length != sizeof(rsa_3072_public_key_t) ||
           modulus->len != kRsa3072NumWords) {
+        // COVERAGE (MISSING) We do not cover bad key lengths.
         return OTCRYPTO_BAD_ARGS;
       }
       rsa_3072_public_key_t *pk = (rsa_3072_public_key_t *)public_key->key;
@@ -141,6 +143,7 @@ otcrypto_status_t otcrypto_rsa_public_key_construct(
     case kOtcryptoRsaSize4096: {
       if (public_key->key_length != sizeof(rsa_4096_public_key_t) ||
           modulus->len != kRsa4096NumWords) {
+        // COVERAGE (MISSING) We do not cover bad key lengths.
         return OTCRYPTO_BAD_ARGS;
       }
       rsa_4096_public_key_t *pk = (rsa_4096_public_key_t *)public_key->key;
@@ -148,6 +151,7 @@ otcrypto_status_t otcrypto_rsa_public_key_construct(
       break;
     }
     default:
+      // COVERAGE (MISSING) We do not cover bad sizes.
       return OTCRYPTO_BAD_ARGS;
   }
 
@@ -273,6 +277,7 @@ static status_t rsa_size_from_private_key(
       return OTCRYPTO_OK;
     default:
       // No matches.
+      // COVERAGE (MISSING) We do not cover bad key lengths.
       return OTCRYPTO_BAD_ARGS;
   }
 
@@ -375,6 +380,7 @@ otcrypto_status_t otcrypto_rsa_private_key_from_exponents(
   HARDENED_TRY(private_key_structural_check(size, private_key));
 
   if (is_even(modulus->data[0])) {
+    // COVERAGE (MISSING) We do not cover even moduli.
     return OTCRYPTO_BAD_ARGS;
   }
 
@@ -501,6 +507,8 @@ otcrypto_status_t otcrypto_rsa_hash_sign_verify(
                                    &signature_check, &verification_result));
   HARDENED_TRY(hardened_memshred(digest_data, ARRAYSIZE(digest_data)));
   if (verification_result != kHardenedBoolTrue) {
+    // COVERAGE (FI CM) This check only fails if the signature generation was
+    // faulted.
     crypto_state_t *state = NULL;
     if (status_ok(read_state_pointer(&state)) && state != NULL) {
       state->locked_state = kHardenedByteBoolTrue;
@@ -567,17 +575,23 @@ static otcrypto_status_t rsa_pct_verify(
       sig_words = 2048 / 32;
       break;
     case kOtcryptoRsaSize3072:
+      // COVERAGE (MISSING) RSA-3072 keygen PCT is not run in coverage due to
+      // runtime.
       sig_words = 3072 / 32;
       break;
     case kOtcryptoRsaSize4096:
+      // COVERAGE (MISSING) RSA-4096 keygen PCT is not run in coverage due to
+      // runtime.
       sig_words = 4096 / 32;
       break;
     default:
+      // COVERAGE (FI CM) Unreachable as size is validated by caller.
       return OTCRYPTO_BAD_ARGS;
   }
 
   otcrypto_rsa_padding_t padding_mode = kOtcryptoRsaPaddingPkcs;
   if (private_key->config.key_mode == kOtcryptoKeyModeRsaSignPss) {
+    // COVERAGE (MISSING) RSA-PSS keygen PCT is not covered.
     padding_mode = kOtcryptoRsaPaddingPss;
   }
 
@@ -736,6 +750,7 @@ otcrypto_status_t otcrypto_rsa_keypair_from_cofactor_async_start(
       if (cofactor_share0->len !=
               sizeof(rsa_3072_cofactor_t) / sizeof(uint32_t) ||
           modulus->len != kRsa3072NumWords) {
+        // COVERAGE (MISSING) We do not cover bad size.
         return OTCRYPTO_BAD_ARGS;
       }
       HARDENED_TRY_WIPE_DMEM(rsa_keygen_from_cofactor_start(
@@ -746,6 +761,7 @@ otcrypto_status_t otcrypto_rsa_keypair_from_cofactor_async_start(
       if (cofactor_share0->len !=
               sizeof(rsa_4096_cofactor_t) / sizeof(uint32_t) ||
           modulus->len != kRsa4096NumWords) {
+        // COVERAGE (MISSING) We do not cover bad size.
         return OTCRYPTO_BAD_ARGS;
       }
       HARDENED_TRY_WIPE_DMEM(rsa_keygen_from_cofactor_start(
@@ -753,6 +769,7 @@ otcrypto_status_t otcrypto_rsa_keypair_from_cofactor_async_start(
       return otcrypto_eval_exit(OTCRYPTO_OK);
     }
     default:
+      // COVERAGE (MISSING) We do not cover bad size.
       return OTCRYPTO_BAD_ARGS;
   }
 
@@ -1411,10 +1428,11 @@ otcrypto_status_t otcrypto_rsa_sign_exp(
     const otcrypto_blinded_key_t *private_key, uint32_t exponent,
     const otcrypto_hash_digest_t message_digest,
     otcrypto_rsa_padding_t padding_mode, otcrypto_word32_buf_t *signature) {
+  OTCRYPTO_SET_CMVP_INDICATOR(OTCRYPTO_FUNCTION_RSA_SIGN_EXP);
   HARDENED_TRY(public_exponent_check(exponent));
   HARDENED_TRY(rsa_sign_exp_async_start(private_key, exponent, message_digest,
                                         padding_mode));
-  return otcrypto_rsa_sign_async_finalize(signature);
+  return otcrypto_eval_exit(otcrypto_rsa_sign_async_finalize(signature));
 }
 
 otcrypto_status_t otcrypto_rsa_verify_exp(
@@ -1423,10 +1441,11 @@ otcrypto_status_t otcrypto_rsa_verify_exp(
     otcrypto_rsa_padding_t padding_mode,
     const otcrypto_const_word32_buf_t *signature,
     hardened_bool_t *verification_result) {
+  OTCRYPTO_SET_CMVP_INDICATOR(OTCRYPTO_FUNCTION_RSA_VERIFY_EXP);
   HARDENED_TRY(public_exponent_check(exponent));
   HARDENED_TRY(rsa_verify_exp_async_start(public_key, exponent, signature));
-  return otcrypto_rsa_verify_async_finalize(message_digest, padding_mode,
-                                            verification_result);
+  return otcrypto_eval_exit(otcrypto_rsa_verify_async_finalize(
+      message_digest, padding_mode, verification_result));
 }
 
 otcrypto_status_t otcrypto_rsa_encrypt_exp(
@@ -1434,10 +1453,11 @@ otcrypto_status_t otcrypto_rsa_encrypt_exp(
     const otcrypto_hash_mode_t hash_mode,
     const otcrypto_const_byte_buf_t *message,
     const otcrypto_const_byte_buf_t *label, otcrypto_word32_buf_t *ciphertext) {
+  OTCRYPTO_SET_CMVP_INDICATOR(OTCRYPTO_FUNCTION_RSA_ENCRYPT_EXP);
   HARDENED_TRY(public_exponent_check(exponent));
   HARDENED_TRY(rsa_encrypt_exp_async_start(public_key, exponent, hash_mode,
                                            message, label));
-  return otcrypto_rsa_encrypt_async_finalize(ciphertext);
+  return otcrypto_eval_exit(otcrypto_rsa_encrypt_async_finalize(ciphertext));
 }
 
 otcrypto_status_t otcrypto_rsa_decrypt_exp(
@@ -1446,8 +1466,9 @@ otcrypto_status_t otcrypto_rsa_decrypt_exp(
     const otcrypto_const_word32_buf_t *ciphertext,
     const otcrypto_const_byte_buf_t *label, otcrypto_byte_buf_t *plaintext,
     size_t *plaintext_bytelen) {
+  OTCRYPTO_SET_CMVP_INDICATOR(OTCRYPTO_FUNCTION_RSA_DECRYPT_EXP);
   HARDENED_TRY(public_exponent_check(exponent));
   HARDENED_TRY(rsa_decrypt_exp_async_start(private_key, exponent, ciphertext));
-  return otcrypto_rsa_decrypt_async_finalize(hash_mode, label, plaintext,
-                                             plaintext_bytelen);
+  return otcrypto_eval_exit(otcrypto_rsa_decrypt_async_finalize(
+      hash_mode, label, plaintext, plaintext_bytelen));
 }
