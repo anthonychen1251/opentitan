@@ -59,8 +59,13 @@ enum {
 
 enum {
   // Minimum watchdog timer for MLDSA operations.
+#ifndef OT_COVERAGE_ENABLED
   // 2.4s x 200000Hz = 480000
   kWdogMinBiteThreshold = 480000,
+#else
+  // 12.0s x 200000Hz = 2400000
+  kWdogMinBiteThreshold = 2400000,
+#endif
 };
 
 const dice_storage_slot_t kDiceStorageCdi0Ecdsa = DICE_STORAGE_SLOT(

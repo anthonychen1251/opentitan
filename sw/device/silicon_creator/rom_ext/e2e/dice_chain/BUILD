@@ -229,7 +229,6 @@ opentitan_test(
 
 CORRUPTED_DIGEST_MLDSA_TEST_CMDS = """
     --exec="no-op --info='##### Prepare CDI cert page'"
-    --exec="bootstrap --clear-uart=true {firmware}"
     --exec="console --non-interactive --exit-success='{exit_success}' --exit-failure='{exit_failure}' --timeout=30s"
     --exec="no-op --info='##### Corrupt CDI cert page'"
     --exec="bootstrap --clear-uart=true {modify_digest}"
@@ -255,7 +254,6 @@ opentitan_test(
         },
         rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_dice_mldsa_slot_a",
         test_cmd = CORRUPTED_DIGEST_MLDSA_TEST_CMDS,
-        testopt_bootstrap = "False",
         testopt_clear_before_test = "True",
     ),
     qemu = qemu_params(
@@ -265,6 +263,7 @@ opentitan_test(
         rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_dice_mldsa_slot_a",
         test_cmd = ("""
             --exec="transport init"
+            --exec="bootstrap --clear-uart=true {firmware}"
         """ + CORRUPTED_DIGEST_MLDSA_TEST_CMDS),
     ),
     slot_spec = ROM_EXT_VARIATIONS["dice_mldsa"].slot_spec,
@@ -392,6 +391,9 @@ opentitan_test(
     fpga = fpga_params(
         otp = ":otp_img_secret2_locked_watchdog_250ms_prod",
         rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_dice_mldsa_slot_a",
+        test_cmd = """
+            console --non-interactive --exit-success='{exit_success}' --exit-failure='{exit_failure}' --timeout=30s
+        """,
         testopt_clear_after_test = "True",
         testopt_clear_before_test = "True",
     ),
