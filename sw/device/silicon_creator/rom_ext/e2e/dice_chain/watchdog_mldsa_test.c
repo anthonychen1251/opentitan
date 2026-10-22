@@ -21,7 +21,11 @@ OTTF_DEFINE_TEST_CONFIG();
 enum {
   kWdogBase = TOP_EARLGREY_AON_TIMER_AON_BASE_ADDR,
   kExpectedWdogCtrl = 1 << AON_TIMER_WDOG_CTRL_ENABLE_BIT,
+#ifndef OT_COVERAGE_ENABLED
   kExpectedBiteThreshold = 480000,
+#else
+  kExpectedBiteThreshold = 2400000,
+#endif
   kExpectedBarkThreshold = (9 * kExpectedBiteThreshold) / 8,
 };
 
