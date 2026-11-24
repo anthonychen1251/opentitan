@@ -162,6 +162,18 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "dice_storage_unittest",
+    srcs = ["dice_storage_unittest.cc"],
+    linkstatic = True,
+    deps = [
+        ":dice_storage",
+        "//sw/device/silicon_creator/lib:error",
+        "//sw/device/silicon_creator/testing:rom_test",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "dice_api",
     hdrs = ["dice.h"],

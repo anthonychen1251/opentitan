@@ -7,6 +7,7 @@
 #include "sw/device/lib/base/memory.h"
 #include "sw/device/lib/base/status.h"
 #include "sw/device/lib/crypto/drivers/entropy_kat.h"
+#include "sw/device/lib/crypto/impl/state.h"
 #include "sw/device/lib/crypto/impl/status.h"
 #include "sw/device/lib/dif/dif_otbn.h"
 #include "sw/device/lib/runtime/log.h"
@@ -40,6 +41,10 @@ static status_t entropy_complex_init_test(void) {
 
 static status_t run_negative_test(void) {
   LOG_INFO("Running negative tests.");
+
+  // Test NULL pointer arguments to cryptolib state storage helpers.
+  CHECK(store_state(NULL).value == OTCRYPTO_BAD_ARGS.value);
+  CHECK(read_state_pointer(NULL).value == OTCRYPTO_BAD_ARGS.value);
 
   // Test too large length outputs
   CHECK(entropy_csrng_generate_start(NULL, 0x2001).value ==

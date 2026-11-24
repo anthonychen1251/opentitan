@@ -58,8 +58,13 @@ static status_t test_on_demand_refresh(void) {
     // empty.
     TRY(!is_flash_page_empty() ? OK_STATUS() : INTERNAL());
 
-    // In Hybrid mode, msg type should be kDiceCertGenIds on cold boot.
+    // In on-demand mode cold boot sets kDiceCertGenIds; in on-change mode cold
+    // boot sets kDiceCertGenResponse.
+#ifdef TEST_EXPECT_ON_CHANGE_COLD_BOOT
+    TRY(msg->hdr.type == kDiceCertGenResponse ? OK_STATUS() : INTERNAL());
+#else
     TRY(msg->hdr.type == kDiceCertGenIds ? OK_STATUS() : INTERNAL());
+#endif
 
     uint64_t cdi0_id = read_64(msg->ids.mldsa_cdi0_id);
     uint64_t cdi1_id = read_64(msg->ids.mldsa_cdi1_id);
@@ -105,6 +110,12 @@ static status_t test_on_demand_refresh(void) {
     return INTERNAL();
   }
   LOG_INFO("Handover CRC32 verified successfully: 0x%08x", calculated_crc);
+
+#ifdef TEST_EXPECTED_UDS_PUB_LEN
+  TRY_CHECK(res->mldsa_uds_pub_len == TEST_EXPECTED_UDS_PUB_LEN,
+            "Unexpected UDS public key len: got %u, expected %u",
+            res->mldsa_uds_pub_len, TEST_EXPECTED_UDS_PUB_LEN);
+#endif
 
   uint64_t cdi0_id = read_64(res->mldsa_cdi0_id);
   uint64_t cdi1_id = read_64(res->mldsa_cdi1_id);
