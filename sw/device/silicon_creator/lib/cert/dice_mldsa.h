@@ -53,6 +53,12 @@ rom_error_t imm_shared_dice_attest_next_cdi(
     const keymgr_binding_value_t *sealing_binding, uint32_t max_key_version,
     const uint8_t *exts, size_t exts_size);
 
+#ifdef OT_COVERAGE_ENABLED
+void imm_shared_coverage_init(void);
+void imm_shared_coverage_report(void);
+void imm_shared_coverage_invalidate(void);
+#endif
+
 // `key_ids->endorsement` must already be populated
 OT_WARN_UNUSED_RESULT
 rom_error_t dice_uds_mldsa_tbs_cert_generate_and_build(

@@ -870,9 +870,20 @@ rom_error_t dice_attest_cdi_1(const manifest_t *owner_manifest,
   HARDENED_RETURN_IF_ERROR(
       cdi_1_exts_build_private_exts(&cdi1_exts_values, exts_buf, &exts_size));
 
+#ifdef OT_COVERAGE_ENABLED
+  imm_shared_coverage_init();
+  rom_error_t imm_err = imm_shared_dice_attest_next_cdi(
+      &kCdi1AttestParams, sealing_binding, owner_manifest->max_key_version,
+      exts_buf, exts_size);
+  watchdog_pet();
+  imm_shared_coverage_report();
+  imm_shared_coverage_invalidate();
+  HARDENED_RETURN_IF_ERROR(imm_err);
+#else
   HARDENED_RETURN_IF_ERROR(imm_shared_dice_attest_next_cdi(
       &kCdi1AttestParams, sealing_binding, owner_manifest->max_key_version,
       exts_buf, exts_size));
+#endif
 
   write_64(read_64(cdi1_mldsa_id.digest), msg->ids.mldsa_cdi1_id);
 
