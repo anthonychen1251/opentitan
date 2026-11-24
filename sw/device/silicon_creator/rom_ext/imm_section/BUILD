@@ -173,7 +173,12 @@ ld_library(
     create_imm_section_targets(
         name = "main_section_{}_slot_{}".format(variation_name, slot),
         src = ":main_binaries_{}_slot_{}".format(variation_name, slot),
-        exports = variation.imm_exports,
+        exports = variation.imm_exports + (select({
+            "//rules/coverage:instrumented": [
+                "coverage_profile_desc",
+            ],
+            "//conditions:default": [],
+        }) if variation.imm_exports else []),
     )
     for variation_name, variation in ROM_EXT_VARIATIONS.items()
     for slot in SLOTS

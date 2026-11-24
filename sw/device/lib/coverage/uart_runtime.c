@@ -17,10 +17,10 @@ void coverage_transport_init(void) {
   }
 }
 
-void coverage_report(void) {
-  if (coverage_is_valid()) {
+static void coverage_report_desc(const coverage_profile_desc_t *desc) {
+  if (coverage_is_valid_desc(desc)) {
     dbg_puts("== COVERAGE PROFILE START ==\r\n");
-    coverage_printer_run();
+    coverage_printer_run_desc(desc);
     dbg_puts("== COVERAGE PROFILE END ==\r\n");
   } else {
     dbg_puts("== COVERAGE PROFILE INVALID ==\r\n");
@@ -28,6 +28,15 @@ void coverage_report(void) {
 
   // Wait until the report is sent.
   while (!uart_tx_idle()) {
+  }
+}
+
+void coverage_report(void) {
+  coverage_report_desc(&coverage_profile_desc);
+  if (imm_shared_coverage_profile_desc.status != NULL &&
+      coverage_is_valid_desc(&imm_shared_coverage_profile_desc) &&
+      coverage_has_hits_desc(&imm_shared_coverage_profile_desc)) {
+    coverage_report_desc(&imm_shared_coverage_profile_desc);
   }
 }
 
