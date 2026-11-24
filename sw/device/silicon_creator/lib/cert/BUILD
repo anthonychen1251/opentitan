@@ -50,6 +50,16 @@ certificate_template(
 )
 
 certificate_template(
+    name = "cdi_0_exts_template",
+    template = "cdi_0_exts.hjson",
+)
+
+certificate_template(
+    name = "cdi_1_exts_template",
+    template = "cdi_1_exts.hjson",
+)
+
+certificate_template(
     name = "cwt_cose_key_template",
     cert_format = "cwt",
     template = "cwt_cose_key.hjson",
@@ -230,7 +240,10 @@ cc_library(
 
 cc_library(
     name = "dice_mldsa",
-    srcs = ["dice_mldsa.c"],
+    srcs = [
+        "dice_mldsa.c",
+        "dice_mldsa_caller.S",
+    ],
     deps = [
         ":cert",
         ":dice_api",
@@ -246,11 +259,14 @@ cc_library(
         "//sw/device/silicon_creator/lib/base:static_dice_cdi_0",
         "//sw/device/silicon_creator/lib/base:static_dice_mldsa_cdi",
         "//sw/device/silicon_creator/lib/base:util",
+        "//sw/device/silicon_creator/lib/cert:cdi_0_exts_template_library",
+        "//sw/device/silicon_creator/lib/cert:cdi_1_exts_template_library",
         "//sw/device/silicon_creator/lib/cert:cdi_hybrid_template_library",
         "//sw/device/silicon_creator/lib/cert:dice_chain",
         "//sw/device/silicon_creator/lib/cert:dice_keys",
         "//sw/device/silicon_creator/lib/cert:uds_template_library",
         "//sw/device/silicon_creator/lib/drivers:hmac",
+        "//sw/device/silicon_creator/lib/drivers:kmac",
         "//sw/device/silicon_creator/lib/drivers:lifecycle",
         "//sw/device/silicon_creator/lib/drivers:retention_sram",
         "//sw/device/silicon_creator/lib/drivers:rstmgr",
@@ -262,8 +278,10 @@ cc_library(
         "//sw/device/silicon_creator/rom_ext:rom_ext_boot_policy_ptrs",
         "//sw/device/silicon_creator/rom_ext:rom_ext_manifest",
         "//third_party/embedpqc:mldsa44_tiny",
+        "//third_party/embedpqc:mldsa87_tiny",
         "//third_party/embedpqc/ports:mldsa44_tiny_caller",
         "//third_party/embedpqc/ports:mldsa87_tiny_caller",
+        "//third_party/embedpqc/ports:mldsa_caller_common",
     ],
 )
 

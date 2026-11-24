@@ -40,6 +40,7 @@
 #include "sw/device/silicon_creator/lib/epmp_state.h"
 #include "sw/device/silicon_creator/lib/manifest.h"
 #include "sw/device/silicon_creator/lib/manifest_def.h"
+#include "sw/device/silicon_creator/lib/otbn_boot_services.h"
 #include "sw/device/silicon_creator/lib/ownership/isfb.h"
 #include "sw/device/silicon_creator/lib/ownership/owner_block.h"
 #include "sw/device/silicon_creator/lib/ownership/owner_verify.h"
@@ -199,6 +200,8 @@ static void rom_ext_flash_lockdown(uint32_t rom_ext_slot) {
       inactive_pages, write, cfg, kHardenedBoolTrue);
 }
 
+static void rom_ext_regwen_lockdown(void) { flash_ctrl_prim_lockdown(); }
+
 OT_WARN_UNUSED_RESULT
 static rom_error_t rom_ext_init(boot_data_t *boot_data) {
   sec_mmio_next_stage_init();
@@ -208,17 +211,18 @@ static rom_error_t rom_ext_init(boot_data_t *boot_data) {
   // a non-zero digest.
   HARDENED_RETURN_IF_ERROR(otp_secret_partitions_check(lc_state));
 
+  // Defensive clear to be sure no key material is left after the immutable
+  // ROM_EXT section.
+  HARDENED_RETURN_IF_ERROR(otbn_boot_attestation_key_clear());
+
+  rom_ext_regwen_lockdown();
+  SEC_MMIO_WRITE_INCREMENT(kFlashCtrlSecMmioPrimLockdown);
+
   flash_ecc_exc_handler_en = otp_read32(
       OTP_CTRL_PARAM_OWNER_SW_CFG_ROM_FLASH_ECC_EXC_HANDLER_EN_OFFSET);
   pinmux_init();
   // Configure UART0 as stdout.
   uart_init(kUartNCOValue);
-
-  // Reclaim entries 0 ~ 7 from ROM and ROM_EXT IMM_SECTION.
-  for (int8_t i = 7; i >= 0; --i) {
-    epmp_clear((uint8_t)i);
-  }
-  HARDENED_RETURN_IF_ERROR(epmp_state_check());
 
   // Check that the retention RAM is initialized.
   // TODO(lowrisc#22387): Check if return-if-error here is a potential
@@ -293,6 +297,13 @@ static rom_error_t rom_ext_boot(boot_data_t *boot_data, boot_log_t *boot_log,
   HARDENED_RETURN_IF_ERROR(dice_attest_cdi_1(
       manifest, &boot_measurements.bl0, &owner_measurement, &owner_history_hash,
       &sealing_binding, key->key_domain));
+
+  // Reclaim entries 0 ~ 7 from ROM and ROM_EXT IMM_SECTION now that
+  // CDI_1 attestation using imm_section is complete.
+  for (int8_t i = 7; i >= 0; --i) {
+    epmp_clear((uint8_t)i);
+  }
+  HARDENED_RETURN_IF_ERROR(epmp_state_check());
 
   // Configure and lockdown rom_ext flash settings over the full rom_ext_size
   // range (or up to manifest offset for the inactive slot).

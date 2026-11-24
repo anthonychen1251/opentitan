@@ -144,7 +144,7 @@ class QemuMonitor:
             pass
         return 0
 
-    def _wait_for_otbn_idle(self, max_wait=0.5):
+    def _wait_for_otbn_idle(self, max_wait=1.5):
         """Ensures OTBN proxy finishes any in-flight operation before reset."""
         status = self._get_otbn_status()
         if status in (0, 0xFF):
@@ -378,6 +378,11 @@ class QemuSerialProxy:
             raw = self._qemu.serial.readline()
             if not raw:
                 if self._qemu.monitor._pc_tracing:
+                    return b""
+                active_gdb = getattr(self._qemu.monitor, "_active_gdb", None)
+                if active_gdb is not None and active_gdb.has_crash_detected():
+                    self._qemu._faulted = True
+                    self._qemu.serial.timeout = 0
                     return b""
                 self._empty_reads += 1
                 if self._empty_reads >= 300:
@@ -618,10 +623,11 @@ class Qemu:
                 except OSError:
                     pass
 
-    def _wait_for_boot(self):
+    def _wait_for_boot(self) -> bool:
         """Waits for target to finish booting ROM -> ROM_EXT -> BL0/TestOS."""
         if not self.serial:
-            return
+            return False
+        booted = False
         try:
             start_t = time.time()
             self.serial.timeout = 0.2
@@ -629,15 +635,18 @@ class Qemu:
             while time.time() - start_t < 12.0:
                 line = self.serial.readline()
                 if b"Enabling OTTF alert catcher" in line:
+                    booted = True
                     break
                 if b"Running " in line:
                     seen_running = True
                 elif seen_running and not line:
+                    booted = True
                     break
         finally:
             self.serial.timeout = (
                 self.RMA_SPIN_TIMEOUT if self.has_rma_spin else self.DEFAULT_TIMEOUT
             )
+        return booted
 
     def initialize_target(self, print_output=True):
         if not self._is_qemu_alive() or self._needs_image_restore():
@@ -660,7 +669,10 @@ class Qemu:
             self._restart_qemu()
         self.monitor.reset(halt=False)
         if not self.has_rma_spin:
-            self._wait_for_boot()
+            if not self._wait_for_boot():
+                self._restart_qemu()
+                self.monitor.reset(halt=False)
+                self._wait_for_boot()
         time.sleep(reset_delay)
 
     def start_openocd(self, startup_delay=0, print_output=False):

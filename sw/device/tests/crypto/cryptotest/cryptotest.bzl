@@ -9,6 +9,7 @@ load(
     "EARLGREY_SILICON_OWNER_ROM_EXT_ENVS",
     "fpga_params",
     "opentitan_test",
+    "qemu_params",
     "silicon_params",
 )
 
@@ -23,6 +24,8 @@ CRYPTOTEST_EXEC_ENVS = {
     "//hw/top_earlgrey:fpga_cw310_sival_rom_ext": None,
     "//hw/top_earlgrey:fpga_cw340_test_rom": "fpga_cw340",
     "//hw/top_earlgrey:fpga_cw340_sival_rom_ext": "fpga_cw340",
+    "//hw/top_earlgrey:sim_qemu_rom_with_fake_keys": None,
+    "//hw/top_earlgrey:sim_qemu_sival_rom_ext": None,
 } | EARLGREY_SILICON_OWNER_ROM_EXT_ENVS
 
 FIRMWARE_DEPS = [
@@ -34,6 +37,7 @@ FIRMWARE_DEPS = [
     "//sw/device/tests/crypto/cryptotest/firmware:ed25519",
     "//sw/device/tests/crypto/cryptotest/firmware:hash",
     "//sw/device/tests/crypto/cryptotest/firmware:hmac",
+    "//sw/device/tests/crypto/cryptotest/firmware:kdf",
     "//sw/device/tests/crypto/cryptotest/firmware:kmac",
     "//sw/device/tests/crypto/cryptotest/firmware:rsa",
     "//sw/device/tests/crypto/cryptotest/firmware:sha",
@@ -50,7 +54,7 @@ FIRMWARE_DEPS = [
     "//sw/device/tests/crypto/cryptotest/json:commands",
 ]
 
-def cryptotest(name, test_vectors, test_args, test_harness, slow_test = False):
+def cryptotest(name, test_vectors, test_args, test_harness, slow_test = False, skip_stride = None):
     """A macro for defining a CryptoTest test case.
 
     Args:
@@ -59,8 +63,14 @@ def cryptotest(name, test_vectors, test_args, test_harness, slow_test = False):
         test_args: additional arguments to pass to the test.
         test_harness: the test harness to use.
         slow_test: indicate if the test should be run in the nightly CI.
+        skip_stride: optional stride factor to reduce the number of test vectors run.
     """
     tags = ["slow_test"] if slow_test else []
+    if test_args:
+        if skip_stride != None:
+            test_args = "{} --skip-stride={}".format(test_args, skip_stride)
+        else:
+            test_args = "{} --skip-stride=$((CRYPTOTEST_SKIP_STRIDE+0))".format(test_args)
     opentitan_test(
         name = name,
         srcs = ["//sw/device/tests/crypto/cryptotest/firmware:firmware.c"],
@@ -75,6 +85,13 @@ def cryptotest(name, test_vectors, test_args, test_harness, slow_test = False):
             timeout = "long",
             tags = tags,
             data = test_vectors,
+            test_cmd = test_args,
+            test_harness = test_harness,
+        ),
+        qemu = qemu_params(
+            timeout = "eternal",
+            data = test_vectors,
+            tags = tags,
             test_cmd = test_args,
             test_harness = test_harness,
         ),

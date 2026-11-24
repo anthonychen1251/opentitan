@@ -48,10 +48,6 @@ _NO_REFRESH_VARIATIONS |= {
         "rom_ext": "//sw/device/silicon_creator/rom_ext:rom_ext_on_change_dice_mldsa",
         "slot_spec": ROM_EXT_VARIATIONS["dice_mldsa"].slot_spec,
     },
-    "flash_storage_dice_mldsa": {
-        "rom_ext": "//sw/device/silicon_creator/rom_ext:rom_ext_flash_storage_dice_mldsa",
-        "slot_spec": ROM_EXT_VARIATIONS["dice_mldsa"].slot_spec,
-    },
 }
 
 [
@@ -67,6 +63,7 @@ _NO_REFRESH_VARIATIONS |= {
             exit_failure = "Rebooting[\\s\\S]*DICE cert cache miss[\\s\\S]*Rebooted",
             exit_success = "Rebooted\r\n",
             rom_ext = variation["rom_ext"],
+            testopt_clear_before_test = "True",
         ),
         qemu = qemu_params(
             exit_failure = "Rebooting[\\s\\S]*DICE cert cache miss[\\s\\S]*Rebooted",
@@ -343,8 +340,6 @@ opentitan_test(
     slot_spec = ROM_EXT_VARIATIONS["dice_mldsa"].slot_spec,
     deps = [
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
-        "//sw/device/lib/arch:device",
-        "//sw/device/lib/base:math",
         "//sw/device/lib/base:status",
         "//sw/device/lib/runtime:log",
         "//sw/device/lib/testing/test_framework:check",
@@ -354,29 +349,62 @@ opentitan_test(
         "//sw/device/silicon_creator/lib/drivers:flash_ctrl",
         "//sw/device/silicon_creator/lib/drivers:retention_sram",
         "//sw/device/silicon_creator/lib/drivers:rstmgr",
-        "//sw/device/silicon_creator/lib/drivers:watchdog",
+    ],
+)
+
+opentitan_test(
+    name = "corrupted_mldsa_digest_test",
+    srcs = ["corrupted_mldsa_digest_test.c"],
+    exec_env = {
+        "//hw/top_earlgrey:fpga_cw310_rom_ext": None,
+        "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
+        "//hw/top_earlgrey:sim_qemu_rom_ext": None,
+    },
+    fpga = fpga_params(
+        rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_dice_mldsa_slot_a",
+        testopt_clear_before_test = "True",
+    ),
+    qemu = qemu_params(
+        rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_dice_mldsa_slot_a",
+    ),
+    slot_spec = ROM_EXT_VARIATIONS["dice_mldsa"].slot_spec,
+    deps = [
+        "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+        "//sw/device/lib/base:macros",
+        "//sw/device/lib/base:memory",
+        "//sw/device/lib/base:status",
+        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/testing/test_framework:check",
+        "//sw/device/lib/testing/test_framework:ottf_alerts",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+        "//sw/device/silicon_creator/lib/cert:dice_storage",
+        "//sw/device/silicon_creator/lib/cert:ram_msg",
+        "//sw/device/silicon_creator/lib/drivers:flash_ctrl",
+        "//sw/device/silicon_creator/lib/drivers:retention_sram",
+        "//sw/device/silicon_creator/lib/drivers:rstmgr",
+        "//sw/device/silicon_creator/manuf/base:perso_tlv_data",
     ],
 )
 
 otp_json(
-    name = "otp_json_watchdog_250ms",
+    name = "otp_json_watchdog_350ms",
     partitions = [
         otp_partition(
             name = "OWNER_SW_CFG",
             items = {
-                # 0.25s * 200000Hz = 50000
-                "OWNER_SW_CFG_ROM_WATCHDOG_BITE_THRESHOLD_CYCLES": otp_hex(50000),
+                # 0.35s * 200000Hz = 70000
+                "OWNER_SW_CFG_ROM_WATCHDOG_BITE_THRESHOLD_CYCLES": otp_hex(70000),
             },
         ),
     ],
 )
 
 otp_image(
-    name = "otp_img_secret2_locked_watchdog_250ms_prod",
+    name = "otp_img_secret2_locked_watchdog_350ms_prod",
     src = "//hw/ip/otp_ctrl/data:otp_json_prod",
     overlays = STD_OTP_OVERLAYS + [
         "//sw/device/silicon_creator/rom_ext/e2e:otp_json_secret2_locked",
-        ":otp_json_watchdog_250ms",
+        ":otp_json_watchdog_350ms",
     ],
 )
 
@@ -389,7 +417,7 @@ opentitan_test(
         "//hw/top_earlgrey:sim_qemu_rom_ext": None,
     },
     fpga = fpga_params(
-        otp = ":otp_img_secret2_locked_watchdog_250ms_prod",
+        otp = ":otp_img_secret2_locked_watchdog_350ms_prod",
         rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_dice_mldsa_slot_a",
         test_cmd = """
             console --non-interactive --exit-success='{exit_success}' --exit-failure='{exit_failure}' --timeout=30s
@@ -398,7 +426,7 @@ opentitan_test(
         testopt_clear_before_test = "True",
     ),
     qemu = qemu_params(
-        otp = ":otp_img_secret2_locked_watchdog_250ms_prod",
+        otp = ":otp_img_secret2_locked_watchdog_350ms_prod",
         rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_dice_mldsa_slot_a",
     ),
     slot_spec = ROM_EXT_VARIATIONS["dice_mldsa"].slot_spec,
@@ -412,5 +440,38 @@ opentitan_test(
         "//sw/device/lib/testing/test_framework:ottf_main",
         "//sw/device/silicon_creator/lib/drivers:retention_sram",
         "//sw/device/silicon_creator/lib/drivers:rstmgr",
+    ],
+)
+
+opentitan_test(
+    name = "watchdog_skip_cert_gen_test",
+    srcs = ["watchdog_skip_cert_gen_test.c"],
+    exec_env = {
+        "//hw/top_earlgrey:fpga_cw310_rom_ext": None,
+        "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
+        "//hw/top_earlgrey:sim_qemu_rom_ext": None,
+    },
+    fpga = fpga_params(
+        exit_failure = "First boot[\\s\\S]*DICE cert cache miss[\\s\\S]*Second boot",
+        rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_dice_mldsa_slot_a",
+        testopt_clear_before_test = "True",
+    ),
+    qemu = qemu_params(
+        exit_failure = "First boot[\\s\\S]*DICE cert cache miss[\\s\\S]*Second boot",
+        rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_dice_mldsa_slot_a",
+    ),
+    slot_spec = ROM_EXT_VARIATIONS["dice_mldsa"].slot_spec,
+    deps = [
+        "//sw/device/lib/arch:device",
+        "//sw/device/lib/base:bitfield",
+        "//sw/device/lib/base:hardened",
+        "//sw/device/lib/base:math",
+        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/testing/test_framework:check",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+        "//sw/device/silicon_creator/lib/cert:ram_msg",
+        "//sw/device/silicon_creator/lib/drivers:retention_sram",
+        "//sw/device/silicon_creator/lib/drivers:rstmgr",
+        "//sw/device/silicon_creator/lib/drivers:watchdog",
     ],
 )

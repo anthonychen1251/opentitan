@@ -46,6 +46,7 @@ static rom_error_t imm_section_start(void) {
   flash_ctrl_cert_info_page_owner_restrict(
       &kFlashCtrlInfoPageAttestationKeySeeds);
   flash_ctrl_info_cfg_lock(&kFlashCtrlInfoPageAttestationKeySeeds);
+  flash_ctrl_prim_lockdown();
 
   // Establish our identity.
   const manifest_t *rom_ext = rom_ext_manifest();
@@ -54,6 +55,8 @@ static rom_error_t imm_section_start(void) {
 
   // Make mutable part executable.
   HARDENED_RETURN_IF_ERROR(imm_section_epmp_mutable_rx(rom_ext));
+
+  sec_mmio_check_values(rnd_uint32());
 
   return kErrorOk;
 }

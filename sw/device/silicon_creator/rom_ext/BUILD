@@ -281,6 +281,7 @@ asm_library_with_coverage(
             "//sw/device/silicon_creator/lib:dbg_print",
             "//sw/device/silicon_creator/lib:manifest",
             "//sw/device/silicon_creator/lib:manifest_def",
+            "//sw/device/silicon_creator/lib:otbn_boot_services",
             "//sw/device/silicon_creator/lib:shutdown",
             "//sw/device/silicon_creator/lib/base:chip",
             "//sw/device/silicon_creator/lib/base:sec_mmio",
@@ -323,6 +324,16 @@ manifest(d = {
     "version_major": ROM_EXT_VERSION.MAJOR,
     "version_minor": ROM_EXT_VERSION.MINOR,
     "security_version": ROM_EXT_VERSION.SECURITY,
+})
+
+manifest(d = {
+    "name": "manifest_mldsa87",
+    "identifier": hex(CONST.ROM_EXT),
+    "visibility": ["//visibility:public"],
+    "version_major": ROM_EXT_VERSION.MAJOR,
+    "version_minor": ROM_EXT_VERSION.MINOR,
+    "security_version": ROM_EXT_VERSION.SECURITY,
+    "dice_alg": hex(CONST.DICE.ALG_P256_MLDSA87),
 })
 
 [

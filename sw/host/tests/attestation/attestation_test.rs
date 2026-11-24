@@ -44,13 +44,13 @@ struct Opts {
     #[arg(long)]
     post_provisioning_tests: bool,
 
-    /// Assert that ML-DSA certificates are handed over from Flash storage.
-    #[arg(long)]
-    assert_mldsa_flash_storage: bool,
-
     /// Assert that ML-DSA flash region is reported as occupied warning.
     #[arg(long)]
     assert_mldsa_overlapped: bool,
+
+    /// Assert that ML-DSA certificates use ML-DSA-87 rather than ML-DSA-44.
+    #[arg(long)]
+    assert_mldsa87: bool,
 }
 
 // A helper trait for extracting data out of the `Value` type.
@@ -187,8 +187,14 @@ fn attestation_test(opts: &Opts, transport: &TransportWrapper, owner_history: &[
     log::info!("OpenSSL EC-DSA verification successful!");
 
     if opts.test_mldsa {
-        verify_mldsa_certs(&capture[0], uds.as_ref(), &cdi0, &cdi1)?;
-        check_mldsa_storage_mode(&capture[0], opts.assert_mldsa_flash_storage)?;
+        verify_mldsa_certs(
+            &capture[0],
+            uds.as_ref(),
+            &cdi0,
+            &cdi1,
+            opts.assert_mldsa_overlapped,
+            opts.assert_mldsa87,
+        )?;
         check_mldsa_flash_overlapped(&capture[0], opts.assert_mldsa_overlapped)?;
     }
 
@@ -205,7 +211,11 @@ fn attestation_test(opts: &Opts, transport: &TransportWrapper, owner_history: &[
         Sha256Digest::hash(&owner_page_1[0..OwnerBlock::SIGNATURE_OFFSET]).to_vec(),
     ];
 
-    let CertificateExtension::DiceTcbInfo(dice) = &cdi0.private_extensions[0];
+    let cdi0_exts = cdi0
+        .private_extensions
+        .as_type()
+        .expect("structured extensions");
+    let CertificateExtension::DiceTcbInfo(dice) = &cdi0_exts[0];
     log::info!("Checking CDI_0 (ROM_EXT) DICE certificate: {cdi0:#?}");
     // Check that the subject key and subject key identifiers match.
     log::info!("Subject key:");
@@ -225,7 +235,11 @@ fn attestation_test(opts: &Opts, transport: &TransportWrapper, owner_history: &[
     assert_eq!(fw_ids.len(), 1);
     assert_eq!(fw_ids[0].digest.get_value(), &measurements[0].as_ref());
 
-    let CertificateExtension::DiceTcbInfo(dice) = &cdi1.private_extensions[0];
+    let cdi1_exts = cdi1
+        .private_extensions
+        .as_type()
+        .expect("structured extensions");
+    let CertificateExtension::DiceTcbInfo(dice) = &cdi1_exts[0];
     log::info!("Checking CDI_1 (Owner) DICE certificate: {cdi1:#?}");
     // Check that the subject key and subject key identifiers match.
     log::info!("Subject key:");
@@ -292,18 +306,6 @@ fn compare_certs_except_keys(cert1: &Certificate, cert2: &Certificate) -> Result
             cert2.private_extensions
         ));
     }
-    Ok(())
-}
-
-fn check_mldsa_storage_mode(console_output: &str, assert_flash: bool) -> Result<()> {
-    let expected_mode = if assert_flash { "Flash" } else { "RAM" };
-    let rx = Regex::new(&format!(r"DICE cert storage mode: {expected_mode}"))?;
-    if !rx.is_match(console_output) {
-        return Err(anyhow!(
-            "Expected 'DICE cert storage mode: {expected_mode}' log message not found in console output"
-        ));
-    }
-    log::info!("DICE cert storage mode assertion passed ({expected_mode})!");
     Ok(())
 }
 
@@ -405,12 +407,53 @@ fn verify_cert_partial_chain(chain_certs_b64: &[&str]) -> Result<()> {
     }
 }
 
+fn check_mldsa_algorithm_openssl(cert_b64: &str, name: &str, assert_mldsa87: bool) -> Result<()> {
+    let openssl_bin = find_openssl_bin()?;
+    let pem = format!("-----BEGIN CERTIFICATE-----\n{cert_b64}\n-----END CERTIFICATE-----\n");
+    let mut child = std::process::Command::new(openssl_bin)
+        .args(["x509", "-text", "-noout"])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()?;
+
+    if let Some(mut stdin) = child.stdin.take() {
+        use std::io::Write;
+        stdin.write_all(pem.as_bytes())?;
+    }
+
+    let output = child.wait_with_output()?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        bail!("Failed to parse {name} certificate with OpenSSL: {stderr}");
+    }
+    let text = String::from_utf8_lossy(&output.stdout);
+
+    let (pk_alg, sig_alg) = match (assert_mldsa87, name) {
+        (true, _) => ("ML-DSA-87", "ML-DSA-87"),
+        (false, "UDS") => ("ML-DSA-44", "ML-DSA-87"),
+        (false, _) => ("ML-DSA-44", "ML-DSA-44"),
+    };
+    let expected_sig = format!("Signature Algorithm: {sig_alg}");
+    let expected_pk = format!("Public Key Algorithm: {pk_alg}");
+    if !text.contains(&expected_sig) {
+        bail!("{name} certificate does not contain expected '{expected_sig}'");
+    }
+    if !text.contains(&expected_pk) {
+        bail!("{name} certificate does not contain expected '{expected_pk}'");
+    }
+    log::info!("{name} verified with OpenSSL!");
+    Ok(())
+}
+
 /// Verify ML-DSA certificates if requested and structurally compare them to ECDSA certs.
 fn verify_mldsa_certs(
     console_output: &str,
     uds_ecdsa: Option<&Certificate>,
     cdi0_ecdsa: &Certificate,
     cdi1_ecdsa: &Certificate,
+    assert_overlapped: bool,
+    assert_mldsa87: bool,
 ) -> Result<()> {
     log::info!("ML-DSA verification requested. Performing verification...");
     let uds_mldsa_bin = uds_ecdsa
@@ -418,6 +461,20 @@ fn verify_mldsa_certs(
         .transpose()?;
     let cdi0_mldsa_bin = get_base64_blob(console_output, r"(?msR)CDI_0_MLDSA: (.*?)$")?;
     let cdi1_mldsa_bin = get_base64_blob(console_output, r"(?msR)CDI_1_MLDSA: (.*?)$")?;
+
+    if assert_overlapped {
+        if !cdi0_mldsa_bin.is_empty() {
+            bail!(
+                "Expected CDI_0 ML-DSA certificate to be omitted due to flash overlap, but found certificate data!"
+            );
+        }
+        if !cdi1_mldsa_bin.is_empty() {
+            bail!(
+                "Expected CDI_1 ML-DSA certificate to be omitted due to flash overlap, but found certificate data!"
+            );
+        }
+        return Ok(());
+    }
 
     let uds_mldsa = uds_mldsa_bin
         .as_ref()
@@ -431,6 +488,12 @@ fn verify_mldsa_certs(
         .transpose()?;
     let cdi0_mldsa_b64 = get_base64_str(console_output, r"(?msR)CDI_0_MLDSA: (.*?)$")?;
     let cdi1_mldsa_b64 = get_base64_str(console_output, r"(?msR)CDI_1_MLDSA: (.*?)$")?;
+
+    check_mldsa_algorithm_openssl(&cdi0_mldsa_b64, "CDI_0", assert_mldsa87)?;
+    check_mldsa_algorithm_openssl(&cdi1_mldsa_b64, "CDI_1", assert_mldsa87)?;
+    if let Some(uds_b64) = &uds_mldsa_b64 {
+        check_mldsa_algorithm_openssl(uds_b64, "UDS", assert_mldsa87)?;
+    }
 
     log::info!("Verifying ML-DSA chain with OpenSSL...");
     if let Some(uds_mldsa_b64) = uds_mldsa_b64 {

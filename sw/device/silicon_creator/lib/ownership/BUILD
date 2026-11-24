@@ -19,8 +19,6 @@ load(
 
 package(default_visibility = ["//visibility:public"])
 
-exports_files(["testdata/dummy_owner.json5"])
-
 cc_library(
     name = "datatypes",
     hdrs = ["datatypes.h"],
@@ -180,7 +178,7 @@ cc_test(
     name = "owner_block_unittest",
     srcs = [
         "owner_block_unittest.cc",
-        "testdata/basic_owner_testdata.h",
+        "//sw/device/silicon_creator/lib/ownership/testdata:basic_owner_testdata.h",
     ],
     deps = [
         ":datatypes",

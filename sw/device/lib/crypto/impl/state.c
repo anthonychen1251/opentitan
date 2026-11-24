@@ -21,7 +21,7 @@ otcrypto_status_t init_state(otcrypto_state_t *state,
   internal_state->locked_state = kHardenedByteBoolFalse;
   internal_state->self_check_state = kHardenedByteBoolFalse;
   internal_state->csrng_instantiated = kHardenedByteBoolFalse;
-  internal_state->csrng_is_default = kHardenedByteBoolFalse;
+  internal_state->csrng_is_manual = kHardenedByteBoolFalse;
 #ifdef FIPS_MODE
   internal_state->cmvp_service_indicator = kOtcryptoCmvpNoService;
   internal_state->cmvp_call_depth = 0;
@@ -91,8 +91,8 @@ otcrypto_status_t locked_state_check(void) {
     return res;
   }
 
-  // If we are in a locked state, return a fatal error
-  if (state->locked_state == kHardenedByteBoolTrue) {
+  // If we are in a locked state (hard or entropy-locked), return a fatal error
+  if (launder32(state->locked_state) != kHardenedByteBoolFalse) {
     return OTCRYPTO_FATAL_ERR;
   }
 
@@ -111,14 +111,15 @@ otcrypto_status_t stateful_health_check(kat_bits_t kat_bit) {
     return res;
   }
 
-  // If we are in a locked state, the health check returns a fatal error
-  if (state->locked_state == kHardenedByteBoolTrue) {
+  // If we are in a locked state (hard or entropy-locked), the health check
+  // returns a fatal error
+  if (launder32(state->locked_state) != kHardenedByteBoolFalse) {
     return OTCRYPTO_FATAL_ERR;
   }
 
-  // The self-integrity check uses SHA-2, so the SHA-2 KAT
+  // The self-integrity check uses SHA-2 and the RNG, so those KATs
   // must be allowed to execute before the self-integrity check has completed.
-  if (kat_bit != kTestHashSha512Bit &&
+  if (kat_bit != kTestHashSha512Bit && kat_bit != kTestRngBit &&
       state->self_check_state == kHardenedByteBoolFalse) {
     return OTCRYPTO_RECOV_ERR;
   }
@@ -126,6 +127,8 @@ otcrypto_status_t stateful_health_check(kat_bits_t kat_bit) {
   uint32_t mask = (1UL << kat_bit);
 
   if ((state->kat_state & mask) == 0) {
+    uint8_t saved_indicator = state->cmvp_service_indicator;
+    uint8_t saved_depth = state->cmvp_call_depth;
     kat_id_t test_id = {.flags = mask};
     status_t result = run_kats(test_id);
 
@@ -135,6 +138,8 @@ otcrypto_status_t stateful_health_check(kat_bits_t kat_bit) {
       state->locked_state = kHardenedByteBoolTrue;
       return result;
     }
+    state->cmvp_service_indicator = saved_indicator;
+    state->cmvp_call_depth = saved_depth;
   }
 
   return OTCRYPTO_OK;

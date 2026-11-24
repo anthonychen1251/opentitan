@@ -518,6 +518,29 @@ jobs:
       interface: cw340
       tag_filters: "manuf,-hyper310,-qemu"
 
+  execute_a2_rom_ext_fpga_tests_cw340:
+    name: CW340 Earlgrey A2 ROM_EXT Tests
+    needs: chip_earlgrey_cw340
+    uses: ./.github/workflows/fpga.yml
+    secrets: inherit
+    with:
+      job_name: execute_a2_rom_ext_fpga_tests_cw340
+      bitstream: chip_earlgrey_cw340
+      board: cw340
+      interface: cw340
+      tag_filters: cw340_a2_rom_ext
+
+  execute_ot_sku_fpga_test_cw340:
+    name: CW340 OT-SKU Tests
+    needs: chip_earlgrey_cw340
+    uses: ./.github/workflows/ot-sku-ci.yml
+    secrets: inherit
+    with:
+      merge_sha: main
+      # The OT-SKU repository currently does not pass the CI.
+      # Do not block the OT CI until those errors are fixed.
+      continue-on-error: true
+
   verify_fpga_jobs:
     name: Verify FPGA jobs
     runs-on: ubuntu-22.04
@@ -534,6 +557,7 @@ jobs:
       - execute_rom_ext_fpga_tests_cw340
       - execute_sival_fpga_tests_cw340
       - execute_sival_rom_ext_fpga_tests_cw340
+      - execute_a2_rom_ext_fpga_tests_cw340
       - execute_manuf_fpga_tests_cw340
     if: success() || failure()
     steps:
@@ -563,7 +587,7 @@ jobs:
         if: success() || failure()
         run: |
           # Find and display tests that did not run:
-          ./ci/scripts/run-bazel-test-query.sh all_fpga.txt fpga,-manual,-broken,-skip_in_ci //... @manufacturer_test_hooks//...
+          ./ci/scripts/run-bazel-test-query.sh all_fpga.txt fpga,-manual,-broken,-slow_test,-skip_in_ci //... @manufacturer_test_hooks//...
           sort -o all_fpga.txt all_fpga.txt
           pattern_files=$(find verify_fpga_jobs -name target_pattern_file.txt)
           sort $pattern_files > all_run.txt

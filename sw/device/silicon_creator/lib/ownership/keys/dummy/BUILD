@@ -1,6 +1,7 @@
 # Copyright lowRISC contributors (OpenTitan project).
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
+load("@rules_pkg//pkg:mappings.bzl", "pkg_filegroup", "pkg_files")
 load("//rules:signing.bzl", "keyset")
 
 package(default_visibility = ["//visibility:public"])
@@ -29,6 +30,11 @@ filegroup(
 )
 
 filegroup(
+    name = "activate_key_pub",
+    srcs = ["activate_ecdsa_p256.pub.der"],
+)
+
+filegroup(
     name = "unlock_key",
     srcs = ["unlock_ecdsa_p256.der"],
 )
@@ -54,6 +60,11 @@ filegroup(
 )
 
 filegroup(
+    name = "activate_key_spx_pub",
+    srcs = ["activate_spx.pub.pem"],
+)
+
+filegroup(
     name = "unlock_key_spx",
     srcs = ["unlock_spx.pem"],
 )
@@ -63,12 +74,37 @@ filegroup(
     srcs = ["app_prod_ecdsa_p256.pub.der"],
 )
 
+pkg_files(
+    name = "dev_files",
+    testonly = True,
+    srcs = [
+        ":activate_key_pub",
+        ":activate_key_spx_pub",
+        ":app_prod_ecdsa_pub",
+        ":owner_key",
+        ":owner_key_pub",
+        ":owner_key_spx",
+        ":owner_key_spx_pub",
+        "//sw/device/silicon_creator/lib/ownership/keys/dummy:ecdsa_keyset",
+    ],
+)
+
+pkg_filegroup(
+    name = "dev_pkg",
+    testonly = True,
+    srcs = [
+        ":dev_files",
+    ],
+    prefix = "dummy_keys",
+)
+
 keyset(
     name = "ecdsa_keyset",
     build_setting_default = "",
     keys = {
         "app_prod_ecdsa_p256.der": "app_prod_0",
     },
+    keytype = "ecdsa",
     profile = "local",
     tool = "//signing/tokens:local",
 )

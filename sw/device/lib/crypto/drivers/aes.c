@@ -58,22 +58,31 @@ static status_t spin_until(uint32_t bit) {
 static status_t aes_write_key(aes_key_t key) {
   if (key.sideload != kHardenedBoolFalse) {
     HARDENED_CHECK_EQ(key.sideload, launder32(kHardenedBoolTrue));
+    HARDENED_CHECK_EQ(aes_key_integrity_checksum_check(&key),
+                      kHardenedBoolTrue);
     // Nothing to be done; key must be separately loaded from keymgr.
     return OTCRYPTO_OK;
   }
   HARDENED_CHECK_EQ(key.sideload, launder32(kHardenedBoolFalse));
 
-  uint32_t share0 = kBase + AES_KEY_SHARE0_0_REG_OFFSET;
-  uint32_t share1 = kBase + AES_KEY_SHARE1_0_REG_OFFSET;
+  uintptr_t share0 = kBase + AES_KEY_SHARE0_0_REG_OFFSET;
+  uintptr_t share1 = kBase + AES_KEY_SHARE1_0_REG_OFFSET;
 
   // Handle key shares in two separate hardened_memcpys to avoid dealing with
   // corresponding parts too close together, which could risk power
   // side-channel leakage in the ALU. Before writing the key shares, initialize
   // the registers with random data.
-  hardened_memshred((uint32_t *)share0, kAesKeyWordLenMax);
-  hardened_memcpy((uint32_t *)share0, key.key_shares[0], key.key_len);
-  hardened_memshred((uint32_t *)share1, kAesKeyWordLenMax);
-  hardened_memcpy((uint32_t *)share1, key.key_shares[1], key.key_len);
+  uint32_t share0_buf[kAesKeyWordLenMax];
+  hardened_memshred(share0_buf, kAesKeyWordLenMax);
+  HARDENED_TRY(hardened_memcpy(share0_buf, key.key_shares[0], key.key_len));
+  HARDENED_TRY(
+      hardened_memcpy((uint32_t *)share0, share0_buf, kAesKeyWordLenMax));
+
+  uint32_t share1_buf[kAesKeyWordLenMax];
+  hardened_memshred(share1_buf, kAesKeyWordLenMax);
+  HARDENED_TRY(hardened_memcpy(share1_buf, key.key_shares[1], key.key_len));
+  HARDENED_TRY(
+      hardened_memcpy((uint32_t *)share1, share1_buf, kAesKeyWordLenMax));
 
   // Check the integrity of the key written to the AES core.
   HARDENED_CHECK_EQ(aes_key_integrity_checksum_check(&key), kHardenedBoolTrue);
@@ -310,7 +319,7 @@ status_t aes_update(aes_block_t *dest, const aes_block_t *src) {
 
     HARDENED_TRY(spin_until(AES_STATUS_OUTPUT_VALID_BIT));
 
-    uint32_t offset = kBase + AES_DATA_OUT_0_REG_OFFSET;
+    uintptr_t offset = kBase + AES_DATA_OUT_0_REG_OFFSET;
     HARDENED_TRY(hardened_memcpy(dest->data, (const uint32_t *)offset,
                                  ARRAYSIZE(dest->data)));
   }
@@ -318,7 +327,7 @@ status_t aes_update(aes_block_t *dest, const aes_block_t *src) {
   if (src != NULL) {
     HARDENED_TRY(spin_until(AES_STATUS_INPUT_READY_BIT));
 
-    uint32_t offset = kBase + AES_DATA_IN_0_REG_OFFSET;
+    uintptr_t offset = kBase + AES_DATA_IN_0_REG_OFFSET;
     HARDENED_TRY(
         hardened_memcpy((uint32_t *)offset, src->data, ARRAYSIZE(src->data)));
   }
@@ -327,6 +336,10 @@ status_t aes_update(aes_block_t *dest, const aes_block_t *src) {
 }
 
 status_t aes_end(aes_block_t *iv) {
+  // Wait for the AES block to be idle before updating the control register or
+  // reading the final IV.
+  HARDENED_TRY(spin_until(AES_STATUS_IDLE_BIT));
+
   uint32_t ctrl_reg = AES_CTRL_SHADOWED_REG_RESVAL;
   ctrl_reg = bitfield_bit32_write(ctrl_reg,
                                   AES_CTRL_SHADOWED_MANUAL_OPERATION_BIT, true);
@@ -363,12 +376,15 @@ uint32_t aes_key_integrity_checksum(const aes_key_t *key) {
   crc32_add32(&ctx, key->mode);
   crc32_add32(&ctx, key->sideload);
   crc32_add32(&ctx, key->key_len);
-  // Compute the checksum only over a single share to avoid side-channel
-  // leakage. From a FI perspective only covering one key share is fine as
-  // (a) manipulating the second share with FI has only limited use to an
-  // adversary and (b) when manipulating the entire pointer to the key structure
-  // the checksum check fails.
-  crc32_add(&ctx, (unsigned char *)key->key_shares[0], key->key_len);
+  if (key->sideload == kHardenedBoolFalse) {
+    // Compute the checksum only over a single share to avoid side-channel
+    // leakage. From a FI perspective only covering one key share is fine as
+    // (a) manipulating the second share with FI has only limited use to an
+    // adversary and (b) when manipulating the entire pointer to the key
+    // structure the checksum check fails.
+    crc32_add(&ctx, (const unsigned char *)key->key_shares[0],
+              key->key_len * sizeof(uint32_t));
+  }
   return crc32_finish(&ctx);
 }
 

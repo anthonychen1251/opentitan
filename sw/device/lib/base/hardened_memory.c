@@ -38,11 +38,11 @@ status_t hardened_memcpy(uint32_t *restrict dest, const uint32_t *restrict src,
     barrierw(byte_idx);
 
     // Calculate pointers.
-    void *src = (void *)launderw(src_addr + byte_idx);
-    void *dest = (void *)launderw(dest_addr + byte_idx);
+    void *src_word = (void *)launderw(src_addr + byte_idx);
+    void *dest_word = (void *)launderw(dest_addr + byte_idx);
 
     // Perform the copy, without performing a typed dereference operation.
-    write_32(read_32(src), dest);
+    write_32(read_32(src_word), dest_word);
   }
   RANDOM_ORDER_HARDENED_CHECK_DONE(order);
   HARDENED_CHECK_EQ(count, word_len);
@@ -149,18 +149,21 @@ hardened_bool_t hardened_memeq_masked_rhs(const uint32_t *lhs,
   RANDOM_ORDER_HARDENED_CHECK_DONE(order);
 
   HARDENED_CHECK_EQ(count, word_len);
+  HARDENED_CHECK_NE(lhs_addr, rhs0_addr);
+  HARDENED_CHECK_NE(rhs0_addr, rhs1_addr);
   if (launder32(zeros) == launder32(~ones)) {
-    HARDENED_CHECK_EQ(launder32(zeros), launder32(~ones));
+    HARDENED_CHECK_EQ(launder32(zeros), ~launder32(ones));
     return kHardenedBoolTrue;
   }
 
-  HARDENED_CHECK_NE(launder32(zeros), launder32(~ones));
+  HARDENED_CHECK_NE(launder32(zeros), ~launder32(ones));
   return kHardenedBoolFalse;
 }
 
 hardened_bool_t hardened_memeq(const uint32_t *lhs, const uint32_t *rhs,
                                size_t word_len) {
-  return hardened_memeq_masked_rhs(lhs, rhs, NULL, word_len);
+  hardened_bool_t res = hardened_memeq_masked_rhs(lhs, rhs, NULL, word_len);
+  return launderw(res);
 }
 
 hardened_bool_t consttime_memeq_byte(const void *lhs, const void *rhs,

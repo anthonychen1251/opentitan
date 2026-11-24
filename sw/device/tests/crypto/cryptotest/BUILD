@@ -326,6 +326,7 @@ ECDH_TESTVECTOR_ARGS = " ".join([
 
 cryptotest(
     name = "ecdh_kat",
+    slow_test = True,
     test_args = ECDH_TESTVECTOR_ARGS,
     test_harness = "//sw/host/tests/crypto/ecdh_kat:harness",
     test_vectors = ECDH_TESTVECTOR_TARGETS,
@@ -347,6 +348,23 @@ cryptotest(
     test_args = ED25519_TESTVECTOR_ARGS,
     test_harness = "//sw/host/tests/crypto/ed25519_kat:harness",
     test_vectors = ED25519_TESTVECTOR_TARGETS,
+)
+
+ED25519_RANDOM_TESTVECTOR_TARGETS = [
+    "//sw/host/cryptotest/testvectors/data:random_ed25519_json",
+]
+
+ED25519_RANDOM_TESTVECTOR_ARGS = " ".join([
+    "--ed25519-json=\"$(rootpath {})\"".format(target)
+    for target in ED25519_RANDOM_TESTVECTOR_TARGETS
+])
+
+cryptotest(
+    name = "ed25519_random_kat",
+    slow_test = True,
+    test_args = ED25519_RANDOM_TESTVECTOR_ARGS,
+    test_harness = "//sw/host/tests/crypto/ed25519_kat:harness",
+    test_vectors = ED25519_RANDOM_TESTVECTOR_TARGETS,
 )
 
 X25519_TESTVECTOR_TARGETS = [
@@ -507,6 +525,45 @@ cryptotest(
     test_vectors = RSA_TESTVECTOR_TARGETS,
 )
 
+RSA_RANDOM_TESTVECTOR_TARGETS = [
+    "//sw/host/cryptotest/testvectors/data:random_rsa_{}_{}_{}.json".format(
+        padding_mode,
+        security_level,
+        hash_suffix,
+    )
+    for security_level in [
+        2048,
+        3072,
+        4096,
+    ]
+    for padding_mode in [
+        "pkcs1_1.5",
+        "pss",
+        "oaep",
+    ]
+    for hash_suffix in [
+        "sha256",
+        "sha384",
+        "sha512",
+        "sha3_256",
+        "sha3_384",
+        "sha3_512",
+    ]
+]
+
+RSA_RANDOM_TESTVECTOR_ARGS = " ".join([
+    "--rsa-json=\"$(rootpath {})\"".format(target)
+    for target in RSA_RANDOM_TESTVECTOR_TARGETS
+])
+
+cryptotest(
+    name = "rsa_random_kat",
+    slow_test = True,
+    test_args = RSA_RANDOM_TESTVECTOR_ARGS,
+    test_harness = "//sw/host/tests/crypto/rsa_kat:harness",
+    test_vectors = RSA_RANDOM_TESTVECTOR_TARGETS,
+)
+
 cryptotest(
     name = "rsa_keygen_kat",
     slow_test = True,
@@ -601,6 +658,7 @@ SHA3_224_TESTVECTOR_ARGS = " ".join([
 
 cryptotest(
     name = "sha3_224_kat",
+    slow_test = True,
     test_args = SHA3_224_TESTVECTOR_ARGS,
     test_harness = "//sw/host/tests/crypto/hash_kat:harness",
     test_vectors = SHA3_224_TESTVECTOR_TARGETS,
@@ -734,6 +792,7 @@ CSHAKE_TESTVECTOR_ARGS = " ".join([
 
 cryptotest(
     name = "cshake_kat",
+    slow_test = True,
     test_args = CSHAKE_TESTVECTOR_ARGS,
     test_harness = "//sw/host/tests/crypto/hash_kat:harness",
     test_vectors = CSHAKE_TESTVECTOR_TARGETS,
@@ -823,6 +882,30 @@ cryptotest(
     test_vectors = HMAC_SHA512_TESTVECTOR_TARGETS,
 )
 
+KDF_RANDOM_TESTVECTOR_TARGETS = [
+    "//sw/host/cryptotest/testvectors/data:random_kdf_{}.json".format(config)
+    for config in [
+        "hkdf_sha256",
+        "hkdf_sha384",
+        "hkdf_sha512",
+        "kmac128",
+        "kmac256",
+    ]
+]
+
+KDF_RANDOM_TESTVECTOR_ARGS = " ".join([
+    "--kdf-json=\"$(rootpath {})\"".format(target)
+    for target in KDF_RANDOM_TESTVECTOR_TARGETS
+])
+
+cryptotest(
+    name = "kdf_random_kat",
+    slow_test = True,
+    test_args = KDF_RANDOM_TESTVECTOR_ARGS,
+    test_harness = "//sw/host/tests/crypto/kdf_kat:harness",
+    test_vectors = KDF_RANDOM_TESTVECTOR_TARGETS,
+)
+
 KMAC_TESTVECTOR_TARGETS = [
     "//sw/host/cryptotest/testvectors/data:wycheproof_kmac_{}.json".format(config)
     for config in [
@@ -838,6 +921,7 @@ KMAC_TESTVECTOR_ARGS = " ".join([
 
 cryptotest(
     name = "kmac_kat",
+    slow_test = True,
     test_args = KMAC_TESTVECTOR_ARGS,
     test_harness = "//sw/host/tests/crypto/kmac_kat:harness",
     test_vectors = KMAC_TESTVECTOR_TARGETS,
@@ -881,11 +965,14 @@ test_suite(
         ":ecdh_kat",
         ":ecdsa_kat",
         ":ed25519_kat",
+        ":ed25519_random_kat",
         ":hmac_sha256_kat",
         ":hmac_sha384_kat",
         ":hmac_sha512_kat",
+        ":kdf_random_kat",
         ":kmac_kat",
         ":rsa_kat",
+        ":rsa_random_kat",
         ":sha256_kat",
         ":sha384_kat",
         ":sha3_224_kat",

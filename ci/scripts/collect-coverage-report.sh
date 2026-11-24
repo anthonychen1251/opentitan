@@ -56,6 +56,6 @@ done
 echo "Collect all source files listed in coverage data"
 mkdir -p "${SOURCES}"
 grep -h '^SF:' "${COVERAGE}" | sed 's/^SF://' | sort -u \
-| rsync -a --copy-dirlinks --ignore-missing-args --files-from=- . "${SOURCES}/"
+| rsync -ak --ignore-missing-args --files-from=- . "${SOURCES}/"
 
 echo "coverageReport=ok" >> "${GITHUB_OUTPUT:-/dev/null}"

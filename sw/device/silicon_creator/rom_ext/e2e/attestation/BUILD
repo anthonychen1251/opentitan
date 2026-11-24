@@ -63,20 +63,18 @@ VARIANTS = {
         "local_defines": ["POST_PROVISIONING_TESTS"],
         "tags": ["manual"],
     },
-    "print_flash_storage_mldsa_certs": {
-        "manifest": "//sw/device/silicon_owner:manifest_mldsa_on_flash",
-        "rom_ext": "//sw/device/silicon_creator/rom_ext:rom_ext_flash_storage_dice_mldsa",
+    "print_mldsa87_certs": {
+        "rom_ext": "//sw/device/silicon_creator/rom_ext:rom_ext_dice_mldsa87",
         "test_cmd": """
             --bootstrap={firmware}
             --timeout=60s
             --test-mldsa
-            --assert-mldsa-flash-storage
+            --assert-mldsa87
         """,
         "variation": "dice_mldsa",
     },
-    "print_flash_storage_mldsa_certs_overlapped": {
-        "manifest": "//sw/device/silicon_owner:manifest_mldsa_on_flash",
-        "rom_ext": "//sw/device/silicon_creator/rom_ext:rom_ext_flash_storage_dice_mldsa",
+    "print_mldsa_certs_overlapped": {
+        "rom_ext": "//sw/device/silicon_creator/rom_ext:rom_ext_dice_mldsa_slot_a",
         "slot_spec": {
             # force bank B + 64K placement for overlapped slot
             "owner_slot_b": "0x90000",
@@ -148,8 +146,8 @@ VARIANTS = {
             tags = info.get("tags", []),
             test_cmd = info["test_cmd"],
             test_harness = "//sw/host/tests/attestation:attestation_test",
-            testopt_clear_before_test = info.get("clear_before_test", "True"),
             testopt_bootstrap = "False",
+            testopt_clear_before_test = info.get("clear_before_test", "True"),
         ),
         qemu = qemu_params(
             assemble = "{rom_ext}@{rom_ext_slot_a} {firmware}@{owner_slot_b}",

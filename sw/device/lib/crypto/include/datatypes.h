@@ -195,6 +195,8 @@ typedef enum otcrypto_key_type {
   kOtcryptoKeyTypeEcc = 0x15b,
   /// Key type KDF.
   kOtcryptoKeyTypeKdf = 0xb87,
+  /// Key type TDES (plain software implementation; not FI/SCA protected).
+  kOtcryptoKeyTypeTdes = 0x5d1,
 } otcrypto_key_type_t;
 
 /**
@@ -225,6 +227,30 @@ typedef enum otcrypto_aes_key_mode {
 } otcrypto_aes_key_mode_t;
 
 /**
+ * Enum to specify the TDES modes that use a key.
+ *
+ * This will be used in the `otcrypto_key_mode_t` struct to indicate the mode
+ * for which the provided key is intended for.
+ *
+ * Note: TDES is a plain software implementation and is NOT protected against
+ * fault injection (FI) or side-channel analysis (SCA) attacks.
+ *
+ * Values are hardened.
+ */
+typedef enum otcrypto_tdes_key_mode {
+  /// Mode TDES ECB.
+  kOtcryptoTdesKeyModeEcb = 0x62d,
+  /// Mode TDES CBC.
+  kOtcryptoTdesKeyModeCbc = 0x9c3,
+  /// Mode TDES CFB.
+  kOtcryptoTdesKeyModeCfb = 0x38e,
+  /// Mode TDES OFB.
+  kOtcryptoTdesKeyModeOfb = 0xc14,
+  /// Mode TDES CTR.
+  kOtcryptoTdesKeyModeCtr = 0x0a7,
+} otcrypto_tdes_key_mode_t;
+
+/**
  * Enum to specify the HMAC modes that use a key.
  *
  * This will be used in the `otcrypto_key_mode_t` struct to indicate the mode
@@ -233,6 +259,8 @@ typedef enum otcrypto_aes_key_mode {
  * Values are hardened.
  */
 typedef enum otcrypto_hmac_key_mode {
+  /// Mode HMAC SHA1 (plain software; not FI/SCA protected).
+  kOtcryptoHmacKeyModeSha1 = 0x16a,
   /// Mode HMAC SHA256.
   kOtcryptoHmacKeyModeSha256 = 0x7fd,
   /// Mode HMAC SHA384.
@@ -271,6 +299,10 @@ typedef enum otcrypto_rsa_key_mode {
   kOtcryptoRsaKeyModeSignPss = 0x761,
   /// Mode RSA Encrypt, RSAES-OAEP.
   kOtcryptoRsaKeyModeEncryptOaep = 0x585,
+  /// Mode RSA Encrypt, RSAES-PKCS1-v1_5.
+  kOtcryptoRsaKeyModeEncryptPkcs = 0x13a,
+  /// Mode RSA Raw (unpadded modular exponentiation).
+  kOtcryptoRsaKeyModeRaw = 0x20f,
 } otcrypto_rsa_key_mode_t;
 
 /**
@@ -305,8 +337,6 @@ typedef enum otcrypto_ecc_key_mode {
  * Values are hardened.
  */
 typedef enum otcrypto_kdf_key_mode {
-  /// Mode KDF-CTR with HMAC as PRF.
-  kOtcryptoKdfKeyModeCtrHmac = 0x12f,
   /// Mode KDF-KMAC with KMAC128 as PRF.
   kOtcryptoKdfKeyModeKmac128 = 0xe5e,
   /// Mode KDF-KMAC with KMAC256 as PRF.
@@ -339,6 +369,24 @@ typedef enum otcrypto_key_mode {
   kOtcryptoKeyModeAesKwp = kOtcryptoKeyTypeAes << 16 | kOtcryptoAesKeyModeKwp,
   /// Key is intended for AES CMAC mode.
   kOtcryptoKeyModeAesCmac = kOtcryptoKeyTypeAes << 16 | kOtcryptoAesKeyModeCmac,
+  /// Key is intended for TDES ECB mode.
+  kOtcryptoKeyModeTdesEcb =
+      kOtcryptoKeyTypeTdes << 16 | kOtcryptoTdesKeyModeEcb,
+  /// Key is intended for TDES CBC mode.
+  kOtcryptoKeyModeTdesCbc =
+      kOtcryptoKeyTypeTdes << 16 | kOtcryptoTdesKeyModeCbc,
+  /// Key is intended for TDES CFB mode.
+  kOtcryptoKeyModeTdesCfb =
+      kOtcryptoKeyTypeTdes << 16 | kOtcryptoTdesKeyModeCfb,
+  /// Key is intended for TDES OFB mode.
+  kOtcryptoKeyModeTdesOfb =
+      kOtcryptoKeyTypeTdes << 16 | kOtcryptoTdesKeyModeOfb,
+  /// Key is intended for TDES CTR mode.
+  kOtcryptoKeyModeTdesCtr =
+      kOtcryptoKeyTypeTdes << 16 | kOtcryptoTdesKeyModeCtr,
+  /// Key is intended for HMAC SHA1 mode (plain software; not FI/SCA protected).
+  kOtcryptoKeyModeHmacSha1 =
+      kOtcryptoKeyTypeHmac << 16 | kOtcryptoHmacKeyModeSha1,
   /// Key is intended for HMAC SHA256 mode.
   kOtcryptoKeyModeHmacSha256 =
       kOtcryptoKeyTypeHmac << 16 | kOtcryptoHmacKeyModeSha256,
@@ -363,6 +411,11 @@ typedef enum otcrypto_key_mode {
   /// Key is intended for RSA encryption RSAES-OAEP mode.
   kOtcryptoKeyModeRsaEncryptOaep =
       kOtcryptoKeyTypeRsa << 16 | kOtcryptoRsaKeyModeEncryptOaep,
+  /// Key is intended for RSA encryption RSAES-PKCS1-v1_5 mode.
+  kOtcryptoKeyModeRsaEncryptPkcs =
+      kOtcryptoKeyTypeRsa << 16 | kOtcryptoRsaKeyModeEncryptPkcs,
+  /// Key is intended for unpadded (raw) RSA operations.
+  kOtcryptoKeyModeRsaRaw = kOtcryptoKeyTypeRsa << 16 | kOtcryptoRsaKeyModeRaw,
   /// Key is intended for ECDSA with P-256.
   kOtcryptoKeyModeEcdsaP256 =
       kOtcryptoKeyTypeEcc << 16 | kOtcryptoEccKeyModeEcdsaP256,
@@ -381,9 +434,6 @@ typedef enum otcrypto_key_mode {
   /// Key is intended for X25519 mode.
   kOtcryptoKeyModeX25519 =
       kOtcryptoKeyTypeEcc << 16 | kOtcryptoEccKeyModeX25519,
-  /// Key is intended for KDF-CTR with HMAC as PRF.
-  kOtcryptoKeyModeKdfCtrHmac =
-      kOtcryptoKeyTypeKdf << 16 | kOtcryptoKdfKeyModeCtrHmac,
   /// Key is intended for KDF with KMAC128 as PRF.
   kOtcryptoKeyModeKdfKmac128 =
       kOtcryptoKeyTypeKdf << 16 | kOtcryptoKdfKeyModeKmac128,
@@ -476,8 +526,10 @@ enum {
   sizeof(otcrypto_key_config_t) / sizeof(uint32_t) +
   /* checksum and keyblob_length fields */
   2 +
-  /* RSA-4096 keyblob: 2 shares of 512 bytes each */
-  2 * (4096 / 8 / sizeof(uint32_t)) +
+  /* RSA-4096 keyblob: d0, d1, n (512 bytes each) and 32-bit checksum */
+  3 * (4096 / 8 / sizeof(uint32_t)) + 1 +
+  /* AES-KWP 64-bit semiblock alignment padding */
+  1 +
   /* AES-KWP 64-bit integrity prefix */
   2,
 };
@@ -501,9 +553,9 @@ typedef struct otcrypto_unblinded_key {
  */
 typedef struct otcrypto_blinded_key {
   /// Key configuration information.
-  const otcrypto_key_config_t config;
+  otcrypto_key_config_t config;
   /// Length of blinded key material in bytes.
-  const uint32_t keyblob_length;
+  uint32_t keyblob_length;
   /// Implementation specific, storage provided by caller.
   uint32_t *keyblob;
   /// Implementation specific, checksum for this struct.
@@ -516,6 +568,10 @@ typedef struct otcrypto_blinded_key {
  * Values are hardened.
  */
 typedef enum otcrypto_hash_mode {
+  /// Null (unhashed / raw digest) mode for RSA PKCS#1 v1.5 and raw operations.
+  kOtcryptoHashModeNull = 0x10f,
+  /// SHA-1 mode (plain software; not FI/SCA protected).
+  kOtcryptoHashModeSha1 = 0x3ef,
   /// SHA2-256 mode.
   kOtcryptoHashModeSha256 = 0x69b,
   /// SHA2-384 mode.
@@ -559,6 +615,18 @@ typedef struct otcrypto_state {
   /// Internal state of the crypto library.
   uint32_t data[4];
 } otcrypto_state_t;
+
+/**
+ * Lock state value indicating the cryptolib is locked specifically due to an
+ * entropy source health test failure.
+ *
+ * Unlike a hard lock (`kHardenedByteBoolTrue`), this state allows recovery
+ * by calling `otcrypto_entropy_init()`, which re-executes the RNG startup
+ * tests.
+ */
+enum {
+  kOtcryptoLockStateEntropy = 0xd6,
+};
 
 /**
  * CMVP service indicator states.

@@ -227,10 +227,25 @@ impl Subst for Template {
                 || format!("cannot parse content of substitution variable {var_name} according to the type {var_type:?} specified in the template ")
             )?);
         }
+        let certificate = self
+            .certificate
+            .as_ref()
+            .map(|cert| cert.subst(&new_data).map(Box::new))
+            .transpose()?;
+        let private_extensions = self
+            .private_extensions
+            .as_ref()
+            .map(|exts| {
+                exts.iter()
+                    .map(|ext| ext.subst(&new_data))
+                    .collect::<Result<Vec<_>>>()
+            })
+            .transpose()?;
         Ok(Template {
             name: self.name.clone(),
             variables,
-            certificate: self.certificate.subst(&new_data)?,
+            certificate,
+            private_extensions,
         })
     }
 }
@@ -423,10 +438,8 @@ impl Subst for Certificate {
                 .context("cannot substitute key usage")?,
             private_extensions: self
                 .private_extensions
-                .iter()
-                .map(|ext| ext.subst(data))
-                .collect::<Result<Vec<_>>>()
-                .context("cannot substitute in extensions")?,
+                .subst(data)
+                .context("cannot substitute private extensions")?,
             signature: self
                 .signature
                 .subst(data)
