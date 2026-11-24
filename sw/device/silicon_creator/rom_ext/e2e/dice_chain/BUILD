@@ -180,7 +180,6 @@ opentitan_binary(
 
 CORRUPTED_DIGEST_TEST_CMDS = """
     --exec="no-op --info='##### Prepare CDI cert page'"
-    --exec="bootstrap --clear-uart=true {firmware}"
     --exec="console --non-interactive --exit-success='{exit_success}' --exit-failure='{exit_failure}' --timeout=10s"
     --exec="no-op --info='##### Corrupt CDI cert page'"
     --exec="bootstrap --clear-uart=true {modify_digest}"
@@ -205,7 +204,6 @@ opentitan_test(
             ":modify_digest": "modify_digest",
         },
         test_cmd = CORRUPTED_DIGEST_TEST_CMDS,
-        testopt_bootstrap = "False",
         testopt_clear_before_test = "True",
     ),
     qemu = qemu_params(
@@ -214,6 +212,7 @@ opentitan_test(
         },
         test_cmd = ("""
             --exec="transport init"
+            --exec="bootstrap --clear-uart=true {firmware}"
         """ + CORRUPTED_DIGEST_TEST_CMDS),
     ),
     deps = [
@@ -340,6 +339,45 @@ opentitan_test(
     slot_spec = ROM_EXT_VARIATIONS["dice_mldsa"].slot_spec,
     deps = [
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+        "//sw/device/lib/base:status",
+        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/testing/test_framework:check",
+        "//sw/device/lib/testing/test_framework:ottf_alerts",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+        "//sw/device/silicon_creator/lib/cert:ram_msg",
+        "//sw/device/silicon_creator/lib/drivers:flash_ctrl",
+        "//sw/device/silicon_creator/lib/drivers:retention_sram",
+        "//sw/device/silicon_creator/lib/drivers:rstmgr",
+    ],
+)
+
+opentitan_test(
+    name = "mldsa87_refresh_test",
+    srcs = ["on_demand_refresh_test.c"],
+    defines = [
+        "TEST_EXPECT_ON_CHANGE_COLD_BOOT=1",
+        "TEST_EXPECTED_UDS_PUB_LEN=2592",
+    ],
+    exec_env = {
+        "//hw/top_earlgrey:fpga_cw310_rom_ext": None,
+        "//hw/top_earlgrey:fpga_cw340_rom_ext": None,
+        "//hw/top_earlgrey:sim_qemu_rom_ext": None,
+    },
+    fpga = fpga_params(
+        rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_dice_mldsa87",
+        test_cmd = """
+            console --non-interactive --exit-success='{exit_success}' --exit-failure='{exit_failure}' --timeout=60s
+        """,
+        testopt_clear_before_test = "True",
+    ),
+    qemu = qemu_params(
+        rom_ext = "//sw/device/silicon_creator/rom_ext:rom_ext_dice_mldsa87",
+    ),
+    slot_spec = ROM_EXT_VARIATIONS["dice_mldsa"].slot_spec,
+    deps = [
+        "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+        "//sw/device/lib/base:crc32",
+        "//sw/device/lib/base:memory",
         "//sw/device/lib/base:status",
         "//sw/device/lib/runtime:log",
         "//sw/device/lib/testing/test_framework:check",

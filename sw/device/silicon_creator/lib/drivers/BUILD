@@ -994,6 +994,20 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "usb_unittest",
+    srcs = ["usb_unittest.cc"],
+    deps = [
+        ":usb",
+        "//hw/ip/usbdev/data:usbdev_c_regs",
+        "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+        "//sw/device/lib/base:bitfield",
+        "//sw/device/silicon_creator/lib:error",
+        "//sw/device/silicon_creator/testing:rom_test",
+        "@googletest//:gtest_main",
+    ],
+)
+
 opentitan_test(
     name = "usb_functest",
     srcs = ["usb_functest.c"],

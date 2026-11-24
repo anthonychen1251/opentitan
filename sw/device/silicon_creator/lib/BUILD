@@ -134,6 +134,60 @@ filegroup(
     srcs = ["flash_exc_handler.S"],
 )
 
+asm_library_with_coverage(
+    name = "flash_exc_handler_functest_isrs",
+    testonly = True,
+    srcs = [":flash_exc_handler"],
+    defines = [
+        "INTERRUPT_HANDLER=flash_exc_test_fallback_handler",
+    ],
+    target_compatible_with = [OPENTITAN_CPU],
+    deps = [
+        "//hw/top_earlgrey/ip_autogen/flash_ctrl:flash_ctrl_c_regs",
+        "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+        "//sw/device/lib/base:hardened",
+        "//sw/device/lib/base:macros",
+        "//sw/device/lib/coverage:api_asm",
+    ],
+)
+
+cc_library(
+    name = "flash_exc_handler_functest_trampoline",
+    testonly = True,
+    srcs = ["flash_exc_handler_functest_trampoline.S"],
+    target_compatible_with = [OPENTITAN_CPU],
+    deps = [
+        ":flash_exc_handler_functest_isrs",
+        "//sw/device/lib/base:macros",
+    ],
+)
+
+opentitan_test(
+    name = "flash_exc_handler_functest",
+    srcs = ["flash_exc_handler_functest.c"],
+    exec_env = {
+        "//hw/top_earlgrey:fpga_cw310_test_rom": None,
+        "//hw/top_earlgrey:fpga_cw340_test_rom": None,
+    },
+    deps = [
+        ":flash_exc_handler_functest_isrs",
+        ":flash_exc_handler_functest_trampoline",
+        "//hw/ip/rv_core_ibex/data:rv_core_ibex_c_regs",
+        "//hw/top_earlgrey/ip_autogen/flash_ctrl:flash_ctrl_c_regs",
+        "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+        "//sw/device/lib/base:abs_mmio",
+        "//sw/device/lib/base:csr",
+        "//sw/device/lib/base:hardened",
+        "//sw/device/lib/base:macros",
+        "//sw/device/lib/base:multibits",
+        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/testing/test_framework:check",
+        "//sw/device/lib/testing/test_framework:ottf_alerts",
+        "//sw/device/lib/testing/test_framework:ottf_main",
+        "//sw/device/silicon_creator/lib/drivers:flash_ctrl",
+    ],
+)
+
 cc_library(
     name = "epmp_defs",
     hdrs = [

@@ -278,6 +278,7 @@ opentitan_test(
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
         "//sw/device/lib/base:macros",
         "//sw/device/lib/base:memory",
+        "//sw/device/lib/crypto/impl:state",
         "//sw/device/lib/crypto/impl:status",
         "//sw/device/lib/dif:otbn",
         "//sw/device/lib/testing/test_framework:check",
