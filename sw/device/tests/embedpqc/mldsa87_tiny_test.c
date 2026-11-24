@@ -5,6 +5,7 @@
 #include "third_party/embedpqc/mldsa87_tiny.h"
 
 #include <stdbool.h>
+#include <string.h>
 
 #include "sw/device/lib/base/status.h"
 #include "sw/device/lib/runtime/log.h"
@@ -19,17 +20,24 @@ OTTF_DEFINE_TEST_CONFIG();
 
 uint8_t *mldsa_stack_end = &mldsa_stack[MLDSA_STACK_SIZE];
 
+// Share output buffers across sequential tests so `.bss` stays small enough to
+// fit in SRAM alongside LLVM coverage counters (`--config=ot_coverage`).
+static union {
+  uint8_t public_key[MLDSA87_PUBLIC_KEY_BYTES];
+  uint8_t signature[MLDSA87_SIGNATURE_BYTES];
+} actual_out;
+
 static status_t keygen_test(void) {
-  static uint8_t actual_public_key[MLDSA87_PUBLIC_KEY_BYTES] = {0};
+  memset(actual_out.public_key, 0, sizeof(actual_out.public_key));
 
   paint_stack();
-  mldsa87_tiny_pub_from_seed_with_stack(actual_public_key, kMldsa87PrivateSeed,
-                                        mldsa_stack_end);
+  mldsa87_tiny_pub_from_seed_with_stack(actual_out.public_key,
+                                        kMldsa87PrivateSeed, mldsa_stack_end);
   const size_t keygen_stack_usage = get_max_stack_usage();
   LOG_INFO("mldsa87_tiny_pub_from_seed stack use: %u bytes",
            (uint32_t)keygen_stack_usage);
 
-  TRY_CHECK_ARRAYS_EQ(actual_public_key, kMldsa87ExpectedPublicKey,
+  TRY_CHECK_ARRAYS_EQ(actual_out.public_key, kMldsa87ExpectedPublicKey,
                       MLDSA87_PUBLIC_KEY_BYTES, "Public keys don't match!");
   TRY_CHECK(
       kDiceMldsaRomExtAttestationScratchBufferSize >= keygen_stack_usage,
@@ -43,16 +51,16 @@ static status_t keygen_test(void) {
 }
 
 static status_t message_sign_randomizer_test(void) {
-  static uint8_t actual_signature[MLDSA87_SIGNATURE_BYTES] = {0};
+  memset(actual_out.signature, 0, sizeof(actual_out.signature));
 
   paint_stack();
-  mldsa87_tiny_sign_with_stack(actual_signature, kMldsa87PrivateSeed,
+  mldsa87_tiny_sign_with_stack(actual_out.signature, kMldsa87PrivateSeed,
                                kMldsa87Randomizer, kMldsa87Message,
                                sizeof(kMldsa87Message), mldsa_stack_end);
   const size_t sign_stack_usage = get_max_stack_usage();
   LOG_INFO("mldsa87_tiny_sign stack use: %u bytes", (uint32_t)sign_stack_usage);
 
-  TRY_CHECK_ARRAYS_EQ(actual_signature, kMldsa87RandomizedExpectedSignature,
+  TRY_CHECK_ARRAYS_EQ(actual_out.signature, kMldsa87RandomizedExpectedSignature,
                       MLDSA87_SIGNATURE_BYTES,
                       "Randomized message signature doesn't match!");
   TRY_CHECK(kDiceMldsaRomExtAttestationScratchBufferSize >= sign_stack_usage,
@@ -66,17 +74,17 @@ static status_t message_sign_randomizer_test(void) {
 }
 
 static status_t message_sign_deterministic_test(void) {
-  static uint8_t actual_signature[MLDSA87_SIGNATURE_BYTES] = {0};
+  memset(actual_out.signature, 0, sizeof(actual_out.signature));
 
   paint_stack();
   mldsa87_tiny_sign_deterministic_with_stack(
-      actual_signature, kMldsa87PrivateSeed, kMldsa87Message,
+      actual_out.signature, kMldsa87PrivateSeed, kMldsa87Message,
       sizeof(kMldsa87Message), mldsa_stack_end);
   const size_t sign_stack_usage = get_max_stack_usage();
   LOG_INFO("mldsa87_tiny_sign_deterministic stack use: %u bytes",
            (uint32_t)sign_stack_usage);
 
-  TRY_CHECK_ARRAYS_EQ(actual_signature, kMldsa87ExpectedSignature,
+  TRY_CHECK_ARRAYS_EQ(actual_out.signature, kMldsa87ExpectedSignature,
                       MLDSA87_SIGNATURE_BYTES,
                       "Deterministic message signature doesn't match!");
   TRY_CHECK(kDiceMldsaRomExtAttestationScratchBufferSize >= sign_stack_usage,
@@ -91,17 +99,17 @@ static status_t message_sign_deterministic_test(void) {
 }
 
 static status_t mu_sign_randomizer_test(void) {
-  static uint8_t actual_signature[MLDSA87_SIGNATURE_BYTES] = {0};
+  memset(actual_out.signature, 0, sizeof(actual_out.signature));
 
   paint_stack();
-  mldsa87_tiny_sign_mu_with_stack(actual_signature, kMldsa87PrivateSeed,
+  mldsa87_tiny_sign_mu_with_stack(actual_out.signature, kMldsa87PrivateSeed,
                                   kMldsa87Randomizer, kMldsa87Mu,
                                   mldsa_stack_end);
   const size_t sign_stack_usage = get_max_stack_usage();
   LOG_INFO("mldsa87_tiny_sign_mu stack use: %u bytes",
            (uint32_t)sign_stack_usage);
 
-  TRY_CHECK_ARRAYS_EQ(actual_signature, kMldsa87RandomizedExpectedSignature,
+  TRY_CHECK_ARRAYS_EQ(actual_out.signature, kMldsa87RandomizedExpectedSignature,
                       MLDSA87_SIGNATURE_BYTES,
                       "Randomized mu signature doesn't match!");
   TRY_CHECK(kDiceMldsaRomExtAttestationScratchBufferSize >= sign_stack_usage,
@@ -116,16 +124,16 @@ static status_t mu_sign_randomizer_test(void) {
 }
 
 static status_t mu_sign_deterministic_test(void) {
-  static uint8_t actual_signature[MLDSA87_SIGNATURE_BYTES] = {0};
+  memset(actual_out.signature, 0, sizeof(actual_out.signature));
 
   paint_stack();
   mldsa87_tiny_sign_mu_deterministic_with_stack(
-      actual_signature, kMldsa87PrivateSeed, kMldsa87Mu, mldsa_stack_end);
+      actual_out.signature, kMldsa87PrivateSeed, kMldsa87Mu, mldsa_stack_end);
   const size_t sign_stack_usage = get_max_stack_usage();
   LOG_INFO("mldsa87_tiny_sign_mu_deterministic stack use: %u bytes",
            (uint32_t)sign_stack_usage);
 
-  TRY_CHECK_ARRAYS_EQ(actual_signature, kMldsa87ExpectedSignature,
+  TRY_CHECK_ARRAYS_EQ(actual_out.signature, kMldsa87ExpectedSignature,
                       MLDSA87_SIGNATURE_BYTES,
                       "Deterministic mu signature doesn't match!");
   TRY_CHECK(kDiceMldsaRomExtAttestationScratchBufferSize >= sign_stack_usage,
