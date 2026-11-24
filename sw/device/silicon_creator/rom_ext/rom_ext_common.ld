@@ -246,3 +246,7 @@ SECTIONS {
 
   INCLUDE sw/device/info_sections.ld
 }
+
+ASSERT(
+  !DEFINED(_ot_coverage_enabled) || __llvm_prf_cnts_end <= (_stack_start - 0x2800),
+  "ROM_EXT coverage counters overlap reserved imm_section coverage region");

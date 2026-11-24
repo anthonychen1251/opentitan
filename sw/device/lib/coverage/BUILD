@@ -41,11 +41,27 @@ alias(
 )
 
 cc_library(
+    name = "printer_hdrs",
+    hdrs = ["printer.h"],
+)
+
+cc_library(
+    name = "imm_shared_stub",
+    srcs = ["imm_shared_stub.c"],
+    features = ["-coverage"],
+    deps = [
+        ":printer_hdrs",
+        "//sw/device/lib/base:macros",
+    ],
+)
+
+cc_library(
     name = "printer",
     srcs = ["printer.c"],
     hdrs = ["printer.h"],
     features = ["-coverage"],
     deps = [
+        ":imm_shared_stub",
         "//sw/device/lib/base:crc32",
         "//sw/device/lib/base:macros",
     ],

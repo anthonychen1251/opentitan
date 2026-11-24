@@ -16,6 +16,47 @@ extern "C" {
 /* External common runtime APIs */
 
 /**
+ * Describes a binary's LLVM single-byte coverage counter buffer and build ID.
+ *
+ * Exported from `imm_section` as `imm_shared_coverage_profile_desc` under
+ * coverage builds so mutable `ROM_EXT` can initialize, report, and invalidate
+ * `imm_section` coverage via flash/SRAM data access even after `imm_section`'s
+ * ePMP execute window is cleared before owner handoff.
+ */
+typedef struct coverage_profile_desc {
+  const uint8_t *build_id;
+  uint8_t *cnts_start;
+  uint8_t *cnts_end;
+  uint32_t *status;
+} coverage_profile_desc_t;
+
+extern const coverage_profile_desc_t coverage_profile_desc;
+extern const coverage_profile_desc_t imm_shared_coverage_profile_desc;
+
+/**
+ * @brief Checks if the coverage report described by `desc` is valid.
+ *
+ * @param desc Coverage profile descriptor.
+ * @return true if the report is valid.
+ */
+bool coverage_is_valid_desc(const coverage_profile_desc_t *desc);
+
+/**
+ * @brief Checks if the coverage report described by `desc` has any hit regions.
+ *
+ * @param desc Coverage profile descriptor.
+ * @return true if at least one counter byte is marked covered (`0x00`).
+ */
+bool coverage_has_hits_desc(const coverage_profile_desc_t *desc);
+
+/**
+ * @brief Constructs and sends the profile report described by `desc`.
+ *
+ * @param desc Coverage profile descriptor.
+ */
+void coverage_printer_run_desc(const coverage_profile_desc_t *desc);
+
+/**
  * @brief Checks if the current coverage report is valid.
  *
  * A report can be invalidated if the device resets or if
