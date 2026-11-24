@@ -72,6 +72,7 @@ INS_ROM_CW310_ROM_WITH_FAKE_KEYS_TESTS=(
   '//sw/device/silicon_creator/rom/e2e/boot_policy_flash_ecc_error:a_valid_b_corrupt_manifest_signed_region_end_fpga_cw310_rom_with_fake_keys'
   '//sw/device/silicon_creator/rom/e2e/boot_policy_flash_ecc_error:a_valid_b_corrupt_manifest_usage_constraints_selector_bits_fpga_cw310_rom_with_fake_keys'
   '//sw/device/silicon_creator/rom/e2e/boot_policy_flash_ecc_error:flash_exc_handler_disabled_test_fpga_cw310_rom_with_fake_keys'
+  '//sw/device/silicon_creator/rom/e2e/boot_policy_flash_ecc_error:flash_exc_load_test_fpga_cw310_rom_with_fake_keys'
   '//sw/device/silicon_creator/rom/e2e/boot_policy_newer:boot_policy_newer_rma_a_0_b_0_fpga_cw310_rom_with_fake_keys'
   '//sw/device/silicon_creator/rom/e2e/boot_policy_newer:boot_policy_newer_rma_a_0_b_1_fpga_cw310_rom_with_fake_keys'
   '//sw/device/silicon_creator/rom/e2e/boot_policy_newer:boot_policy_newer_rma_a_1_b_0_fpga_cw310_rom_with_fake_keys'
