@@ -84,6 +84,8 @@ typedef struct transaction_params {
  * @return The result of the operation.
  */
 static void transaction_start(transaction_params_t params) {
+  // Clear any sticky error bits from previous transactions.
+  abs_mmio_write32(kBase + FLASH_CTRL_ERR_CODE_REG_OFFSET, UINT32_MAX);
   // Set the address.
   abs_mmio_write32(kBase + FLASH_CTRL_ADDR_REG_OFFSET, params.addr);
   // Configure flash_ctrl and start the transaction.
@@ -354,10 +356,10 @@ rom_error_t flash_ctrl_info_read_zeros_on_read_error(
     uint32_t word_count, void *data) {
   rom_error_t err = flash_ctrl_info_read(info_page, offset, word_count, data);
   if (err != kErrorOk) {
-    flash_ctrl_error_code_t flash_ctrl_err_code;
-    flash_ctrl_error_code_get(&flash_ctrl_err_code);
-    if (flash_ctrl_err_code.rd_err) {
-      // If we encountered a read error, return all 0s.
+    uint32_t code = abs_mmio_read32(kBase + FLASH_CTRL_ERR_CODE_REG_OFFSET);
+    if (launder32(code) == (1u << FLASH_CTRL_ERR_CODE_RD_ERR_BIT)) {
+      HARDENED_CHECK_EQ(code, 1u << FLASH_CTRL_ERR_CODE_RD_ERR_BIT);
+      // If we encountered only a read error, return all 0s.
       memset(data, 0, word_count * sizeof(uint32_t));
       return kErrorOk;
     }
@@ -572,7 +574,7 @@ void flash_ctrl_data_region_protect(flash_ctrl_region_index_t region,
   mp_region_cfg = bitfield_field32_write(
       mp_region_cfg, FLASH_CTRL_MP_REGION_CFG_0_EN_0_FIELD, kMultiBitBool4True);
 
-  SEC_MMIO_ASSERT_WRITE_INCREMENT(kFlashCtrlSecMmioDataRegionProtect, 1);
+  SEC_MMIO_ASSERT_WRITE_INCREMENT(kFlashCtrlSecMmioDataRegionProtect, 2);
   SEC_MMIO_ASSERT_WRITE_INCREMENT(kFlashCtrlSecMmioDataRegionProtectLock, 1);
   sec_mmio_write32(kBase + FLASH_CTRL_MP_REGION_CFG_0_REG_OFFSET + region,
                    mp_region_cfg);
@@ -580,6 +582,37 @@ void flash_ctrl_data_region_protect(flash_ctrl_region_index_t region,
     sec_mmio_write32(kBase + FLASH_CTRL_REGION_CFG_REGWEN_0_REG_OFFSET + region,
                      0);
   }
+}
+
+void flash_ctrl_data_region_save(flash_ctrl_region_index_t region,
+                                 flash_ctrl_data_region_state_t *state) {
+  HARDENED_CHECK_GE(region, 0);
+  HARDENED_CHECK_LT(region, 8);
+  region *= sizeof(uint32_t);
+
+  state->mp_region =
+      sec_mmio_read32(kBase + FLASH_CTRL_MP_REGION_0_REG_OFFSET + region);
+  state->mp_region_cfg =
+      sec_mmio_read32(kBase + FLASH_CTRL_MP_REGION_CFG_0_REG_OFFSET + region);
+}
+
+void flash_ctrl_data_region_restore(
+    flash_ctrl_region_index_t region,
+    const flash_ctrl_data_region_state_t *state) {
+  HARDENED_CHECK_GE(region, 0);
+  HARDENED_CHECK_LT(region, 8);
+  region *= sizeof(uint32_t);
+
+  // Temporarily disable the region before rewriting its bounds and
+  // configuration. See `flash_ctrl_data_region_protect()` for why `abs_mmio` is
+  // used for the intermediate reset value.
+  abs_mmio_write32(kBase + FLASH_CTRL_MP_REGION_CFG_0_REG_OFFSET + region,
+                   FLASH_CTRL_MP_REGION_CFG_0_REG_RESVAL);
+
+  sec_mmio_write32(kBase + FLASH_CTRL_MP_REGION_0_REG_OFFSET + region,
+                   state->mp_region);
+  sec_mmio_write32(kBase + FLASH_CTRL_MP_REGION_CFG_0_REG_OFFSET + region,
+                   state->mp_region_cfg);
 }
 
 void flash_ctrl_info_cfg_set(const flash_ctrl_info_page_t *info_page,
@@ -696,6 +729,13 @@ void flash_ctrl_cert_info_page_owner_restrict(
                                   2);
   flash_ctrl_info_perms_set(info_page, kCertificateInfoPageOwnerAccess);
   sec_mmio_write32(info_page->cfg_wen_addr, 0);
+}
+
+void flash_ctrl_cert_info_page_ro_lockdown(
+    const flash_ctrl_info_page_t *info_page) {
+  SEC_MMIO_ASSERT_WRITE_INCREMENT(kFlashCtrlSecMmioCertInfoPageRoLockdown, 3);
+  flash_ctrl_info_cfg_set(info_page, kCertificateInfoPageCfg);
+  flash_ctrl_cert_info_page_owner_restrict(info_page);
 }
 
 rom_error_t flash_ctrl_info_type0_params_build(

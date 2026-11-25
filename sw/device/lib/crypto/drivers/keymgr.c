@@ -37,8 +37,11 @@ OT_WARN_UNUSED_RESULT
 static status_t keymgr_is_idle(void) {
   uint32_t reg = abs_mmio_read32(kBaseAddr + KEYMGR_OP_STATUS_REG_OFFSET);
   uint32_t status = bitfield_field32_read(reg, KEYMGR_OP_STATUS_STATUS_FIELD);
-  if (launder32(status) == KEYMGR_OP_STATUS_STATUS_VALUE_IDLE) {
+  uint32_t err_code = abs_mmio_read32(kBaseAddr + KEYMGR_ERR_CODE_REG_OFFSET);
+  if (launder32(status) == KEYMGR_OP_STATUS_STATUS_VALUE_IDLE &&
+      launder32(err_code) == 0) {
     HARDENED_CHECK_EQ(status, KEYMGR_OP_STATUS_STATUS_VALUE_IDLE);
+    HARDENED_CHECK_EQ(err_code, 0);
     return OTCRYPTO_OK;
   }
   return OTCRYPTO_RECOV_ERR;
@@ -103,7 +106,7 @@ static status_t keymgr_wait_until_done(void) {
   switch (launder32(status)) {
     case KEYMGR_OP_STATUS_STATUS_VALUE_DONE_SUCCESS:
       HARDENED_CHECK_EQ(status, KEYMGR_OP_STATUS_STATUS_VALUE_DONE_SUCCESS);
-      return OTCRYPTO_OK;
+      return keymgr_is_idle();
     case KEYMGR_OP_STATUS_STATUS_VALUE_DONE_ERROR: {
       // Clear the ERR_CODE register before returning.
       uint32_t err_code =
@@ -203,10 +206,10 @@ status_t keymgr_generate_key_sw(keymgr_diversification_t diversification,
   // memcpy.
   uintptr_t share0 = kBaseAddr + KEYMGR_SW_SHARE0_OUTPUT_0_REG_OFFSET;
   uintptr_t share1 = kBaseAddr + KEYMGR_SW_SHARE1_OUTPUT_0_REG_OFFSET;
-  HARDENED_TRY(hardened_memshred(key->share0, kKeymgrOutputShareNumWords));
+  hardened_memshred(key->share0, kKeymgrOutputShareNumWords);
   HARDENED_TRY(hardened_memcpy(key->share0, (uint32_t *)share0,
                                kKeymgrOutputShareNumWords));
-  HARDENED_TRY(hardened_memshred(key->share1, kKeymgrOutputShareNumWords));
+  hardened_memshred(key->share1, kKeymgrOutputShareNumWords);
   HARDENED_TRY(hardened_memcpy(key->share1, (uint32_t *)share1,
                                kKeymgrOutputShareNumWords));
 
