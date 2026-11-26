@@ -86,7 +86,9 @@ UNIT_TESTS=(
 //sw/device/silicon_creator/lib/boot_svc:boot_svc_ownership_history_unittest
 //sw/device/silicon_creator/lib/boot_svc:boot_svc_ownership_unlock_unittest
 //sw/device/silicon_creator/lib/cert:asn1_unittest
+//sw/device/silicon_creator/lib/cert:cdi_0_exts_template_unittest
 //sw/device/silicon_creator/lib/cert:cdi_0_template_unittest
+//sw/device/silicon_creator/lib/cert:cdi_1_exts_template_unittest
 //sw/device/silicon_creator/lib/cert:cdi_1_template_unittest
 //sw/device/silicon_creator/lib/cert:cert_unittest
 # //sw/device/silicon_creator/lib/cert:cwt_cose_key_template_unittest
@@ -115,6 +117,7 @@ UNIT_TESTS=(
 //sw/device/silicon_creator/lib/drivers:sensor_ctrl_unittest
 //sw/device/silicon_creator/lib/drivers:spi_device_unittest
 //sw/device/silicon_creator/lib/drivers:uart_unittest
+//sw/device/silicon_creator/lib/drivers:usb_unittest
 //sw/device/silicon_creator/lib/drivers:watchdog_unittest
 //sw/device/silicon_creator/lib/ownership:isfb_unittest
 //sw/device/silicon_creator/lib/ownership:ownership_activate_unittest
@@ -959,11 +962,12 @@ HYPER310_ROMEXT_TESTS=(
 
 # Timeout: the prebuilt protocol 0 uses an incompatible layout. (i.e. 64K boundary)
 # //sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_firmware_protocol_0_fpga_hyper310_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/attestation:print_flash_storage_mldsa_certs_overlapped_test_fpga_hyper310_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/attestation:print_flash_storage_mldsa_certs_test_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/attestation:print_mldsa87_certs_test_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/attestation:print_mldsa_certs_overlapped_test_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/attestation:print_mldsa_certs_test_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/isfb:isfb_null_event_test_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/lockdown:bank_erase_lockdown_fpga_hyper310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/lockdown:regwen_lockdown_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/ownership:anyversion_transfer_test_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/ownership:anyversion_unlock_transfer_test_fpga_hyper310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/ownership:anyversion_unlock_update_test_fpga_hyper310_rom_ext
@@ -990,11 +994,13 @@ CW310_ROMEXT_TESTS=(
 //sw/device/silicon_creator/rom_ext/e2e/dice_chain:debug_mode_on_dice_cwt_test_fpga_cw310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/dice_chain:debug_mode_on_dice_x509_test_fpga_cw310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/boot_data:redundancy_fix_test_fpga_cw310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/dice_chain:corrupted_mldsa_digest_test_fpga_cw310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/dice_chain:debug_mode_off_dice_mldsa_test_fpga_cw310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/dice_chain:debug_mode_on_dice_mldsa_test_fpga_cw310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/dice_chain:mldsa87_refresh_test_fpga_cw310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_dice_mldsa_test_fpga_cw310_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_flash_storage_dice_mldsa_test_fpga_cw310_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_on_change_dice_mldsa_test_fpga_cw310_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/dice_chain:watchdog_skip_cert_gen_test_fpga_cw310_rom_ext
 )
 
 CW340_SIVAL_ROMEXT_TESTS=(

@@ -922,16 +922,19 @@ EX_CW340_ROM_EXT_TESTS=(
 //sw/device/silicon_creator/rom_ext/e2e/rescue:rescue_erase_slot_b_only_fpga_cw340_rom_ext
 
 # //sw/device/silicon_creator/rom_ext/e2e/handoff:epmp_test_fpga_cw340_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/attestation:print_flash_storage_mldsa_certs_overlapped_test_fpga_cw340_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/attestation:print_flash_storage_mldsa_certs_test_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/attestation:print_mldsa87_certs_test_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/attestation:print_mldsa_certs_overlapped_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/attestation:print_mldsa_certs_test_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/dice_chain:corrupted_mldsa_digest_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/dice_chain:debug_mode_off_dice_mldsa_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/dice_chain:debug_mode_on_dice_mldsa_test_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/dice_chain:mldsa87_refresh_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_dice_mldsa_test_fpga_cw340_rom_ext
-//sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_flash_storage_dice_mldsa_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_on_change_dice_mldsa_test_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/dice_chain:watchdog_skip_cert_gen_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/isfb:isfb_null_event_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/lockdown:bank_erase_lockdown_fpga_cw340_rom_ext
+//sw/device/silicon_creator/rom_ext/e2e/lockdown:regwen_lockdown_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/ownership:anyversion_transfer_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/ownership:anyversion_unlock_transfer_test_fpga_cw340_rom_ext
 //sw/device/silicon_creator/rom_ext/e2e/ownership:anyversion_unlock_update_test_fpga_cw340_rom_ext
