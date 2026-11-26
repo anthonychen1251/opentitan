@@ -23,6 +23,8 @@
 #include "sw/device/silicon_creator/lib/base/static_dice_cdi_0.h"
 #include "sw/device/silicon_creator/lib/base/static_dice_mldsa_cdi.h"
 #include "sw/device/silicon_creator/lib/base/util.h"
+#include "sw/device/silicon_creator/lib/cert/cdi_0_exts.h"
+#include "sw/device/silicon_creator/lib/cert/cdi_1_exts.h"
 #include "sw/device/silicon_creator/lib/cert/cdi_hybrid.h"
 #include "sw/device/silicon_creator/lib/cert/cert.h"
 #include "sw/device/silicon_creator/lib/cert/dice.h"
@@ -50,6 +52,7 @@
 #include "sw/device/silicon_creator/rom_ext/rom_ext_boot_policy_ptrs.h"
 #include "sw/device/silicon_creator/rom_ext/rom_ext_manifest.h"
 #include "third_party/embedpqc/mldsa44_tiny.h"
+#include "third_party/embedpqc/mldsa87_tiny.h"
 #include "third_party/embedpqc/ports/mldsa44_tiny_caller.h"
 #include "third_party/embedpqc/ports/mldsa87_tiny_caller.h"
 
@@ -58,10 +61,27 @@ enum {
 };
 
 enum {
-  // Minimum watchdog timer for MLDSA operations.
+  // Minimum watchdog timer for MLDSA operations with 1e-8 failure rate.
+  //
+  // Estimation math model:
+  //   ticks = t0 + retries * tr
+  //   Prob = geom(retries, pa)
+  //
+  // ML-DSA 44 model on earlgrey_1.0.0 A2 silicon:
+  //   t0 = 31.581 ms ( 6316.26 ticks)
+  //   tr = 21.289 ms ( 4257.77 ticks)
+  //   pa = 0.2281
+  //
+  // ML-DSA 87 model on earlgrey_1.0.0 A2 silicon:
+  //   t0 = 71.363 ms (14272.58 ticks)
+  //   tr = 46.693 ms ( 9338.61 ticks)
+  //   pa = 0.2557
+  //
+  // Threshold of 600000 ticks gives:
+  //    62 retries of MLDSA-87 with probability of 8.3e-9.
+  //   139 retries of MLDSA-44 with probability of 1.8e-16.
 #ifndef OT_COVERAGE_ENABLED
-  // 2.4s x 200000Hz = 480000
-  kWdogMinBiteThreshold = 480000,
+  kWdogMinBiteThreshold = 600000,
 #else
   // 12.0s x 200000Hz = 2400000
   kWdogMinBiteThreshold = 2400000,
@@ -108,15 +128,19 @@ const dice_storage_slot_v1_t kDiceStorageSlotPqCdi1 = {
 enum {
   kCdiHybridKeyAlgEcdsa = 0,
   kCdiHybridKeyAlgMldsa44 = 1,
+  kCdiHybridKeyAlgMldsa87 = 2,
 };
+
+static inline mldsa_parameter_set_t dice_mldsa_param_set_get(
+    const manifest_t *manifest) {
+  if (manifest->dice_alg == kDiceAlgP256Mldsa87) {
+    return kMldsaParameterSet87;
+  }
+  return kMldsaParameterSet44;
+}
 
 // Local dice page buffer.
 static dice_storage_page_t dice_page;
-
-// Shared static buffers for `dice_attest_next_cdi` operation.
-static uint8_t curr_mldsa_sig[MLDSA44_SIGNATURE_BYTES];
-static uint8_t tbs_buffer[kCdiHybridMaxTbsSizeBytes];
-static uint8_t pubkey_buffer[kCdiHybridExactPubKeyMldsaSizeBytes];
 
 // Both stacks need to be word aligned as well for `hardened_memshred`
 // operations
@@ -227,32 +251,14 @@ static const attest_params_t kCdi1AttestParams = {
     .subject_mldsa_key_id_out = &cdi1_mldsa_id,
 };
 
-static const uint8_t kSha256FwIdPrefix[] = {
-    /* SEQUENCE with 45 (0x2d) bytes content */
-    0x30, 0x2d,
-    /* OBJECT IDENTIFIER 2.16.840.1.101.3.4.2.1 (sha-256) */
-    0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01,
-    /* OCTET STRING 32 (0x20) bytes */
-    0x04, 0x20,
-    /* 32 bytes to be appended by encode_sha256_fwid here. */
-};
-
-enum {
-  kSha256FwIdSizeBytes = sizeof(kSha256FwIdPrefix) + sizeof(hmac_digest_t),
-};
-
-/**
- * Encodes the SHA-256 firmware ID list in the DICE TCB.
- *
- * @param dest Buffer to copy the encoded firmware ID list to. Must be at least
- * `kSha256FwIdSizeBytes` bytes.
- * @param digest The SHA-256 digest to append.
- */
-static void encode_sha256_fwid(uint8_t *dest, const hmac_digest_t *digest) {
-  memcpy(dest, kSha256FwIdPrefix, sizeof(kSha256FwIdPrefix));
-  memcpy(dest + sizeof(kSha256FwIdPrefix), digest->digest,
-         sizeof(hmac_digest_t));
-}
+static_assert(sizeof(static_dice_mldsa_cdi.uds_pub) >= MLDSA87_PUBLIC_KEY_BYTES,
+              "uds_pub buffer smaller than ML-DSA-87 pubkey size");
+static_assert(kCdi0ExtsMaxPrivateExtsSizeBytes <=
+                  kCdiHybridMaxRawPrivateExtensionsSizeBytes,
+              "cdi_0_exts exceeds hybrid template raw_private_extensions");
+static_assert(kCdi1ExtsMaxPrivateExtsSizeBytes <=
+                  kCdiHybridMaxRawPrivateExtensionsSizeBytes,
+              "cdi_1_exts exceeds hybrid template raw_private_extensions");
 
 /**
  * Returns true if the OwnerSw is booting outside of prod domain.
@@ -275,23 +281,39 @@ static void get_mldsa_id(const hmac_key_t *seed, hmac_digest_t *id) {
   hmac_hmac_sha256("ID", 2, *seed, /*big_endian_digest=*/true, id);
 }
 
-/***
+/**
  * Computes attestation binding values from the TCB measurements.
  *
- * @param tbs The TBS variable values.
+ * @param exts Pointer to the private extensions DER buffer.
+ * @param exts_size Size of the private extensions DER buffer.
  * @param[out] output Computed attestation binding values.
  */
-static void get_attest_binding(const cdi_hybrid_tbs_values_t *tbs,
+static void get_attest_binding(const uint8_t *exts, size_t exts_size,
                                hmac_digest_t *output) {
-  hmac_sha256_configure(false);
-  hmac_sha256_start();
-  hmac_sha256_update(tbs->tcb_model, tbs->tcb_model_len);
-  hmac_sha256_update(tbs->tcb_svn, kCdiHybridExactTcbSvnSizeBytes);
-  hmac_sha256_update(&tbs->tcb_layer, sizeof(tbs->tcb_layer));
-  hmac_sha256_update(tbs->tcb_fw_ids, tbs->tcb_fw_ids_size);
-  hmac_sha256_update(&tbs->debug_flag, sizeof(tbs->debug_flag));
-  hmac_sha256_process();
-  hmac_sha256_final(output);
+  hmac_sha256(exts, exts_size, output);
+}
+
+/**
+ * Finalizes the signed certificate into the destination buffer.
+ *
+ * Sized using a local buffer to satisfy the autogenerated template validator
+ * `cdi_hybrid_build_cert` which requires the output buffer to be sized for the
+ * maximum possible certificate across all choices.
+ */
+OT_NOINLINE
+static rom_error_t dice_cdi_hybrid_cert_finalize(
+    cdi_hybrid_cert_values_t *cert_values, uint8_t *cert, size_t *cert_size) {
+  uint8_t cert_buf[kCdiHybridMaxCertSizeBytes];
+  size_t gen_cert_size = sizeof(cert_buf);
+  HARDENED_RETURN_IF_ERROR(
+      cdi_hybrid_build_cert(cert_values, cert_buf, &gen_cert_size));
+
+  if (gen_cert_size > *cert_size) {
+    return kErrorCertInvalidSize;
+  }
+  memcpy(cert, cert_buf, gen_cert_size);
+  *cert_size = gen_cert_size;
+  return kErrorOk;
 }
 
 /**
@@ -303,13 +325,14 @@ static void get_attest_binding(const cdi_hybrid_tbs_values_t *tbs,
  * @param[out] cert The generated certificate.
  * @param[in,out] cert_size The size of the certificate buffer on input, and
  *                          the size of the generated certificate on output.
- * @param stack_top Top of the dedicate stack to use for ML-DSA operations.
  */
 static rom_error_t dice_cdi_hybrid_cert_build(
     cdi_hybrid_tbs_values_t *tbs_values,
     const ecdsa_p256_public_key_t *signer_ecdsa_pubkey,
-    const uint8_t *signer_mldsa_seed, uint8_t *cert, size_t *cert_size,
-    void *stack_top) {
+    const uint8_t *signer_mldsa_seed, uint8_t *cert, size_t *cert_size) {
+  uint8_t curr_mldsa_sig[MLDSA87_SIGNATURE_BYTES];
+  uint8_t tbs_buffer[kCdiHybridMaxTbsSizeBytes];
+
   // Construct X509 TBS payload.
   size_t tbs_size = sizeof(tbs_buffer);
   HARDENED_RETURN_IF_ERROR(
@@ -324,16 +347,24 @@ static rom_error_t dice_cdi_hybrid_cert_build(
         hardened_memshred(randomizer, ARRAYSIZE(randomizer)).value,
         kHardenedBoolTrue);
     watchdog_pet();
-    mldsa44_tiny_sign_with_stack(curr_mldsa_sig, signer_mldsa_seed,
-                                 (const uint8_t *)randomizer, tbs_buffer,
-                                 tbs_size, stack_top);
+    mldsa44_tiny_sign(curr_mldsa_sig, signer_mldsa_seed,
+                      (const uint8_t *)randomizer, tbs_buffer, tbs_size);
     watchdog_pet();
-    HARDENED_CHECK_EQ(
-        hardened_memshred(randomizer, ARRAYSIZE(randomizer)).value,
-        kHardenedBoolTrue);
     TEMPLATE_SET_TRUNCATED(sig_params, CdiHybrid, CertSignatureMldsa,
                            curr_mldsa_sig,
                            kCdiHybridExactCertSignatureMldsaSizeBytes);
+  } else if (tbs_values->key_alg == kCdiHybridKeyAlgMldsa87) {
+    uint32_t randomizer[MLDSA87_RANDOMIZER_BYTES / sizeof(uint32_t)];
+    HARDENED_CHECK_EQ(
+        hardened_memshred(randomizer, ARRAYSIZE(randomizer)).value,
+        kHardenedBoolTrue);
+    watchdog_pet();
+    mldsa87_tiny_sign(curr_mldsa_sig, signer_mldsa_seed,
+                      (const uint8_t *)randomizer, tbs_buffer, tbs_size);
+    watchdog_pet();
+    TEMPLATE_SET_TRUNCATED(sig_params, CdiHybrid, CertSignatureMldsa87,
+                           curr_mldsa_sig,
+                           kCdiHybridExactCertSignatureMldsa87SizeBytes);
   } else {
     hmac_digest_t tbs_digest;
     hmac_sha256(tbs_buffer, tbs_size, &tbs_digest);
@@ -360,7 +391,7 @@ static rom_error_t dice_cdi_hybrid_cert_build(
   TEMPLATE_SET(sig_params, CdiHybrid, Tbs, tbs_buffer);
   sig_params.tbs_size = tbs_size;
   sig_params.key_alg = tbs_values->key_alg;
-  return cdi_hybrid_build_cert(&sig_params, cert, cert_size);
+  return dice_cdi_hybrid_cert_finalize(&sig_params, cert, cert_size);
 }
 
 /**
@@ -399,12 +430,12 @@ OT_WARN_UNUSED_RESULT static rom_error_t dice_mldsa_derive_seed(
 }
 
 /**
- * Determines whether a DICE certificate needs to be regenerated.
+ * Determines whether an ML-DSA DICE certificate needs to be regenerated.
  *
  * @param cache_valid True if the cached certificate is valid.
  * @return True if the certificate needs to be regenerated.
  */
-static bool dice_cert_needs_regenerate(bool cache_valid) {
+static bool dice_mldsa_cert_needs_regenerate(bool cache_valid) {
   retention_sram_t *retram = retention_sram_get();
   if (bitfield_bit32_read(retram->creator.reset_reasons,
                           kRstmgrReasonWatchdog)) {
@@ -419,22 +450,57 @@ static bool dice_cert_needs_regenerate(bool cache_valid) {
 }
 
 /**
+ * Checks whether an ML-DSA key ID represents a cached certificate.
+ *
+ * @param key_id The key ID to check.
+ * @return True if the key ID is neither 0 nor UINT64_MAX.
+ */
+static inline bool dice_mldsa_key_id_is_cached(uint64_t key_id) {
+  return key_id != 0 && key_id != UINT64_MAX;
+}
+
+/**
+ * Updates the digest with a data flash slot if cached, or extends uint32 0.
+ *
+ * @param slot The slot to digest.
+ * @param key_idx Key ID index for the slot.
+ * @return Result of the operation.
+ */
+static rom_error_t dice_mldsa_digest_slot(const dice_storage_slot_v1_t *slot,
+                                          dice_key_id_index_t key_idx) {
+  if (dice_mldsa_key_id_is_cached(dice_page.mldsa_cdi_key_ids[key_idx])) {
+    return dice_storage_digest_slot_v1(slot);
+  }
+  // Extend 0 to distinguish between (miss, cached) and (cached, miss) slots.
+  const uint32_t zero = 0;
+  hmac_sha256_update(&zero, sizeof(zero));
+  return kErrorOk;
+}
+
+/**
+ * Computes the digest covering both ML-DSA PQC flash slots.
+ *
+ * @param digest_out The output HMAC digest.
+ * @return The result of the operation.
+ */
+static rom_error_t dice_mldsa_digest_pqc_slots(hmac_digest_t *digest_out) {
+  hmac_sha256_init();
+  HARDENED_RETURN_IF_ERROR(
+      dice_mldsa_digest_slot(&kDiceStorageSlotPqCdi0, kDicePageKeyIdxCdi0));
+  HARDENED_RETURN_IF_ERROR(
+      dice_mldsa_digest_slot(&kDiceStorageSlotPqCdi1, kDicePageKeyIdxCdi1));
+  hmac_sha256_process();
+  hmac_sha256_final(digest_out);
+  return kErrorOk;
+}
+
+/**
  * Determines whether the DICE certificates stored in flash info are valid
  * and erases the page if a corruption is detected.
  *
  * @return The result of the operation.
  */
 static rom_error_t dice_page_rom_ext_check(void) {
-  // If we won't regenerate, skip the validity check.
-  if (!dice_cert_needs_regenerate(/*cache_valid=*/false)) {
-    return kErrorOk;
-  }
-  // If a CDI_0 certificate is issued, the entire cache will be rebuilt, so
-  // the digest check can be skipped.
-  if (static_dice_cdi_0.cert_size != 0) {
-    return kErrorOk;
-  }
-
   RETURN_IF_ERROR(dice_storage_load_page(&dice_page));
 
   rom_error_t status = dice_storage_check_digest(&dice_page);
@@ -442,26 +508,65 @@ static rom_error_t dice_page_rom_ext_check(void) {
     dbg_printf("warning: corrupted DICE page; erasing\r\n");
     RETURN_IF_ERROR(flash_ctrl_info_erase(&kFlashCtrlInfoPageDiceCerts,
                                           kFlashCtrlEraseTypePage));
-    rstmgr_reset();
+    if (static_dice_cdi_0.cert_size == 0) {
+      rstmgr_reset();
+    }
+    memset(&dice_page, 0xff, sizeof(dice_page));
+    return kErrorOk;
+  }
+
+  bool cdi0_cached = dice_mldsa_key_id_is_cached(
+      dice_page.mldsa_cdi_key_ids[kDicePageKeyIdxCdi0]);
+  bool cdi1_cached = dice_mldsa_key_id_is_cached(
+      dice_page.mldsa_cdi_key_ids[kDicePageKeyIdxCdi1]);
+  if (cdi0_cached || cdi1_cached) {
+    hmac_digest_t actual;
+    HARDENED_RETURN_IF_ERROR(dice_mldsa_digest_pqc_slots(&actual));
+    if (memcmp(&actual, &dice_page.mldsa_digest, sizeof(hmac_digest_t)) != 0) {
+      dbg_printf("warning: corrupted ML-DSA certs; invalidating cache\r\n");
+      memset(
+          &dice_page.mldsa_digest, 0xff,
+          sizeof(dice_page.mldsa_digest) + sizeof(dice_page.mldsa_cdi_key_ids));
+      dice_storage_digest_page(&dice_page, &dice_page.digest);
+      RETURN_IF_ERROR(dice_storage_flush_page(&dice_page));
+      // Reset the chip to let imm_section regenerate CDI_0 when it is
+      // unavailable.
+      if (static_dice_mldsa_cdi.cdi_0_cert_size == 0 &&
+          rom_ext_manifest()->on_demand_dice != kHardenedBoolTrue) {
+        rstmgr_reset();
+      }
+    }
   }
   return kErrorOk;
 }
 
 /**
- * Attests the next-stage CDI certificates.
+ * Switches the stack to `stack_top` and calls `dice_attest_next_cdi_impl`.
  *
- * @param params Parameters for the attestation.
- * @param sealing_binding Keymgr sealing binding value.
- * @param max_key_version Maximum key version allowed for key derivation.
- * @param tbs_values Pointer to TBS variable values.
+ * Refer to `dice_attest_next_cdi()` for details and parameter descriptions.
  */
-static rom_error_t dice_attest_next_cdi(
+rom_error_t dice_attest_next_cdi_impl_with_stack(
     const attest_params_t *params,
     const keymgr_binding_value_t *sealing_binding, uint32_t max_key_version,
-    cdi_hybrid_tbs_values_t *tbs_values) {
+    const uint8_t *exts, size_t exts_size, void *stack_top);
+
+/**
+ * Attests the next-stage CDI certificates (internal implementation).
+ *
+ * Runs on the scratch stack. Refer to `dice_attest_next_cdi()` for details.
+ */
+rom_error_t dice_attest_next_cdi_impl(
+    const attest_params_t *params,
+    const keymgr_binding_value_t *sealing_binding, uint32_t max_key_version,
+    const uint8_t *exts, size_t exts_size) {
+  uint8_t pubkey_buffer[MLDSA87_PUBLIC_KEY_BYTES];
   watchdog_pet();
   *params->ecdsa_cert_size_out = 0;
   *params->mldsa_cert_size_out = 0;
+
+  mldsa_parameter_set_t mldsa_param_set =
+      dice_mldsa_param_set_get(rom_ext_manifest());
+  HARDENED_RETURN_IF_ERROR(kmac_keymgr_configure());
 
   // Derive Issuer Keys & IDs (Before Keymgr Advance)
   ecdsa_p256_public_key_t issuer_ecdsa_pubkey;
@@ -478,27 +583,29 @@ static rom_error_t dice_attest_next_cdi(
 
   keymgr_binding_value_t issuer_mldsa_seed;
   HARDENED_RETURN_IF_ERROR(dice_mldsa_derive_seed(
-      params->issuer_params, kMldsaParameterSet44, &issuer_mldsa_seed));
+      params->issuer_params, mldsa_param_set, &issuer_mldsa_seed));
   hmac_digest_t issuer_mldsa_id;
   get_mldsa_id((const hmac_key_t *)&issuer_mldsa_seed, &issuer_mldsa_id);
 
   // Keymgr Advancement
   hmac_digest_t attest_measurement;
-  get_attest_binding(tbs_values, &attest_measurement);
+  get_attest_binding(exts, exts_size, &attest_measurement);
 
   if (params->subject_params->ecc_cfg->required_keymgr_state ==
       kScKeymgrStateOwnerKey) {
     SEC_MMIO_WRITE_INCREMENT(kScKeymgrSecMmioSwBindingSet +
                              kScKeymgrSecMmioOwnerMaxVerSet);
     HARDENED_RETURN_IF_ERROR(sc_keymgr_owner_advance(
-        (keymgr_binding_value_t *)sealing_binding,
-        (keymgr_binding_value_t *)&attest_measurement, max_key_version));
+        /*sealing_binding=*/(keymgr_binding_value_t *)sealing_binding,
+        /*attest_binding=*/(keymgr_binding_value_t *)&attest_measurement,
+        max_key_version));
   } else {
     SEC_MMIO_WRITE_INCREMENT(kScKeymgrSecMmioSwBindingSet +
                              kScKeymgrSecMmioOwnerIntMaxVerSet);
     HARDENED_RETURN_IF_ERROR(sc_keymgr_owner_int_advance(
-        (keymgr_binding_value_t *)&attest_measurement,
-        (keymgr_binding_value_t *)sealing_binding, max_key_version));
+        /*sealing_binding=*/(keymgr_binding_value_t *)sealing_binding,
+        /*attest_binding=*/(keymgr_binding_value_t *)&attest_measurement,
+        max_key_version));
   }
 
   // Derive Subject Key & IDs.
@@ -510,116 +617,176 @@ static rom_error_t dice_attest_next_cdi(
 
   keymgr_binding_value_t subject_mldsa_seed;
   HARDENED_RETURN_IF_ERROR(dice_mldsa_derive_seed(
-      params->subject_params, kMldsaParameterSet44, &subject_mldsa_seed));
+      params->subject_params, mldsa_param_set, &subject_mldsa_seed));
   hmac_digest_t *subject_mldsa_id = params->subject_mldsa_key_id_out;
   get_mldsa_id((const hmac_key_t *)&subject_mldsa_seed, subject_mldsa_id);
 
-  uint64_t expected_id = read_64(subject_ecdsa_pubkey_id->digest);
-  uint64_t cached_id;
+  uint64_t expected_ecdsa_id = read_64(subject_ecdsa_pubkey_id->digest);
+  uint64_t cached_ecdsa_id;
   HARDENED_RETURN_IF_ERROR(
-      dice_storage_get_key_id(params->key_id_index, &cached_id));
-  bool cache_valid = cached_id == expected_id;
-  bool regenerate = dice_cert_needs_regenerate(cache_valid);
+      dice_storage_get_key_id(params->key_id_index, &cached_ecdsa_id));
+  bool ecdsa_cache_valid = cached_ecdsa_id == expected_ecdsa_id;
+  bool ecdsa_regenerate = !ecdsa_cache_valid;
 
-  if (regenerate) {
-    uint32_t *stack_top =
-        (uint32_t *)((uint8_t *)params->scratch_buf + params->scratch_buf_size);
+  uint64_t expected_mldsa_id = read_64(subject_mldsa_id->digest);
+  uint64_t cached_mldsa_id;
+  HARDENED_RETURN_IF_ERROR(
+      dice_storage_get_mldsa_key_id(params->key_id_index, &cached_mldsa_id));
+  bool mldsa_cache_valid = cached_mldsa_id == expected_mldsa_id;
+  bool mldsa_regenerate = dice_mldsa_cert_needs_regenerate(mldsa_cache_valid);
 
+  cdi_hybrid_tbs_values_t tbs_values;
+  memset(&tbs_values, 0, sizeof(tbs_values));
+  if (exts_size > kCdiHybridMaxRawPrivateExtensionsSizeBytes) {
+    return kErrorCertInvalidSize;
+  }
+  tbs_values.raw_private_extensions = (uint8_t *)exts;
+  tbs_values.raw_private_extensions_size = exts_size;
+
+  if (ecdsa_regenerate) {
     // Build ECDSA Cert
-    tbs_values->key_alg = kCdiHybridKeyAlgEcdsa;
-    TEMPLATE_SET(*tbs_values, CdiHybrid, PubKeyEcX, subject_ecdsa_pubkey.x);
-    TEMPLATE_SET(*tbs_values, CdiHybrid, PubKeyEcY, subject_ecdsa_pubkey.y);
-    TEMPLATE_SET_TRUNCATED(*tbs_values, CdiHybrid, PubKeyId,
+    tbs_values.key_alg = kCdiHybridKeyAlgEcdsa;
+    TEMPLATE_SET(tbs_values, CdiHybrid, PubKeyEcX, subject_ecdsa_pubkey.x);
+    TEMPLATE_SET(tbs_values, CdiHybrid, PubKeyEcY, subject_ecdsa_pubkey.y);
+    TEMPLATE_SET_TRUNCATED(tbs_values, CdiHybrid, PubKeyId,
                            subject_ecdsa_pubkey_id->digest,
                            kCertKeyIdSizeInBytes);
-    TEMPLATE_SET_TRUNCATED(*tbs_values, CdiHybrid, IssuerPubKeyId,
+    TEMPLATE_SET_TRUNCATED(tbs_values, CdiHybrid, IssuerPubKeyId,
                            issuer_ecdsa_pubkey_id.digest,
                            kCertKeyIdSizeInBytes);
 
-    // Note: The autogenerated `cdi_hybrid_build_cert` function requires the
-    // input buffer size to be at least the maximum size of any hybrid
-    // certificate (e.g., when containing an ML-DSA signature). Therefore, we
-    // use `mldsa_cert_out` (which has sufficient capacity) as a scratch buffer
-    // to build the ECDSA certificate, and then copy the resulting smaller
-    // certificate into `ecdsa_cert_out`.
-    size_t generated_ecdsa_size = params->mldsa_cert_max_size;
+    size_t generated_ecdsa_size = params->ecdsa_cert_max_size;
     HARDENED_RETURN_IF_ERROR(dice_cdi_hybrid_cert_build(
-        tbs_values, &issuer_ecdsa_pubkey, /*signer_mldsa_seed=*/NULL,
-        params->mldsa_cert_out, &generated_ecdsa_size, stack_top));
-
-    if (generated_ecdsa_size > params->ecdsa_cert_max_size) {
-      return kErrorCertInvalidSize;
-    }
-    memcpy(params->ecdsa_cert_out, params->mldsa_cert_out,
-           generated_ecdsa_size);
+        &tbs_values, &issuer_ecdsa_pubkey, /*signer_mldsa_seed=*/NULL,
+        params->ecdsa_cert_out, &generated_ecdsa_size));
     *params->ecdsa_cert_size_out = (uint32_t)generated_ecdsa_size;
+  }
 
+  if (mldsa_regenerate) {
     // Build ML-DSA Cert
-    mldsa44_tiny_pub_from_seed_with_stack(
-        pubkey_buffer, (const uint8_t *)subject_mldsa_seed.data, stack_top);
-
-    tbs_values->key_alg = kCdiHybridKeyAlgMldsa44;
-    TEMPLATE_SET(*tbs_values, CdiHybrid, PubKeyMldsa, pubkey_buffer);
-    TEMPLATE_SET_TRUNCATED(*tbs_values, CdiHybrid, PubKeyId,
+    if (mldsa_param_set == kMldsaParameterSet87) {
+      mldsa87_tiny_pub_from_seed(pubkey_buffer,
+                                 (const uint8_t *)subject_mldsa_seed.data);
+      tbs_values.key_alg = kCdiHybridKeyAlgMldsa87;
+      TEMPLATE_SET(tbs_values, CdiHybrid, PubKeyMldsa87, pubkey_buffer);
+    } else {
+      mldsa44_tiny_pub_from_seed(pubkey_buffer,
+                                 (const uint8_t *)subject_mldsa_seed.data);
+      tbs_values.key_alg = kCdiHybridKeyAlgMldsa44;
+      TEMPLATE_SET_TRUNCATED(tbs_values, CdiHybrid, PubKeyMldsa, pubkey_buffer,
+                             kCdiHybridExactPubKeyMldsaSizeBytes);
+    }
+    TEMPLATE_SET_TRUNCATED(tbs_values, CdiHybrid, PubKeyId,
                            subject_mldsa_id->digest, kCertKeyIdSizeInBytes);
-    TEMPLATE_SET_TRUNCATED(*tbs_values, CdiHybrid, IssuerPubKeyId,
+    TEMPLATE_SET_TRUNCATED(tbs_values, CdiHybrid, IssuerPubKeyId,
                            issuer_mldsa_id.digest, kCertKeyIdSizeInBytes);
 
     size_t generated_mldsa_size = params->mldsa_cert_max_size;
     HARDENED_RETURN_IF_ERROR(dice_cdi_hybrid_cert_build(
-        tbs_values, /*signer_ecdsa_pubkey=*/NULL,
+        &tbs_values, /*signer_ecdsa_pubkey=*/NULL,
         (const uint8_t *)issuer_mldsa_seed.data, params->mldsa_cert_out,
-        &generated_mldsa_size, stack_top));
+        &generated_mldsa_size));
 
     if (generated_mldsa_size > params->mldsa_cert_max_size) {
       return kErrorCertInvalidSize;
     }
     *params->mldsa_cert_size_out = (uint32_t)generated_mldsa_size;
+    HARDENED_RETURN_IF_ERROR(kmac_keymgr_configure());
   }
-
-  // Cleanup
-  HARDENED_CHECK_EQ(
-      hardened_memshred((uint32_t *)&issuer_mldsa_seed,
-                        sizeof(issuer_mldsa_seed) / sizeof(uint32_t))
-          .value,
-      kHardenedBoolTrue);
-  HARDENED_CHECK_EQ(
-      hardened_memshred((uint32_t *)&subject_mldsa_seed,
-                        sizeof(subject_mldsa_seed) / sizeof(uint32_t))
-          .value,
-      kHardenedBoolTrue);
-  HARDENED_CHECK_EQ(
-      hardened_memshred((uint32_t *)params->scratch_buf,
-                        params->scratch_buf_size / sizeof(uint32_t))
-          .value,
-      kHardenedBoolTrue);
 
   sc_keymgr_sw_binding_unlock_wait();
   watchdog_pet();
   return kErrorOk;
 }
+
+/**
+ * Attests the next-stage CDI certificates.
+ *
+ * Switches to `params->scratch_buf` as the stack before calling
+ * `dice_attest_next_cdi_impl`, and shreds the stack buffer before returning.
+ *
+ * @param params Parameters for the attestation.
+ * @param sealing_binding Keymgr sealing binding value.
+ * @param max_key_version Maximum key version allowed for key derivation.
+ * @param exts Pointer to the private extensions DER buffer.
+ * @param exts_size Size of the private extensions DER buffer.
+ */
+rom_error_t dice_attest_next_cdi(const attest_params_t *params,
+                                 const keymgr_binding_value_t *sealing_binding,
+                                 uint32_t max_key_version, const uint8_t *exts,
+                                 size_t exts_size) {
+  if (params->scratch_buf_size < kDiceMldsaRomExtAttestationScratchBufferSize) {
+    return kErrorCertInvalidSize;
+  }
+
+  void *stack_top =
+      (void *)((uint8_t *)params->scratch_buf + params->scratch_buf_size);
+  rom_error_t err = dice_attest_next_cdi_impl_with_stack(
+      params, sealing_binding, max_key_version, exts, exts_size, stack_top);
+  rom_error_t err2 = otbn_boot_attestation_key_clear();
+  HARDENED_CHECK_EQ(
+      hardened_memshred((uint32_t *)params->scratch_buf,
+                        params->scratch_buf_size / sizeof(uint32_t))
+          .value,
+      kHardenedBoolTrue);
+  HARDENED_RETURN_IF_ERROR(err2);
+  return err;
+}
+/**
+ * Switches the stack to `stack_top` and calls
+ * `dice_mldsa_uds_pubkey_populate_impl`.
+ */
+rom_error_t dice_mldsa_uds_pubkey_populate_impl_with_stack(
+    mldsa_parameter_set_t mldsa_param_set, void *stack_top);
+
 /**
  * Populates the UDS ML-DSA public key to static_dice_mldsa_cdi.
+ *
+ * Switches to `dice_mldsa_rom_ext_scratch_stack` as the stack before calling
+ * `dice_mldsa_uds_pubkey_populate_impl`, and shreds the stack buffer before
+ * returning.
  */
-static rom_error_t dice_mldsa_uds_pubkey_populate(void) {
+static rom_error_t dice_mldsa_uds_pubkey_populate(
+    mldsa_parameter_set_t mldsa_param_set) {
   static_dice_mldsa_cdi.uds_pub_size = 0;
-  if (!dice_cert_needs_regenerate(/*cache_valid=*/true)) {
+  if (!dice_mldsa_cert_needs_regenerate(/*cache_valid=*/true)) {
     return kErrorOk;
   }
 
+  void *stack_top = (void *)(dice_mldsa_rom_ext_scratch_stack +
+                             sizeof(dice_mldsa_rom_ext_scratch_stack));
+  rom_error_t err = dice_mldsa_uds_pubkey_populate_impl_with_stack(
+      mldsa_param_set, stack_top);
+  HARDENED_CHECK_EQ(
+      hardened_memshred(
+          (uint32_t *)dice_mldsa_rom_ext_scratch_stack,
+          sizeof(dice_mldsa_rom_ext_scratch_stack) / sizeof(uint32_t))
+          .value,
+      kHardenedBoolTrue);
+  return err;
+}
+
+/**
+ * Populates the UDS ML-DSA public key to static_dice_mldsa_cdi (internal
+ * implementation).
+ *
+ * Runs on the scratch stack.
+ */
+rom_error_t dice_mldsa_uds_pubkey_populate_impl(
+    mldsa_parameter_set_t mldsa_param_set) {
   keymgr_binding_value_t uds_mldsa_seed;
   HARDENED_RETURN_IF_ERROR(dice_mldsa_derive_seed(
-      &kUdsKeygenParams, kMldsaParameterSet44, &uds_mldsa_seed));
-  uint32_t *stack_top = (uint32_t *)(dice_mldsa_rom_ext_scratch_stack +
-                                     sizeof(dice_mldsa_rom_ext_scratch_stack));
-  mldsa44_tiny_pub_from_seed_with_stack(static_dice_mldsa_cdi.uds_pub,
-                                        (const uint8_t *)uds_mldsa_seed.data,
-                                        stack_top);
-  static_dice_mldsa_cdi.uds_pub_size = MLDSA44_PUBLIC_KEY_BYTES;
-  HARDENED_CHECK_EQ(hardened_memshred((uint32_t *)&uds_mldsa_seed,
-                                      sizeof(uds_mldsa_seed) / sizeof(uint32_t))
-                        .value,
-                    kHardenedBoolTrue);
+      &kUdsKeygenParams, mldsa_param_set, &uds_mldsa_seed));
+  if (mldsa_param_set == kMldsaParameterSet87) {
+    mldsa87_tiny_pub_from_seed(static_dice_mldsa_cdi.uds_pub,
+                               (const uint8_t *)uds_mldsa_seed.data);
+    static_dice_mldsa_cdi.uds_pub_size = MLDSA87_PUBLIC_KEY_BYTES;
+  } else {
+    mldsa44_tiny_pub_from_seed(static_dice_mldsa_cdi.uds_pub,
+                               (const uint8_t *)uds_mldsa_seed.data);
+    static_dice_mldsa_cdi.uds_pub_size = MLDSA44_PUBLIC_KEY_BYTES;
+  }
+  HARDENED_RETURN_IF_ERROR(kmac_keymgr_configure());
   return kErrorOk;
 }
 
@@ -633,36 +800,33 @@ rom_error_t dice_attest_cdi_0(keymgr_binding_value_t *rom_ext_measurement,
   HARDENED_RETURN_IF_ERROR(dice_chain_attestation_silicon());
   HARDENED_RETURN_IF_ERROR(ownership_seal_init());
 
-  cdi_hybrid_tbs_values_t cdi0_tbs_values;
-  memset(&cdi0_tbs_values, 0, sizeof(cdi0_tbs_values));
-
-  cdi0_tbs_values.tcb_model = "ROM_EXT";
-  cdi0_tbs_values.tcb_model_len = sizeof("ROM_EXT") - 1;
-  TEMPLATE_CHECK_SIZE(CdiHybrid, TcbModel, sizeof("ROM_EXT") - 1);
-  cdi0_tbs_values.tcb_layer = 1;
-  cdi0_tbs_values.debug_flag = false;
+  cdi_0_exts_private_exts_values_t cdi0_exts_values;
+  memset(&cdi0_exts_values, 0, sizeof(cdi0_exts_values));
 
   hmac_digest_t rom_ext_hash = *(hmac_digest_t *)rom_ext_measurement->data;
   util_reverse_bytes(&rom_ext_hash, sizeof(rom_ext_hash));
-  uint8_t fwid_buf[kSha256FwIdSizeBytes];
-  encode_sha256_fwid(&fwid_buf[0 * kSha256FwIdSizeBytes], &rom_ext_hash);
-  TEMPLATE_SET(cdi0_tbs_values, CdiHybrid, TcbFwIds, fwid_buf);
-  TEMPLATE_CHECK_SIZE(CdiHybrid, TcbFwIds, sizeof(fwid_buf));
-  cdi0_tbs_values.tcb_fw_ids_size = sizeof(fwid_buf);
+  TEMPLATE_SET(cdi0_exts_values, Cdi0Exts, RomExtDigest, rom_ext_hash.digest);
 
   uint32_t rom_ext_security_version_be =
       bitfield_byteswap32(rom_ext_manifest->security_version);
-  TEMPLATE_SET(cdi0_tbs_values, CdiHybrid, TcbSvn,
+  TEMPLATE_SET(cdi0_exts_values, Cdi0Exts, TcbSvn,
                &rom_ext_security_version_be);
+
+  uint8_t exts_buf[kCdi0ExtsMaxPrivateExtsSizeBytes];
+  size_t exts_size = sizeof(exts_buf);
+  HARDENED_RETURN_IF_ERROR(
+      cdi_0_exts_build_private_exts(&cdi0_exts_values, exts_buf, &exts_size));
 
   keymgr_binding_value_t seal_binding_value = {
       .data = {rom_ext_manifest->identifier, 0}};
 
-  HARDENED_RETURN_IF_ERROR(dice_mldsa_uds_pubkey_populate());
+  mldsa_parameter_set_t mldsa_param_set =
+      dice_mldsa_param_set_get(rom_ext_manifest);
+  HARDENED_RETURN_IF_ERROR(dice_mldsa_uds_pubkey_populate(mldsa_param_set));
 
   HARDENED_RETURN_IF_ERROR(dice_attest_next_cdi(
       &kCdi0AttestParams, &seal_binding_value,
-      rom_ext_manifest->max_key_version, &cdi0_tbs_values));
+      rom_ext_manifest->max_key_version, exts_buf, exts_size));
 
   write_64(read_64(cdi0_mldsa_id.digest), msg->ids.mldsa_cdi0_id);
 
@@ -681,45 +845,41 @@ rom_error_t dice_attest_cdi_1(const manifest_t *owner_manifest,
   HARDENED_RETURN_IF_ERROR(dice_chain_init());
   HARDENED_RETURN_IF_ERROR(dice_page_rom_ext_check());
 
-  cdi_hybrid_tbs_values_t cdi1_tbs_values;
-  memset(&cdi1_tbs_values, 0, sizeof(cdi1_tbs_values));
-
-  cdi1_tbs_values.tcb_model = "Owner";
-  cdi1_tbs_values.tcb_model_len = sizeof("Owner") - 1;
-  TEMPLATE_CHECK_SIZE(CdiHybrid, TcbModel, sizeof("Owner") - 1);
-  cdi1_tbs_values.tcb_layer = 2;
-  cdi1_tbs_values.debug_flag = get_debug_mode_cdi1(key_domain);
+  cdi_1_exts_private_exts_values_t cdi1_exts_values;
+  memset(&cdi1_exts_values, 0, sizeof(cdi1_exts_values));
 
   hmac_digest_t bl0_hash = *(hmac_digest_t *)bl0_measurement->data;
   util_reverse_bytes(&bl0_hash, sizeof(bl0_hash));
+  TEMPLATE_SET(cdi1_exts_values, Cdi1Exts, Bl0Digest, bl0_hash.digest);
 
   hmac_digest_t owner_hash = *owner_measurement;
   util_reverse_bytes(&owner_hash, sizeof(owner_hash));
+  TEMPLATE_SET(cdi1_exts_values, Cdi1Exts, OwnerDigest, owner_hash.digest);
 
-  uint8_t fwids_buf[kSha256FwIdSizeBytes * 3];
-  encode_sha256_fwid(&fwids_buf[0 * kSha256FwIdSizeBytes], &bl0_hash);
-  encode_sha256_fwid(&fwids_buf[1 * kSha256FwIdSizeBytes], &owner_hash);
-  encode_sha256_fwid(&fwids_buf[2 * kSha256FwIdSizeBytes], owner_history_hash);
-  TEMPLATE_SET(cdi1_tbs_values, CdiHybrid, TcbFwIds, fwids_buf);
-  TEMPLATE_CHECK_SIZE(CdiHybrid, TcbFwIds, sizeof(fwids_buf));
-  cdi1_tbs_values.tcb_fw_ids_size = sizeof(fwids_buf);
+  TEMPLATE_SET(cdi1_exts_values, Cdi1Exts, OwnerHistoryDigest,
+               owner_history_hash->digest);
 
   uint32_t owner_security_version_be =
       bitfield_byteswap32(owner_manifest->security_version);
-  TEMPLATE_SET(cdi1_tbs_values, CdiHybrid, TcbSvn, &owner_security_version_be);
+  TEMPLATE_SET(cdi1_exts_values, Cdi1Exts, TcbSvn, &owner_security_version_be);
 
+  cdi1_exts_values.debug_flag = get_debug_mode_cdi1(key_domain);
+
+  uint8_t exts_buf[kCdi1ExtsMaxPrivateExtsSizeBytes];
+  size_t exts_size = sizeof(exts_buf);
   HARDENED_RETURN_IF_ERROR(
-      dice_attest_next_cdi(&kCdi1AttestParams, sealing_binding,
-                           owner_manifest->max_key_version, &cdi1_tbs_values));
+      cdi_1_exts_build_private_exts(&cdi1_exts_values, exts_buf, &exts_size));
+
+  HARDENED_RETURN_IF_ERROR(imm_shared_dice_attest_next_cdi(
+      &kCdi1AttestParams, sealing_binding, owner_manifest->max_key_version,
+      exts_buf, exts_size));
 
   write_64(read_64(cdi1_mldsa_id.digest), msg->ids.mldsa_cdi1_id);
 
   // Handover results to OwnerSw
-  if (cdi1_ecdsa_size != 0) {
+  bool ecdsa_updated = (cdi1_ecdsa_size != 0);
+  if (ecdsa_updated) {
     dbg_puts("info: DICE cert cache miss; updating\r\n");
-
-    // Populating ECDSA certs to flash info page.
-    RETURN_IF_ERROR(dice_storage_load_page(&dice_page));
 
     if (static_dice_cdi_0.cert_size != 0) {
       dice_storage_slot_init(&kDiceStorageCdi0Ecdsa, &dice_page);
@@ -737,17 +897,14 @@ rom_error_t dice_attest_cdi_1(const manifest_t *owner_manifest,
     dice_storage_set_cert_size(&kDiceStorageCdi1Ecdsa, cdi1_ecdsa_size,
                                &dice_page);
     dice_page.cdi_key_ids[kDicePageKeyIdxCdi1] = read_64(cdi1_ecdsa_id.digest);
+  }
 
-    dice_storage_digest_page(&dice_page, &dice_page.digest);
-    HARDENED_RETURN_IF_ERROR(dice_storage_flush_page(&dice_page));
-
+  bool mldsa_updated = (static_dice_mldsa_cdi.cdi_0_cert_size != 0) ||
+                       (static_dice_mldsa_cdi.cdi_1_cert_size != 0);
+  if (mldsa_updated) {
     // Populating ML-DSA certs handover response
     msg->res.mldsa_uds_pub = (uint32_t)&static_dice_mldsa_cdi.uds_pub;
     msg->res.mldsa_uds_pub_len = static_dice_mldsa_cdi.uds_pub_size;
-
-    bool flash_storage_mode =
-        rom_ext_manifest()->dice_cert_storage_mode == kDiceCertMldsaOnFlash &&
-        owner_manifest->dice_cert_storage_mode == kDiceCertMldsaOnFlash;
 
     bool is_overlapped =
         (rom_ext_boot_policy_slot_a_manifest_status == kErrorOk &&
@@ -756,30 +913,39 @@ rom_error_t dice_attest_cdi_1(const manifest_t *owner_manifest,
         (rom_ext_boot_policy_slot_b_manifest_status == kErrorOk &&
          dice_storage_slot_v1_overlapped(rom_ext_boot_policy_slot_b_manifest));
 
-    if (flash_storage_mode && !is_overlapped) {
+    if (!is_overlapped) {
       if (static_dice_mldsa_cdi.cdi_0_cert_size != 0) {
+        watchdog_pet();
         RETURN_IF_ERROR(dice_storage_write_cert_tlv_v1(
             &kDiceStorageSlotPqCdi0, static_dice_mldsa_cdi.cdi_0_cert,
             static_dice_mldsa_cdi.cdi_0_cert_size));
+        dice_page.mldsa_cdi_key_ids[kDicePageKeyIdxCdi0] =
+            read_64(msg->ids.mldsa_cdi0_id);
       }
-      RETURN_IF_ERROR(dice_storage_write_cert_tlv_v1(
-          &kDiceStorageSlotPqCdi1, static_dice_mldsa_cdi.cdi_1_cert,
-          static_dice_mldsa_cdi.cdi_1_cert_size));
-
       msg->res.mldsa_cdi0_cert =
           (uint32_t)dice_storage_slot_v1_data(&kDiceStorageSlotPqCdi0);
+      msg->res.mldsa_cdi0_cert_len = static_dice_mldsa_cdi.cdi_0_cert_size;
+
+      if (static_dice_mldsa_cdi.cdi_1_cert_size != 0) {
+        watchdog_pet();
+        RETURN_IF_ERROR(dice_storage_write_cert_tlv_v1(
+            &kDiceStorageSlotPqCdi1, static_dice_mldsa_cdi.cdi_1_cert,
+            static_dice_mldsa_cdi.cdi_1_cert_size));
+        dice_page.mldsa_cdi_key_ids[kDicePageKeyIdxCdi1] =
+            read_64(msg->ids.mldsa_cdi1_id);
+      }
       msg->res.mldsa_cdi1_cert =
           (uint32_t)dice_storage_slot_v1_data(&kDiceStorageSlotPqCdi1);
+      msg->res.mldsa_cdi1_cert_len = static_dice_mldsa_cdi.cdi_1_cert_size;
     } else {
-      if (is_overlapped) {
-        dbg_puts("warning: ML-DSA flash region occupied\r\n");
-      }
-      msg->res.mldsa_cdi0_cert = (uint32_t)static_dice_mldsa_cdi.cdi_0_cert;
-      msg->res.mldsa_cdi1_cert = (uint32_t)static_dice_mldsa_cdi.cdi_1_cert;
+      dbg_puts("warning: ML-DSA flash region occupied\r\n");
+      dice_page.mldsa_cdi_key_ids[kDicePageKeyIdxCdi0] = UINT64_MAX;
+      dice_page.mldsa_cdi_key_ids[kDicePageKeyIdxCdi1] = UINT64_MAX;
+      msg->res.mldsa_cdi0_cert = 0;
+      msg->res.mldsa_cdi0_cert_len = 0;
+      msg->res.mldsa_cdi1_cert = 0;
+      msg->res.mldsa_cdi1_cert_len = 0;
     }
-
-    msg->res.mldsa_cdi0_cert_len = static_dice_mldsa_cdi.cdi_0_cert_size;
-    msg->res.mldsa_cdi1_cert_len = static_dice_mldsa_cdi.cdi_1_cert_size;
 
     // Update type to response.
     msg->res.hdr.type = kDiceCertGenResponse;
@@ -789,12 +955,20 @@ rom_error_t dice_attest_cdi_1(const manifest_t *owner_manifest,
     // pointers).
     msg->res.crc32 =
         crc32(&msg->res, sizeof(dice_cert_gen_res_t) - sizeof(uint32_t));
+
+    HARDENED_RETURN_IF_ERROR(
+        dice_mldsa_digest_pqc_slots(&dice_page.mldsa_digest));
   } else {
     // Populating ML-DSA IDs only handover response
 
     // Update type to IDs (the values are already populated).
     msg->ids.hdr.type = kDiceCertGenIds;
     msg->ids.hdr.version = 0;
+  }
+
+  if (ecdsa_updated || mldsa_updated) {
+    dice_storage_digest_page(&dice_page, &dice_page.digest);
+    HARDENED_RETURN_IF_ERROR(dice_storage_flush_page(&dice_page));
   }
 
   return kErrorOk;
@@ -921,6 +1095,7 @@ rom_error_t dice_uds_mldsa_tbs_cert_generate_and_build(
           sizeof(dice_mldsa_perso_scratch_stack) / sizeof(uint32_t))
           .value,
       kHardenedBoolTrue);
+  HARDENED_RETURN_IF_ERROR(kmac_keymgr_configure());
 
   // Build UDS MLDSA certificate for signing
   return dice_uds_mldsa_tbs_cert_build(

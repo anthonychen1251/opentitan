@@ -9,6 +9,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "sw/device/lib/base/mock_abs_mmio.h"
+#include "sw/device/lib/crypto/impl/aes_kwp/aes_kwp.h"
 #include "sw/device/lib/crypto/impl/keyblob.h"
 #include "sw/device/lib/crypto/impl/status.h"
 #include "sw/device/lib/crypto/include/cryptolib_build_info.h"
@@ -83,9 +84,11 @@ TEST(KeyTransport, HwBackedKeyToDiversificationData) {
                                        0x10111213};
 
   // Create a key handle from the test data.
+  otcrypto_key_config_t hw_cfg = kConfigHwBackedAesCtr128;
+  hw_cfg.key_length = 256 / 8;
   uint32_t keyblob[32] = {0};
   otcrypto_blinded_key_t key = {
-      .config = kConfigHwBackedAesCtr128,
+      .config = hw_cfg,
       .keyblob_length = 32,
       .keyblob = keyblob,
   };
@@ -125,6 +128,15 @@ TEST(KeyTransport, HwBackedRsaKeyFails) {
   EXPECT_EQ(
       status_ok(otcrypto_hw_backed_key(test_version, test_salt.data(), &key)),
       false);
+
+  std::array<uint32_t, 8> att_salt = {0};
+  otcrypto_blinded_key_t att_key = {
+      .config = kConfigRsaInvalid,
+      .keyblob_length = 36,
+      .keyblob = keyblob,
+  };
+  EXPECT_NOT_OK(otcrypto_hw_backed_attestation_key(test_version,
+                                                   att_salt.data(), &att_key));
 }
 
 TEST(KeyTransport, BlindedKeyImportExport) {
@@ -420,18 +432,20 @@ TEST(KeyTransport, KeyWrapUnwrapNegative) {
   // Unwrap with odd number of words (not a multiple of 64-bit semiblock)
   otcrypto_const_word32_buf_t odd_wrapped_buf = {
       .data = wrapped_data,
-      .len = 3,
+      .len = 11,
   };
   EXPECT_NOT_OK(
       otcrypto_key_unwrap(&odd_wrapped_buf, &kek_key, &success, &target_key));
 
-  // Unwrap with too few semiblocks (< 3 semiblocks = 6 words)
-  otcrypto_const_word32_buf_t short_wrapped_buf = {
-      .data = wrapped_data,
-      .len = 4,
-  };
-  EXPECT_NOT_OK(
-      otcrypto_key_unwrap(&short_wrapped_buf, &kek_key, &success, &target_key));
+  // Unwrap with wrapped_key->len below the minimum wrapped key header size
+  for (size_t short_len : {4u, 6u, 8u}) {
+    otcrypto_const_word32_buf_t short_wrapped_buf = {
+        .data = wrapped_data,
+        .len = short_len,
+    };
+    EXPECT_NOT_OK(otcrypto_key_unwrap(&short_wrapped_buf, &kek_key, &success,
+                                      &target_key));
+  }
 }
 
 TEST(KeyTransport, BlindedKeyMigrate) {
@@ -455,14 +469,215 @@ TEST(KeyTransport, BlindedKeyMigrate) {
 
   // Modify version to something other than Version1.
   otcrypto_blinded_key_t bad_version_key = old_key;
-  *(otcrypto_lib_version_t *)&bad_version_key.config.version =
-      kOtcryptoLibVersion2;
+  bad_version_key.config.version = kOtcryptoLibVersion2;
   EXPECT_NOT_OK(otcrypto_blinded_key_migrate(&bad_version_key, &new_key));
 
   // Hardware-backed keys cannot be migrated.
   otcrypto_blinded_key_t hw_backed_key = old_key;
-  *(hardened_bool_t *)&hw_backed_key.config.hw_backed = kHardenedBoolTrue;
+  hw_backed_key.config.hw_backed = kHardenedBoolTrue;
   EXPECT_NOT_OK(otcrypto_blinded_key_migrate(&hw_backed_key, &new_key));
+}
+
+TEST(KeyTransport, WrappedKeyLenRsa) {
+  const otcrypto_key_config_t kConfigRsa2048 = {
+      .version = otcrypto_lib_version(),
+      .key_mode = kOtcryptoKeyModeRsaSignPkcs,
+      .key_length = 256,
+      .hw_backed = kHardenedBoolFalse,
+      .exportable = kHardenedBoolFalse,
+      .security_level = kOtcryptoKeySecurityLevelLow,
+  };
+  const otcrypto_key_config_t kConfigRsa3072 = {
+      .version = otcrypto_lib_version(),
+      .key_mode = kOtcryptoKeyModeRsaSignPss,
+      .key_length = 384,
+      .hw_backed = kHardenedBoolFalse,
+      .exportable = kHardenedBoolFalse,
+      .security_level = kOtcryptoKeySecurityLevelLow,
+  };
+  const otcrypto_key_config_t kConfigRsa4096 = {
+      .version = otcrypto_lib_version(),
+      .key_mode = kOtcryptoKeyModeRsaEncryptOaep,
+      .key_length = 512,
+      .hw_backed = kHardenedBoolFalse,
+      .exportable = kHardenedBoolFalse,
+      .security_level = kOtcryptoKeySecurityLevelLow,
+  };
+
+  EXPECT_NOT_OK(otcrypto_wrapped_key_len(kConfigRsa2048, nullptr));
+
+  size_t wrapped_words_2048 = 0;
+  EXPECT_OK(otcrypto_wrapped_key_len(kConfigRsa2048, &wrapped_words_2048));
+  EXPECT_EQ(wrapped_words_2048, 204);
+  EXPECT_LE(wrapped_words_2048, kOtcryptoWrappedKeyMaxWords);
+
+  size_t wrapped_words_3072 = 0;
+  EXPECT_OK(otcrypto_wrapped_key_len(kConfigRsa3072, &wrapped_words_3072));
+  EXPECT_EQ(wrapped_words_3072, 300);
+  EXPECT_LE(wrapped_words_3072, kOtcryptoWrappedKeyMaxWords);
+
+  size_t wrapped_words_4096 = 0;
+  EXPECT_OK(otcrypto_wrapped_key_len(kConfigRsa4096, &wrapped_words_4096));
+  EXPECT_EQ(wrapped_words_4096, 396);
+  EXPECT_EQ(wrapped_words_4096, kOtcryptoWrappedKeyMaxWords);
+
+  // Verify otcrypto_key_wrap rejects an RSA-4096 key with the old (2-share)
+  // keyblob_length of 1024 bytes instead of 1540 bytes.
+  rom_test::NiceMockAbsMmio mmio;
+  ON_CALL(mmio, Read32(TOP_EARLGREY_AES_BASE_ADDR + AES_STATUS_REG_OFFSET))
+      .WillByDefault(testing::Return(1 << AES_STATUS_IDLE_BIT));
+  ON_CALL(mmio, Read32(TOP_EARLGREY_KEYMGR_BASE_ADDR +
+                       KEYMGR_SIDELOAD_CLEAR_REG_OFFSET))
+      .WillByDefault(testing::Return(KEYMGR_SIDELOAD_CLEAR_VAL_VALUE_AES));
+
+  uint32_t kek_keyblob[16] = {0};
+  otcrypto_blinded_key_t kek_key = {
+      .config = kConfigAesKwp256,
+      .keyblob_length = sizeof(kek_keyblob),
+      .keyblob = kek_keyblob,
+      .checksum = 0,
+  };
+  kek_key.checksum = otcrypto_integrity_blinded_checksum(&kek_key);
+
+  uint32_t rsa_keyblob[385] = {0};
+  otcrypto_blinded_key_t bad_rsa_key = {
+      .config = kConfigRsa4096,
+      .keyblob_length = 1024,
+      .keyblob = rsa_keyblob,
+      .checksum = 0,
+  };
+  bad_rsa_key.checksum = otcrypto_integrity_blinded_checksum(&bad_rsa_key);
+
+  uint32_t wrapped_data[kOtcryptoWrappedKeyMaxWords] = {0};
+  otcrypto_word32_buf_t wrapped_buf = {
+      .data = wrapped_data,
+      .len = wrapped_words_4096,
+  };
+  EXPECT_NOT_OK(otcrypto_key_wrap(&bad_rsa_key, &kek_key, &wrapped_buf));
+}
+
+TEST(KeyTransport, HwBackedKeygenNegative) {
+  const otcrypto_key_config_t kConfigHwBackedAesCtr256 = {
+      .version = otcrypto_lib_version(),
+      .key_mode = kOtcryptoKeyModeAesCtr,
+      .key_length = 256 / 8,
+      .hw_backed = kHardenedBoolTrue,
+      .exportable = kHardenedBoolFalse,
+      .security_level = kOtcryptoKeySecurityLevelLow,
+  };
+  uint32_t test_version = 0;
+  std::array<uint32_t, 7> test_salt = {0x01234567, 0x89abcdef, 0x00010203,
+                                       0x04050607, 0x08090a0b, 0x0c0d0e0f,
+                                       0x10111213};
+  std::array<uint32_t, 8> att_salt = {0x01234567, 0x89abcdef, 0x00010203,
+                                      0x04050607, 0x08090a0b, 0x0c0d0e0f,
+                                      0x10111213, 0x14151617};
+
+  // A 32-byte (8-word) sideload keyblob is too small for SW keygen (needs 64B).
+  uint32_t small_sealing_keyblob[8] = {0};
+  otcrypto_blinded_key_t small_sealing_key = {
+      .config = kConfigHwBackedAesCtr256,
+      .keyblob_length = sizeof(small_sealing_keyblob),
+      .keyblob = small_sealing_keyblob,
+  };
+  EXPECT_OK(otcrypto_hw_backed_key(test_version, test_salt.data(),
+                                   &small_sealing_key));
+  EXPECT_NOT_OK(
+      ot_crypto_hw_backed_keygen(kHardenedBoolFalse, &small_sealing_key));
+
+  // A 36-byte (9-word) attestation keyblob is too small for SW keygen (needs
+  // 64B).
+  uint32_t small_att_keyblob[9] = {0};
+  otcrypto_blinded_key_t small_att_key = {
+      .config = kConfigHwBackedAesCtr256,
+      .keyblob_length = sizeof(small_att_keyblob),
+      .keyblob = small_att_keyblob,
+  };
+  EXPECT_OK(otcrypto_hw_backed_attestation_key(test_version, att_salt.data(),
+                                               &small_att_key));
+  EXPECT_NOT_OK(ot_crypto_hw_backed_keygen(kHardenedBoolTrue, &small_att_key));
+
+  // A 128-bit key config does not match the 256-bit keymgr output share size.
+  uint32_t keyblob_64b[16] = {0};
+  otcrypto_blinded_key_t wrong_key_len = {
+      .config = kConfigHwBackedAesCtr128,
+      .keyblob_length = sizeof(keyblob_64b),
+      .keyblob = keyblob_64b,
+  };
+  EXPECT_OK(
+      otcrypto_hw_backed_key(test_version, test_salt.data(), &wrong_key_len));
+  EXPECT_NOT_OK(ot_crypto_hw_backed_keygen(kHardenedBoolFalse, &wrong_key_len));
+
+  // A 31-byte key config rounds up to 8 words in keyblob_share_num_words, but
+  // is not 32 bytes and must be rejected.
+  otcrypto_key_config_t non_aligned_cfg = kConfigHwBackedAesCtr256;
+  non_aligned_cfg.key_length = 31;
+  otcrypto_blinded_key_t non_aligned_key = {
+      .config = non_aligned_cfg,
+      .keyblob_length = sizeof(keyblob_64b),
+      .keyblob = keyblob_64b,
+  };
+  EXPECT_OK(
+      otcrypto_hw_backed_key(test_version, test_salt.data(), &non_aligned_key));
+  EXPECT_NOT_OK(
+      ot_crypto_hw_backed_keygen(kHardenedBoolFalse, &non_aligned_key));
+
+  // Corrupted checksum should be rejected before keygen.
+  otcrypto_blinded_key_t bad_checksum_key = {
+      .config = kConfigHwBackedAesCtr256,
+      .keyblob_length = sizeof(keyblob_64b),
+      .keyblob = keyblob_64b,
+  };
+  EXPECT_OK(otcrypto_hw_backed_key(test_version, test_salt.data(),
+                                   &bad_checksum_key));
+  bad_checksum_key.checksum ^= 0xffffffff;
+  EXPECT_NOT_OK(
+      ot_crypto_hw_backed_keygen(kHardenedBoolFalse, &bad_checksum_key));
+}
+
+TEST(KeyTransport, AesKwpNegative) {
+  uint32_t share0[8] = {0};
+  uint32_t share1[8] = {0};
+  aes_key_t ecb_kek = {
+      .mode = kAesCipherModeEcb,
+      .sideload = kHardenedBoolFalse,
+      .key_len = 8,
+      .key_shares = {share0, share1},
+      .checksum = 0,
+  };
+  ecb_kek.checksum = aes_key_integrity_checksum(&ecb_kek);
+
+  aes_key_t ctr_kek = ecb_kek;
+  ctr_kek.mode = kAesCipherModeCtr;
+  ctr_kek.checksum = aes_key_integrity_checksum(&ctr_kek);
+
+  uint32_t buf[16] = {0};
+  hardened_bool_t success = kHardenedBoolFalse;
+  size_t plaintext_len = 0;
+
+#ifndef OTCRYPTO_DISABLE_NULL_CHECKS
+  // Null pointer checks for aes_kwp_wrap and aes_kwp_unwrap.
+  EXPECT_NOT_OK(aes_kwp_wrap(ecb_kek, nullptr, 32, buf));
+  EXPECT_NOT_OK(aes_kwp_wrap(ecb_kek, buf, 32, nullptr));
+  EXPECT_NOT_OK(
+      aes_kwp_unwrap(ecb_kek, nullptr, 32, &success, buf, &plaintext_len));
+  EXPECT_NOT_OK(aes_kwp_unwrap(ecb_kek, buf, 32, nullptr, buf, &plaintext_len));
+  EXPECT_NOT_OK(
+      aes_kwp_unwrap(ecb_kek, buf, 32, &success, nullptr, &plaintext_len));
+  EXPECT_NOT_OK(aes_kwp_unwrap(ecb_kek, buf, 32, &success, buf, nullptr));
+#endif
+
+  // Non-ECB mode must be rejected before calling aes_encrypt_begin /
+  // aes_decrypt_begin with iv = NULL.
+  EXPECT_NOT_OK(aes_kwp_wrap(ctr_kek, buf, 32, buf));
+  EXPECT_NOT_OK(
+      aes_kwp_unwrap(ctr_kek, buf, 32, &success, buf, &plaintext_len));
+
+  // Ciphertext length exceeding maximum wrapped key size must be rejected
+  // before allocating the stack working buffer.
+  size_t over_max_bytes = (kOtcryptoWrappedKeyMaxWords + 2) * sizeof(uint32_t);
+  EXPECT_NOT_OK(aes_kwp_unwrap(ecb_kek, buf, over_max_bytes, &success, buf,
+                               &plaintext_len));
 }
 
 }  // namespace

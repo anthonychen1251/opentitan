@@ -4,6 +4,7 @@
 
 #include <string.h>
 
+#include "sw/device/lib/base/csr.h"
 #include "sw/device/lib/crypto/impl/kats.h"
 #include "sw/device/lib/crypto/include/config.h"
 #include "sw/device/lib/crypto/include/datatypes.h"
@@ -30,9 +31,12 @@ status_t test_run_kats(void) {
   TRY_CHECK(status.value != kHardenedBoolTrue,
             "Expected failure for out of bounds test flags.");
 
-  // 2. Test running all KATs
+  // 2. Test running all KATs (except RNG, which already ran during
+  // otcrypto_init() and locked CSRNG internal state reading).
   LOG_INFO("Running all KATs...");
-  status = run_kats(OTCRYPTO_KAT_ALL_TESTS);
+  kat_id_t tests = OTCRYPTO_KAT_ALL_TESTS;
+  tests.flags &= ~OTCRYPTO_KAT_RNG;
+  status = run_kats(tests);
   TRY_CHECK(status.value == kHardenedBoolTrue,
             "Expected success for running all KATs.");
 
@@ -45,6 +49,7 @@ status_t test_run_kats(void) {
 bool test_main(void) {
   CHECK_STATUS_OK(
       otcrypto_init(kOtcryptoKeySecurityLevelHigh, &test_cryptolib_state));
+  CSR_CLEAR_BITS(CSR_REG_CPUCTRL, 0x4);
 
   CHECK_STATUS_OK(test_run_kats());
 

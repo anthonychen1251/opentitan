@@ -15,7 +15,7 @@ def secver_write_selection():
 # NOTE: the version numbers are integers, but have to be encoded as strings
 # because of how the bazel rule accepts attributes.
 
-_ROM_EXT_DATE = "20261014"
+_ROM_EXT_DATE = "20261105"
 
 # Most significant digit for release candidate (reserved for future purposes)
 _ROM_EXT_RC_MSD = "0"
@@ -35,18 +35,27 @@ ROM_EXT_VARIATIONS = {
             "//sw/device/silicon_creator/lib/cert:dice",
         ],
         slot_spec = {},
+        imm_exports = [],
     ),
     "dice_cwt": struct(
         deps = [
             "//sw/device/silicon_creator/lib/cert:dice_cwt",
         ],
         slot_spec = {},
+        imm_exports = [],
     ),
     "dice_mldsa": struct(
         deps = [
             "//sw/device/silicon_creator/lib/cert:dice_mldsa",
         ],
         slot_spec = EARLGREY_MLDSA_SLOTS,
+        imm_exports = [
+            "dice_attest_next_cdi",
+            "mldsa44_tiny_pub_from_seed",
+            "mldsa44_tiny_sign",
+            "mldsa87_tiny_pub_from_seed",
+            "mldsa87_tiny_sign",
+        ],
     ),
 }
 
@@ -75,9 +84,9 @@ TEST_OWNER_CONFIGS = {
         "rescue_module": ["//sw/device/silicon_creator/lib/rescue:rescue_xmodem"],
         "owner_defines": [],
     },
-    "flash_storage_dice_mldsa": {
+    "dice_mldsa87": {
         "dice_variation": "dice_mldsa",
-        "manifest": ":manifest_mldsa_on_flash",
+        "manifest": ":manifest_mldsa87",
         "rescue_module": ["//sw/device/silicon_creator/lib/rescue:rescue_xmodem"],
         "owner_defines": [],
     },

@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{Args, Subcommand};
 use serde_annotate::Annotate;
 use std::any::Any;
@@ -12,22 +12,22 @@ use opentitanlib::app::TransportWrapper;
 use opentitanlib::app::command::CommandDispatch;
 use opentitanlib::crypto::spx;
 use opentitanlib::crypto::spx::{SpxKeyFormat, SpxKeyLoadingMode};
-use sphincsplus::{SphincsPlus, SpxRawSignature, SpxSecretKey, SpxSignatureMode};
+use sphincsplus::{SphincsPlus, SpxPublicKey, SpxRawSignature, SpxSecretKey, SpxSignatureMode};
 
 #[derive(Annotate, serde::Serialize)]
 pub struct SpxPublicKeyInfo {
     pub algorithm: String,
     pub public_key_num_bits: usize,
-    #[annotate(format=hex,comment="Words in little endian order.")]
+    #[annotate(format=hex,comment="Words in little endian order")]
     pub public_key: Vec<u32>,
     #[annotate(comment = "Formatted for use in OTP configuration")]
     pub otp_encoded: String,
 }
 
-/// Show public information of a SPHINCS+ public key or key pair.
+/// Show public information of a SPHINCS+ / SLH-DSA public or private key.
 #[derive(Debug, Args)]
 pub struct SpxKeyShowCommand {
-    /// SPHINCS+ key file (either just the public key or full keypair).
+    /// SPHINCS+ / SLH-DSA key file
     key_file: PathBuf,
 }
 
@@ -44,11 +44,11 @@ impl CommandDispatch for SpxKeyShowCommand {
         // sized integers using python's `int` constructor and then writes
         // the values into the OTP image as little-endian values.
         //
-        // We want to store into OTP the natuaral representaion of the
-        // SPHINCS+ key.  Since the value is parsed by the `int` constructor
-        // is interpreted as a big-endian integer, but written into OTP in
-        // little-endian byte order, we want to reverse the byte representation
-        // of the key for the OTP creation tool.
+        // We want to store into OTP the natural representation of the
+        // SPHINCS+ / SLH-DSA key. Since the value is parsed by the `int`
+        // constructor is interpreted as a big-endian integer, but written
+        // into OTP in little-endian byte order, we want to reverse the
+        // byte representation of the key for the OTP creation tool.
         let mut otp = bytes.to_vec();
         otp.reverse();
         let otp = format!("0x{}", hex::encode(otp));
@@ -65,14 +65,27 @@ impl CommandDispatch for SpxKeyShowCommand {
     }
 }
 
-/// Generate a SPHINCS+-SHAKE256-128s-simple public private key pair. The full keypair will be
-/// written to <OUTPUT_DIR>/<BASENAME>.key and the public key will be written to
-/// <OUTPUT_DIR>/<BASENAME>.pub.key.
+/// Describes the SPHINCS+ / SLH-DSA key files written by commands.
+#[derive(Annotate, serde::Serialize)]
+pub struct SpxKeyFileInfo {
+    pub algorithm: String,
+    pub format: String,
+    pub private_key: Option<String>,
+    pub public_key: Option<String>,
+}
+
+/// Generate a SPHINCS+ / SLH-DSA public & private key pair. The private key will
+/// be written to <OUTPUT_DIR>/<BASENAME>.<EXT> and the public key will be
+/// written to <OUTPUT_DIR>/<BASENAME>.pub.<EXT>, where <EXT> is determined
+/// by the given format.
 #[derive(Debug, Args)]
 pub struct SpxKeyGenerateCommand {
-    /// SPHINCS+ algorithm (SHAKE-128s-simple, SHA2-128s-simple)
-    #[arg(long, default_value = "SHAKE-128s-simple")]
+    /// SPHINCS+ / SLH-DSA parameter set (SHA2-128s-simple, SHAKE-128s-simple)
+    #[arg(long, default_value = "SHA2-128s-simple")]
     algorithm: SphincsPlus,
+    /// Key encoding format
+    #[arg(long, default_value_t = SpxKeyFormat::default())]
+    format: SpxKeyFormat,
     /// Output directory.
     output_dir: PathBuf,
     /// Basename for the generated key pair.
@@ -86,15 +99,79 @@ impl CommandDispatch for SpxKeyGenerateCommand {
         _transport: &TransportWrapper,
     ) -> Result<Option<Box<dyn erased_serde::Serialize>>> {
         let (private_key, public_key) = SpxSecretKey::new_keypair(self.algorithm)?;
-        let mut file = self.output_dir.to_owned();
-        file.push(&self.basename);
-        file.set_extension("pem");
-        spx::save_spx_private_key(&private_key, &file, SpxKeyFormat::PreStandardPem)?;
+        let private_path = self
+            .output_dir
+            .join(format!("{}.{}", self.basename, self.format.ext()));
+        let public_path =
+            self.output_dir
+                .join(format!("{}.{}", self.basename, self.format.pub_ext()));
 
-        file.set_extension("pub.pem");
-        spx::save_spx_public_key(&public_key, &file, SpxKeyFormat::PreStandardPem)?;
+        spx::save_spx_private_key(&private_key, &private_path, self.format)?;
+        spx::save_spx_public_key(&public_key, &public_path, self.format)?;
 
-        Ok(None)
+        Ok(Some(Box::new(SpxKeyFileInfo {
+            algorithm: self.algorithm.to_string(),
+            format: self.format.to_string(),
+            private_key: Some(private_path.to_string_lossy().into_owned()),
+            public_key: Some(public_path.to_string_lossy().into_owned()),
+        })))
+    }
+}
+
+/// Convert a SPHINCS+ / SLH-DSA key to a different encoding format.
+#[derive(Debug, Args)]
+pub struct SpxKeyConvertCommand {
+    /// Key encoding format to convert to
+    #[arg(long)]
+    format: SpxKeyFormat,
+    /// Convert to a public key, regardless of whether the input file is a private key or not.
+    #[arg(long)]
+    public: bool,
+    /// The SPHINCS+ / SLH-DSA key file to convert.
+    input: PathBuf,
+    /// Output key file.
+    output: PathBuf,
+}
+
+impl CommandDispatch for SpxKeyConvertCommand {
+    fn run(
+        &self,
+        _context: &dyn Any,
+        _transport: &TransportWrapper,
+    ) -> Result<Option<Box<dyn erased_serde::Serialize>>> {
+        let data = std::fs::read(&self.input)
+            .with_context(|| format!("Failed to read file: {:?}", self.input))?;
+
+        if let Ok(private_key) = spx::load_spx_private_key_from_bytes(&data) {
+            let (private_path, public_path) = if self.public {
+                let public_key = SpxPublicKey::from(&private_key);
+                spx::save_spx_public_key(&public_key, &self.output, self.format)?;
+                (None, Some(self.output.to_string_lossy().into_owned()))
+            } else {
+                spx::save_spx_private_key(&private_key, &self.output, self.format)?;
+                (Some(self.output.to_string_lossy().into_owned()), None)
+            };
+            return Ok(Some(Box::new(SpxKeyFileInfo {
+                algorithm: private_key.algorithm().to_string(),
+                format: self.format.to_string(),
+                private_key: private_path,
+                public_key: public_path,
+            })));
+        }
+        let pk = spx::load_spx_public_key_from_bytes(&data, SpxKeyLoadingMode::PublicOnly)
+            .with_context(|| {
+                format!(
+                    "{:?} was not recognized as a valid public or private key",
+                    self.input
+                )
+            })?;
+        spx::save_spx_public_key(&pk, &self.output, self.format)?;
+        Ok(Some(Box::new(SpxKeyFileInfo {
+            algorithm: pk.algorithm().to_string(),
+            format: self.format.to_string(),
+            private_key: None,
+            public_key: Some(self.output.to_string_lossy().into_owned()),
+        })))
     }
 }
 
@@ -102,6 +179,7 @@ impl CommandDispatch for SpxKeyGenerateCommand {
 pub enum SpxKeySubcommands {
     Show(SpxKeyShowCommand),
     Generate(SpxKeyGenerateCommand),
+    Convert(SpxKeyConvertCommand),
 }
 
 #[derive(serde::Serialize, Annotate)]
@@ -116,12 +194,12 @@ pub struct SpxSignCommand {
     /// Set to true if signing for a target that uses a byte-reversed representation of the hash.
     #[arg(short='r', long, action = clap::ArgAction::Set, default_value = "false")]
     spx_hash_reversal_bug: bool,
-    /// The SPHINCS+ signature mode (Pure or PreHashedSha256)
+    /// The SPHINCS+ / SLH-DSA signature mode (Pure, PreHashedSha256)
     #[arg(long, default_value_t = SpxSignatureMode::default())]
     domain: SpxSignatureMode,
     /// The filename for the message to sign.
     message: PathBuf,
-    /// The file containing the SPHINCS+ raw private key in a PEM or DER format.
+    /// The file containing the SPHINCS+ / SLH-DSA private key in a PEM or DER format.
     #[arg(value_name = "KEY_FILE")]
     private_key: PathBuf,
     /// The filename to write the signature to.
@@ -154,18 +232,18 @@ pub struct SpxVerifyCommand {
     /// Set to true if verifying for a target that uses a byte-reversed representation of the hash.
     #[arg(short='r', long, action = clap::ArgAction::Set, default_value = "false")]
     spx_hash_reversal_bug: bool,
-    /// The SPHINCS+ signature mode (Pure or PreHashedSha256)
+    /// The SPHINCS+ / SLH-DSA signature mode (Pure, PreHashedSha256)
     #[arg(long, default_value_t = SpxSignatureMode::default())]
     domain: SpxSignatureMode,
-    /// The signature algorithm (Shake128sSimple, Sha2128sSimple)
-    #[arg(long, default_value_t = SphincsPlus::Sha2128sSimple)]
-    spx_algorithm: SphincsPlus,
-    /// The file containing the SPHINCS+ raw public key in a PEM or DER format.
+    /// Deprecated, to be removed. The parameter set is determined using the public key.
+    #[arg(long, hide = true)]
+    spx_algorithm: Option<SphincsPlus>,
+    /// The file containing the SPHINCS+ / SLH-DSA public key.
     #[arg(value_name = "KEY")]
     public_key: PathBuf,
     /// Message file to verify the signature against.
     message: PathBuf,
-    /// SPHINCS+ signature file to verify (raw binary).
+    /// SPHINCS+ / SLH-DSA signature file to verify (raw binary).
     signature: PathBuf,
 }
 
@@ -180,18 +258,32 @@ impl CommandDispatch for SpxVerifyCommand {
             message.reverse();
         }
         let public_key = spx::load_spx_public_key(&self.public_key, SpxKeyLoadingMode::PublicOnly)?;
-        let signature = SpxRawSignature::read_from_file(&self.signature, self.spx_algorithm)?;
+        let algorithm = public_key.algorithm();
+        if let Some(spx_algorithm) = self.spx_algorithm {
+            log::warn!(
+                "--spx-algorithm is deprecated. The parameter set from the key is used instead."
+            );
+            if spx_algorithm != algorithm {
+                log::warn!(
+                    "--spx-algorithm {spx_algorithm} does not match the public key parameter set: {algorithm}"
+                );
+            }
+        }
+        let signature = SpxRawSignature::read_from_file(&self.signature, algorithm)?;
         public_key.verify(self.domain.into(), signature.as_bytes(), &message)?;
         Ok(None)
     }
 }
 
 #[derive(Debug, Subcommand, CommandDispatch)]
-/// SPHICS+ commands.
+/// SPHINCS+ / SLH-DSA commands.
 #[allow(clippy::large_enum_variant)]
 pub enum Spx {
     #[command(subcommand)]
+    /// Commands for interacting with & manipulating SPHINCS+ / SLH-DSA keys.
     Key(SpxKeySubcommands),
+    /// Sign a message using SPHINCS+ / SLH-DSA.
     Sign(SpxSignCommand),
+    /// Verify a signature using SPHINCS+ / SLH-DSA.
     Verify(SpxVerifyCommand),
 }

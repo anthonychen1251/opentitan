@@ -51,7 +51,11 @@ pub struct Template {
     /// Variable declarations.
     pub variables: IndexMap<String, VariableType>,
     /// Certificate specification.
-    pub certificate: Certificate,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub certificate: Option<Box<Certificate>>,
+    /// Standalone private extensions specification.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub private_extensions: Option<Vec<CertificateExtension>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
@@ -96,7 +100,7 @@ pub struct Certificate {
     pub subject_alt_name: Name,
     /// Non-standard X509 certificate extensions.
     #[serde(default)]
-    pub private_extensions: Vec<CertificateExtension>,
+    pub private_extensions: RawOr<Vec<CertificateExtension>>,
     /// X509 certificate's signature.
     pub signature: Selectable<Signature>,
 }
@@ -154,6 +158,12 @@ pub struct DiceTcbInfoExtension {
 pub enum RawOr<T> {
     Type(T),
     Raw(Value<Vec<u8>>),
+}
+
+impl<T: Default> Default for RawOr<T> {
+    fn default() -> Self {
+        RawOr::Type(T::default())
+    }
 }
 
 impl<T> RawOr<T> {
@@ -551,7 +561,33 @@ impl Template {
         Ok(tmpl)
     }
 
+    pub fn certificate(&self) -> Result<&Certificate> {
+        self.certificate
+            .as_deref()
+            .context("Not a certificate template")
+    }
+
+    pub fn private_extensions(&self) -> Result<&[CertificateExtension]> {
+        self.private_extensions
+            .as_deref()
+            .context("Not a private_extensions template")
+    }
+
     pub fn validate(&self) -> Result<()> {
+        match (&self.certificate, &self.private_extensions) {
+            (Some(_), None) => self.validate_certificate()?,
+            (None, Some(_)) => {}
+            (Some(_), Some(_)) => {
+                bail!("Template cannot contain both 'certificate' and 'private_extensions'")
+            }
+            (None, None) => {
+                bail!("Template must contain either 'certificate' or 'private_extensions'")
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_certificate(&self) -> Result<()> {
         self.validate_public_key()?;
         self.validate_signature()?;
         Ok(())
@@ -593,7 +629,8 @@ impl Template {
     }
 
     fn validate_public_key(&self) -> Result<()> {
-        self.validate_selectable(&self.certificate.subject_public_key_info, |val| {
+        let cert = self.certificate()?;
+        self.validate_selectable(&cert.subject_public_key_info, |val| {
             match val {
                 SubjectPublicKeyInfo::EcPublicKey(ec) => {
                     let expected_size = match ec.curve {
@@ -691,7 +728,8 @@ impl Template {
     }
 
     fn validate_signature(&self) -> Result<()> {
-        self.validate_selectable(&self.certificate.signature, |val| {
+        let cert = self.certificate()?;
+        self.validate_selectable(&cert.signature, |val| {
             match val {
                 Signature::EcdsaWithSha256 { value } => {
                     if let Some(sig) = value {
@@ -986,32 +1024,34 @@ mod tests {
                 cert_sign: None,
             }),
             subject_alt_name: vec![],
-            private_extensions: vec![CertificateExtension::DiceTcbInfo(DiceTcbInfoExtension {
-                vendor: Some(Value::literal("OpenTitan")),
-                model: Some(Value::literal("ROM_EXT")),
-                svn: Some(Value::convert(
-                    "rom_ext_security_version",
-                    Conversion::BigEndian,
-                )),
-                layer: Some(Value::variable("layer")),
-                version: Some(Value::literal("ES")),
-                fw_ids: Some(RawOr::Type(Vec::from([
-                    FirmwareId {
-                        hash_algorithm: HashAlgorithm::Sha256,
-                        digest: Value::variable("rom_ext_hash"),
-                    },
-                    FirmwareId {
-                        hash_algorithm: HashAlgorithm::Sha256,
-                        digest: Value::variable("ownership_manifest_hash"),
-                    },
-                ]))),
-                flags: Some(DiceTcbInfoFlags {
-                    not_configured: Value::Literal(true),
-                    not_secure: Value::Literal(false),
-                    recovery: Value::Literal(true),
-                    debug: Value::Literal(false),
-                }),
-            })],
+            private_extensions: RawOr::Type(vec![CertificateExtension::DiceTcbInfo(
+                DiceTcbInfoExtension {
+                    vendor: Some(Value::literal("OpenTitan")),
+                    model: Some(Value::literal("ROM_EXT")),
+                    svn: Some(Value::convert(
+                        "rom_ext_security_version",
+                        Conversion::BigEndian,
+                    )),
+                    layer: Some(Value::variable("layer")),
+                    version: Some(Value::literal("ES")),
+                    fw_ids: Some(RawOr::Type(Vec::from([
+                        FirmwareId {
+                            hash_algorithm: HashAlgorithm::Sha256,
+                            digest: Value::variable("rom_ext_hash"),
+                        },
+                        FirmwareId {
+                            hash_algorithm: HashAlgorithm::Sha256,
+                            digest: Value::variable("ownership_manifest_hash"),
+                        },
+                    ]))),
+                    flags: Some(DiceTcbInfoFlags {
+                        not_configured: Value::Literal(true),
+                        not_secure: Value::Literal(false),
+                        recovery: Value::Literal(true),
+                        debug: Value::Literal(false),
+                    }),
+                },
+            )]),
             signature: Selectable::Value(Signature::EcdsaWithSha256 {
                 value: Some(EcdsaSignature {
                     r: Value::variable("cert_signature_r"),
@@ -1024,13 +1064,96 @@ mod tests {
         let expected = Template {
             name: "cdi_owner".to_string(),
             variables,
-            certificate,
+            certificate: Some(Box::new(certificate)),
+            private_extensions: None,
         };
         let actual = Template::from_hjson_str(input).expect("failed to parse template");
         // Manual assertion for pretty-printing the huge output if necessary.
         assert_eq!(
             expected, actual,
             "certificate mismatch: expected {expected:#?} but got {actual:#?}"
+        );
+    }
+
+    #[test]
+    fn template_unknown_top_level_field() {
+        let input = indoc! {r#"
+            {
+                name: "test",
+                certifcate: {},
+            }
+        "#};
+        let err = Template::from_hjson_str(input).unwrap_err().to_string();
+        assert!(
+            err.contains("unknown field `certifcate`"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn template_unknown_certificate_field() {
+        let input = indoc! {r#"
+            {
+                name: "test",
+                variables: {},
+                certificate: {
+                    serial_numbr: 123,
+                }
+            }
+        "#};
+        let err = Template::from_hjson_str(input).unwrap_err().to_string();
+        assert!(
+            err.contains("unknown field `serial_numbr`"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn template_validation_missing_payload() {
+        let input = indoc! {r#"
+            {
+                name: "test",
+                variables: {},
+            }
+        "#};
+        let err = Template::from_hjson_str(input).unwrap_err().to_string();
+        assert!(
+            err.contains("Template must contain either 'certificate' or 'private_extensions'"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn template_validation_duplicate_payload() {
+        let input = indoc! {r#"
+            {
+                name: "test",
+                variables: {
+                    x: { type: "integer", exact-size: 32 },
+                    y: { type: "integer", exact-size: 32 },
+                },
+                certificate: {
+                    serial_number: 1,
+                    not_before: "20230101000000Z",
+                    not_after: "20240101000000Z",
+                    issuer: [],
+                    subject: [],
+                    subject_public_key_info: {
+                        algorithm: "ec-public-key",
+                        curve: "prime256v1",
+                        public_key: { x: { var: "x" }, y: { var: "y" } }
+                    },
+                    signature: {
+                        algorithm: "ecdsa-with-sha256",
+                    }
+                },
+                private_extensions: [],
+            }
+        "#};
+        let err = Template::from_hjson_str(input).unwrap_err().to_string();
+        assert!(
+            err.contains("Template cannot contain both 'certificate' and 'private_extensions'"),
+            "unexpected error: {err}"
         );
     }
 }

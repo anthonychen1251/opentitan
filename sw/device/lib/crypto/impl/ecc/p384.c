@@ -85,20 +85,20 @@ enum {
   /*
    * The expected instruction counts for constant time functions.
    */
-  kModeKeygenInsCnt = 1961351,
-  kModeKeygenSideloadInsCnt = 1961244,
-  kModeEcdhInsCnt = 1983982,
-  kModeEcdhSideloadInsCnt = 1984128,
-  kModeEcdsaSignConfigKInsCnt = 1600471,
-  kModeEcdsaSignInsCnt = 1600692,
-  kModeEcdsaSignSideloadInsCnt = 1600838,
+  kModeKeygenInsCnt = 1961345,
+  kModeKeygenSideloadInsCnt = 1961249,
+  kModeEcdhInsCnt = 1983989,
+  kModeEcdhSideloadInsCnt = 1984142,
+  kModeEcdsaSignConfigKInsCnt = 1600494,
+  kModeEcdsaSignInsCnt = 1600721,
+  kModeEcdsaSignSideloadInsCnt = 1600874,
   kModePointOnCurveCheckInsCnt = 357,
   kModePointOnCurveCheckInvld1InsCnt = 348,
   kModePointOnCurveCheckInvld2InsCnt = 355,
   kModePointOnCurveCheckInvldXRangeInsCnt = 40,
   kModePointOnCurveCheckInvldYRangeInsCnt = 48,
-  kModeBasePointMultInsCnt = 1961105,
-  kModeArithShareSecretKeyInsCnt = 308,
+  kModeBasePointMultInsCnt = 1961103,
+  kModeArithShareSecretKeyInsCnt = 299,
 };
 
 OT_NOINLINE OT_WARN_UNUSED_RESULT static status_t p384_init_otbn(
@@ -204,7 +204,7 @@ uint32_t p384_masked_scalar_checksum(const p384_masked_scalar_t *scalar) {
   // (a) manipulating the second share with FI has only limited use to an
   // adversary and (b) when manipulating the entire pointer to the key structure
   // the checksum check fails.
-  crc32_add(&ctx, (unsigned char *)scalar->share0, kP384CoordBytes);
+  crc32_add(&ctx, (unsigned char *)scalar->share0, kP384MaskedScalarShareBytes);
   return crc32_finish(&ctx);
 }
 
@@ -400,6 +400,8 @@ status_t p384_ecdsa_verify_start(const p384_ecdsa_signature_t *signature,
 
 status_t p384_ecdsa_verify_finalize(const p384_ecdsa_signature_t *signature,
                                     hardened_bool_t *result) {
+  *result = kHardenedBoolFalse;
+
   // Spin here waiting for OTBN to complete.
   HARDENED_TRY(otbn_busy_wait_for_done());
 
@@ -488,11 +490,8 @@ status_t p384_point_on_curve_check(const p384_point_t *point,
   // Set the point.
   HARDENED_TRY(set_public_key(point));
 
-  // Start the OTBN routine.
-  HARDENED_TRY(otbn_execute());
-
-  // Spin here waiting for OTBN to complete.
-  HARDENED_TRY(otbn_busy_wait_for_done());
+  // Run the OTBN routine synchronously.
+  HARDENED_TRY(otbn_execute_sync());
 
   // Check if we executed the expected number of OTBN instructions.
   uint32_t ins_cnt = otbn_instruction_count_get();
@@ -527,11 +526,8 @@ status_t p384_base_point_mult(p384_masked_scalar_t *private_key,
   const otbn_addr_t kOtbnVarD1 = OTBN_ADDR_T_INIT(run_p384, d1_io);
   HARDENED_TRY(p384_masked_scalar_write(private_key, kOtbnVarD0, kOtbnVarD1));
 
-  // Start the OTBN routine.
-  HARDENED_TRY(otbn_execute());
-
-  // Spin here waiting for OTBN to complete.
-  HARDENED_TRY(otbn_busy_wait_for_done());
+  // Run the OTBN routine synchronously.
+  HARDENED_TRY(otbn_execute_sync());
 
   // Check if we executed the expected number of OTBN instructions.
   HARDENED_CHECK_EQ(otbn_instruction_count_get(), kModeBasePointMultInsCnt);
@@ -555,11 +551,8 @@ status_t p384_arith_share_private_key(p384_masked_scalar_t *boolean_private_key,
   HARDENED_TRY(
       p384_masked_scalar_write(boolean_private_key, kOtbnVarD0, kOtbnVarD1));
 
-  // Start the OTBN routine.
-  HARDENED_TRY(otbn_execute());
-
-  // Spin here waiting for OTBN to complete.
-  HARDENED_TRY(otbn_busy_wait_for_done());
+  // Run the OTBN routine synchronously.
+  HARDENED_TRY(otbn_execute_sync());
 
   // Check if we executed the expected number of OTBN instructions.
   HARDENED_CHECK_EQ(otbn_instruction_count_get(),

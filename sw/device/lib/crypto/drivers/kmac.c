@@ -156,7 +156,7 @@ OT_ASSERT_ENUM_VALUE(32, KMAC_PREFIX_PREFIX_FIELD_WIDTH);
 /**
  * Hardware wipe guard.
  */
-static void kmac_wipe_guard(uint32_t *dummy) {
+OT_USED static void kmac_wipe_guard(uint32_t *dummy) {
   (void)dummy;
   uint32_t cmd_reg = KMAC_CMD_REG_RESVAL;
   cmd_reg = bitfield_field32_write(cmd_reg, KMAC_CMD_CMD_FIELD,
@@ -449,7 +449,8 @@ static status_t kmac_set_prefix_regs(const unsigned char *func_name,
   uint32_t prefix_buffer[kKmacPrefixRegCount] = {0x0};
   unsigned char *prefix_buf_ptr = (unsigned char *)prefix_buffer;
 
-  if (func_name_len + cust_str_len > kKmacPrefixMaxSize) {
+  if (func_name_len > kKmacPrefixMaxSize ||
+      cust_str_len > kKmacPrefixMaxSize - func_name_len) {
     return OTCRYPTO_BAD_ARGS;
   }
 
@@ -637,8 +638,8 @@ static status_t kmac_process_msg_blocks(
   // Block until KMAC is idle.
   HARDENED_TRY(wait_status_bit(KMAC_STATUS_SHA3_IDLE_BIT, 1));
 
-  size_t digest_len_words =
-      (digest_len_bytes + sizeof(uint32_t) - 1) / sizeof(uint32_t);
+  size_t digest_len_words = (digest_len_bytes / sizeof(uint32_t)) +
+                            (digest_len_bytes % sizeof(uint32_t) != 0);
 
   // Issue the start command, so that messages written to MSG_FIFO are forwarded
   // to Keccak
@@ -650,8 +651,8 @@ static status_t kmac_process_msg_blocks(
 
   // Begin by writing a one byte at a time until the data is aligned.
   size_t i = 0;
-  for (; misalignment32_of((uintptr_t)(&message->data[i])) > 0 &&
-         i < message->len;
+  for (; i < message->len &&
+         misalignment32_of((uintptr_t)(&message->data[i])) > 0;
        i++) {
     HARDENED_TRY(wait_status_bit(KMAC_STATUS_FIFO_FULL_BIT, 0));
     abs_mmio_write8(kKmacBaseAddr + KMAC_MSG_FIFO_REG_OFFSET, message->data[i]);
@@ -693,8 +694,10 @@ static status_t kmac_process_msg_blocks(
     uint8_t bytes_written;
     HARDENED_TRY(little_endian_encode(digest_len_bits, buf, &bytes_written));
     buf[bytes_written] = bytes_written;
-    uint8_t *fifo_dst = (uint8_t *)(kKmacBaseAddr + KMAC_MSG_FIFO_REG_OFFSET);
-    memcpy(fifo_dst, buf, bytes_written + 1);
+    for (size_t j = 0; j < (size_t)bytes_written + 1; j++) {
+      HARDENED_TRY(wait_status_bit(KMAC_STATUS_FIFO_FULL_BIT, 0));
+      abs_mmio_write8(kKmacBaseAddr + KMAC_MSG_FIFO_REG_OFFSET, buf[j]);
+    }
   }
 
   // Issue the process command, so that squeezing phase can start
@@ -807,7 +810,8 @@ static status_t hash(kmac_operation_t operation, kmac_security_str_t strength,
                      size_t digest_wordlen, uint32_t *digest) {
   // Note: to save code size, we check for null pointers here instead of
   // separately for every different Keccak hash operation.
-  if (digest == NULL || (message->data == NULL && message->len != 0)) {
+  if (digest == NULL || (message->data == NULL && message->len != 0) ||
+      digest_wordlen > SIZE_MAX / sizeof(uint32_t)) {
     return OTCRYPTO_BAD_ARGS;
   }
 
@@ -819,38 +823,38 @@ static status_t hash(kmac_operation_t operation, kmac_security_str_t strength,
                                  /*masked_digest=*/kHardenedBoolFalse);
 }
 
-inline status_t kmac_sha3_224(const otcrypto_const_byte_buf_t *message,
-                              uint32_t *digest) {
+status_t kmac_sha3_224(const otcrypto_const_byte_buf_t *message,
+                       uint32_t *digest) {
   return hash(kKmacOperationSha3, kKmacSecurityStrength224, message,
               kKmacSha3224DigestWords, digest);
 }
 
-inline status_t kmac_sha3_256(const otcrypto_const_byte_buf_t *message,
-                              uint32_t *digest) {
+status_t kmac_sha3_256(const otcrypto_const_byte_buf_t *message,
+                       uint32_t *digest) {
   return hash(kKmacOperationSha3, kKmacSecurityStrength256, message,
               kKmacSha3256DigestWords, digest);
 }
 
-inline status_t kmac_sha3_384(const otcrypto_const_byte_buf_t *message,
-                              uint32_t *digest) {
+status_t kmac_sha3_384(const otcrypto_const_byte_buf_t *message,
+                       uint32_t *digest) {
   return hash(kKmacOperationSha3, kKmacSecurityStrength384, message,
               kKmacSha3384DigestWords, digest);
 }
 
-inline status_t kmac_sha3_512(const otcrypto_const_byte_buf_t *message,
-                              uint32_t *digest) {
+status_t kmac_sha3_512(const otcrypto_const_byte_buf_t *message,
+                       uint32_t *digest) {
   return hash(kKmacOperationSha3, kKmacSecurityStrength512, message,
               kKmacSha3512DigestWords, digest);
 }
 
-inline status_t kmac_shake_128(const otcrypto_const_byte_buf_t *message,
-                               uint32_t *digest, size_t digest_len) {
+status_t kmac_shake_128(const otcrypto_const_byte_buf_t *message,
+                        uint32_t *digest, size_t digest_len) {
   return hash(kKmacOperationShake, kKmacSecurityStrength128, message,
               digest_len, digest);
 }
 
-inline status_t kmac_shake_256(const otcrypto_const_byte_buf_t *message,
-                               uint32_t *digest, size_t digest_len) {
+status_t kmac_shake_256(const otcrypto_const_byte_buf_t *message,
+                        uint32_t *digest, size_t digest_len) {
   return hash(kKmacOperationShake, kKmacSecurityStrength256, message,
               digest_len, digest);
 }
@@ -859,6 +863,13 @@ status_t kmac_cshake_128(const otcrypto_const_byte_buf_t *message,
                          const unsigned char *func_name, size_t func_name_len,
                          const unsigned char *cust_str, size_t cust_str_len,
                          uint32_t *digest, size_t digest_len) {
+  // According to NIST SP 800-185 Section 3.2, when N and S are both empty
+  // strings, cSHAKE(X, L, N, S) is equivalent to SHAKE as defined in FIPS 202.
+  if (launder32(func_name_len) == 0 && launder32(cust_str_len) == 0) {
+    HARDENED_CHECK_EQ(func_name_len, 0);
+    HARDENED_CHECK_EQ(cust_str_len, 0);
+    return kmac_shake_128(message, digest, digest_len);
+  }
   HARDENED_TRY(wait_status_bit(KMAC_STATUS_SHA3_IDLE_BIT, 1));
   HARDENED_TRY(
       kmac_set_prefix_regs(func_name, func_name_len, cust_str, cust_str_len));
@@ -870,6 +881,13 @@ status_t kmac_cshake_256(const otcrypto_const_byte_buf_t *message,
                          const unsigned char *func_name, size_t func_name_len,
                          const unsigned char *cust_str, size_t cust_str_len,
                          uint32_t *digest, size_t digest_len) {
+  // According to NIST SP 800-185 Section 3.2, when N and S are both empty
+  // strings, cSHAKE(X, L, N, S) is equivalent to SHAKE as defined in FIPS 202.
+  if (launder32(func_name_len) == 0 && launder32(cust_str_len) == 0) {
+    HARDENED_CHECK_EQ(func_name_len, 0);
+    HARDENED_CHECK_EQ(cust_str_len, 0);
+    return kmac_shake_256(message, digest, digest_len);
+  }
   HARDENED_TRY(wait_status_bit(KMAC_STATUS_SHA3_IDLE_BIT, 1));
   HARDENED_TRY(
       kmac_set_prefix_regs(func_name, func_name_len, cust_str, cust_str_len));

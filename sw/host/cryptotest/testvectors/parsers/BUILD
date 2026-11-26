@@ -199,6 +199,16 @@ py_binary(
 )
 
 py_binary(
+    name = "random_ed25519_generator",
+    srcs = ["random_ed25519_generator.py"],
+    deps = [
+        ":cryptotest_util",
+        requirement("jsonschema"),
+        requirement("pycryptodome"),
+    ],
+)
+
+py_binary(
     name = "wycheproof_rsa_parser",
     srcs = ["wycheproof_rsa_parser.py"],
     deps = [
@@ -218,10 +228,30 @@ py_binary(
 )
 
 py_binary(
+    name = "random_rsa_generator",
+    srcs = ["random_rsa_generator.py"],
+    deps = [
+        ":cryptotest_util",
+        requirement("jsonschema"),
+        requirement("pycryptodome"),
+    ],
+)
+
+py_binary(
     name = "wycheproof_x25519_parser",
     srcs = ["wycheproof_x25519_parser.py"],
     deps = [
         ":cryptotest_util",
         requirement("jsonschema"),
+    ],
+)
+
+py_binary(
+    name = "random_kdf_generator",
+    srcs = ["random_kdf_generator.py"],
+    deps = [
+        ":cryptotest_util",
+        requirement("jsonschema"),
+        requirement("pycryptodome"),
     ],
 )

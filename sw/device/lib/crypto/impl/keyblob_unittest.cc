@@ -48,21 +48,21 @@ const otcrypto_key_config_t kConfigEcdsaP256 = {
     .security_level = kOtcryptoKeySecurityLevelLow,
 };
 
-// Key configuration for testing (31-byte key; not valid but helps test for
-// issues with keys that don't have an even word size).
+// Key configuration for testing (31-byte HMAC key; tests keys that don't have
+// an even word size).
 const otcrypto_key_config_t kConfigOddBytes = {
     .version = otcrypto_lib_version(),
-    .key_mode = kOtcryptoKeyModeAesCtr,
+    .key_mode = kOtcryptoKeyModeHmacSha256,
     .key_length = 31,
     .hw_backed = kHardenedBoolFalse,
     .security_level = kOtcryptoKeySecurityLevelLow,
 };
 
-// Key configuration for testing (key with a huge number of bytes; not valid
-// but helps test for overflow).
+// Key configuration for testing (HMAC key with a huge number of bytes; not
+// valid but helps test for overflow).
 const otcrypto_key_config_t kConfigHuge = {
     .version = otcrypto_lib_version(),
-    .key_mode = kOtcryptoKeyModeAesCtr,
+    .key_mode = kOtcryptoKeyModeHmacSha256,
     .key_length = UINT32_MAX,
     .hw_backed = kHardenedBoolFalse,
     .security_level = kOtcryptoKeySecurityLevelLow,
@@ -72,7 +72,7 @@ const otcrypto_key_config_t kConfigHuge = {
 const otcrypto_key_config_t kConfigCtrSideloaded = {
     .version = otcrypto_lib_version(),
     .key_mode = kOtcryptoKeyModeAesCtr,
-    .key_length = 16,
+    .key_length = 32,
     .hw_backed = kHardenedBoolTrue,
     .security_level = kOtcryptoKeySecurityLevelLow,
 };
@@ -81,7 +81,7 @@ const otcrypto_key_config_t kConfigCtrSideloaded = {
 const otcrypto_key_config_t kConfigOfbSideloaded = {
     .version = otcrypto_lib_version(),
     .key_mode = kOtcryptoKeyModeAesOfb,
-    .key_length = 16,
+    .key_length = 32,
     .hw_backed = kHardenedBoolTrue,
     .security_level = kOtcryptoKeySecurityLevelLow,
 };
@@ -96,6 +96,17 @@ TEST(Keyblob, ShareNumWordsOdd) {
   size_t share_words = keyblob_share_num_words(kConfigOddBytes);
   EXPECT_GE(share_words * sizeof(uint32_t), kConfigOddBytes.key_length);
   EXPECT_LT((share_words - 1) * sizeof(uint32_t), kConfigOddBytes.key_length);
+}
+
+TEST(Keyblob, ShareNumWordsOddNonHmacRejected) {
+  otcrypto_key_config_t odd_aes = kConfigCtr128;
+  odd_aes.key_length = 31;
+  EXPECT_EQ(keyblob_share_num_words(odd_aes), 0);
+
+  // Sideloaded symmetric keys not equal to 256 bits (32 bytes) must return 0.
+  otcrypto_key_config_t bad_sideload = kConfigCtrSideloaded;
+  bad_sideload.key_length = 16;
+  EXPECT_EQ(keyblob_share_num_words(bad_sideload), 0);
 }
 
 TEST(Keyblob, ShareNumWordsHuge) {
@@ -184,6 +195,20 @@ TEST(Keyblob, FromToSharesNoop) {
   for (size_t i = 0; i < test_share1.size(); i++) {
     EXPECT_EQ(share1[i], test_share1[i]);
   }
+}
+
+TEST(Keyblob, ToSharesFailsForHwBackedKey) {
+  uint32_t keyblob[8] = {0};
+  otcrypto_blinded_key_t key = {
+      .config = kConfigCtrSideloaded,
+      .keyblob_length = sizeof(keyblob),
+      .keyblob = keyblob,
+      .checksum = 0,
+  };
+
+  uint32_t *share0;
+  uint32_t *share1;
+  EXPECT_NOT_OK(keyblob_to_shares(&key, &share0, &share1));
 }
 
 TEST(Keyblob, FromKeyMaskDoesNotChangeKey) {
@@ -413,6 +438,60 @@ TEST(Keyblob, RemaskPassesIntegrity) {
 TEST(Keyblob, ShareNumWordsRsa) {
   size_t share_words = keyblob_share_num_words(kConfigRsa2048);
   EXPECT_EQ(share_words, kConfigRsa2048.key_length / sizeof(uint32_t));
+}
+
+TEST(Keyblob, KeyblobNumWordsRsa) {
+  const otcrypto_key_config_t kConfigRsa3072 = {
+      .version = otcrypto_lib_version(),
+      .key_mode = kOtcryptoKeyModeRsaSignPss,
+      .key_length = 384,
+      .hw_backed = kHardenedBoolFalse,
+      .security_level = kOtcryptoKeySecurityLevelLow,
+  };
+  const otcrypto_key_config_t kConfigRsa4096 = {
+      .version = otcrypto_lib_version(),
+      .key_mode = kOtcryptoKeyModeRsaEncryptOaep,
+      .key_length = 512,
+      .hw_backed = kHardenedBoolFalse,
+      .security_level = kOtcryptoKeySecurityLevelLow,
+  };
+
+  // RSA private keyblobs store d0, d1, n, and a 32-bit checksum.
+  EXPECT_EQ(keyblob_num_words(kConfigRsa2048),
+            3 * (256 / sizeof(uint32_t)) + 1);
+  EXPECT_EQ(keyblob_num_words(kConfigRsa2048) * sizeof(uint32_t), 772);
+  EXPECT_EQ(keyblob_num_words(kConfigRsa3072),
+            3 * (384 / sizeof(uint32_t)) + 1);
+  EXPECT_EQ(keyblob_num_words(kConfigRsa3072) * sizeof(uint32_t), 1156);
+  EXPECT_EQ(keyblob_num_words(kConfigRsa4096),
+            3 * (512 / sizeof(uint32_t)) + 1);
+  EXPECT_EQ(keyblob_num_words(kConfigRsa4096) * sizeof(uint32_t), 1540);
+}
+
+TEST(Keyblob, ToSharesRsa) {
+  size_t keyblob_words = keyblob_num_words(kConfigRsa2048);
+  std::vector<uint32_t> keyblob(keyblob_words, 0);
+  otcrypto_blinded_key_t key = {
+      .config = kConfigRsa2048,
+      .keyblob_length = static_cast<uint32_t>(keyblob_words * sizeof(uint32_t)),
+      .keyblob = keyblob.data(),
+      .checksum = 0,
+  };
+
+  uint32_t *share0 = nullptr;
+  uint32_t *share1 = nullptr;
+  EXPECT_OK(keyblob_to_shares(&key, &share0, &share1));
+  EXPECT_EQ(share0, keyblob.data());
+  EXPECT_EQ(share1, keyblob.data() + keyblob_share_num_words(kConfigRsa2048));
+
+  // Old wrong keyblob length (2 * key_length = 512 bytes) must be rejected.
+  otcrypto_blinded_key_t bad_key = {
+      .config = kConfigRsa2048,
+      .keyblob_length = 512,
+      .keyblob = keyblob.data(),
+      .checksum = 0,
+  };
+  EXPECT_NOT_OK(keyblob_to_shares(&bad_key, &share0, &share1));
 }
 
 TEST(Keyblob, ToKeymgrDiversificationNegative) {

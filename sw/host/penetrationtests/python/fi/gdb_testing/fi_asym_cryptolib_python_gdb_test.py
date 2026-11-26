@@ -69,7 +69,8 @@ def trigger_testos_init(print_output=True):
 
 def read_testos_output():
     # Read the output from the operation
-    response = target.read_response(max_tries=1000)
+    max_tries = 1000 if targets.is_qemu_available() else 2
+    response = target.read_response(max_tries=max_tries)
     return response
 
 
@@ -77,9 +78,7 @@ def reset_gdb(gdb):
     if gdb and getattr(gdb, "gdb_process", None) and gdb.gdb_process.poll() is None:
         try:
             gdb.cleanup_skip()
-            ping = gdb.send_command("p 1", timeout=1.0)
-            if ping and ("= 1" in ping):
-                return gdb
+            return gdb
         except Exception:
             pass
     if gdb:
@@ -101,10 +100,11 @@ def reset_target_and_gdb(gdb):
         except Exception:
             pass
     target.reset_target()
-    time.sleep(0.05)
-    target.start_openocd(startup_delay=0.3, print_output=False)
-    target.dump_all()
+    if not targets.is_qemu_available():
+        time.sleep(0.05)
+        target.start_openocd(startup_delay=0.3, print_output=False)
     trigger_testos_init(print_output=False)
+    target.dump_all()
     return GDBController(
         gdb_path=GDB_PATH,
         gdb_port=GDB_PORT,
@@ -145,7 +145,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
 
         # Taken from the regular test
         cfg = 0
-        trigger = 0
+        trigger = 1
 
         # Directory for the trace log files
         pc_trace_file = os.path.join(log_dir, "p384_sign_pc_trace.log")
@@ -262,8 +262,10 @@ class AsymCryptolibFiSim(unittest.TestCase):
                 gdb = reset_target_and_gdb(gdb)
 
                 started = True
-                for pc, count in pc_count_dict.items():
-                    for i_count in range(min(MAX_SKIPS_PER_LOOP, count)):
+                for pc, occ_list in utils.select_fi_skips(
+                    pc_count_dict, MAX_SKIPS_PER_LOOP, args.num_skips
+                ).items():
+                    for i_count in occ_list:
                         # Search for collisions in outputs between the sign instances
                         for i in range(2):
                             print("-" * 80)
@@ -286,7 +288,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                 gdb.add_observation(observations)
 
                                 gdb.apply_instruction_skip(
-                                    pc, parser.parse_next_instruction(pc), i_count
+                                    pc, parser.parse_next_instruction(pc), i_count + 1
                                 )
                                 gdb.send_command("c", check_response=False)
 
@@ -304,6 +306,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                     if crash_observation in gdb_response:
                                         print("Crash detected, resetting", flush=True)
                                         gdb = reset_target_and_gdb(gdb)
+                                        break
                                     else:
                                         testos_response_json = json.loads(testos_response)
                                         print("Output:", testos_response_json, flush=True)
@@ -344,15 +347,16 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                         gdb = reset_target_and_gdb(gdb)
                                     else:
                                         gdb = reset_gdb(gdb)
+                                        break
 
-                            except json.JSONDecodeError:
+                            except (json.JSONDecodeError, IndexError, KeyError, TypeError):
                                 print(
                                     "Error: JSON decoding failed. Invalid response format",
                                     flush=True,
                                 )
                                 try:
                                     gdb = reset_target_and_gdb(gdb)
-                                except TimeoutError:
+                                except (TimeoutError, IndexError):
                                     gdb = re_initialize(gdb)
 
                             except TimeoutError as e:
@@ -360,7 +364,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                 print(e, flush=True)
                                 try:
                                     gdb = reset_target_and_gdb(gdb)
-                                except TimeoutError:
+                                except (TimeoutError, IndexError):
                                     gdb = re_initialize(gdb)
 
             finally:
@@ -371,7 +375,9 @@ class AsymCryptolibFiSim(unittest.TestCase):
                     gdb.close_gdb()
                 target.close_openocd()
                 sys.stdout = original_stdout
-                self.assertEqual(successful_faults, 0)
+                utils.finish_fi_campaign(parser, successful_faults, args)
+                if not (args.num_skips > 0 or args.dump_json):
+                    self.assertEqual(successful_faults, 0)
                 self.assertEqual(started, True)
 
     def test_p384_verify(self):
@@ -507,8 +513,10 @@ class AsymCryptolibFiSim(unittest.TestCase):
                 gdb = reset_target_and_gdb(gdb)
 
                 started = True
-                for pc, count in pc_count_dict.items():
-                    for i_count in range(min(MAX_SKIPS_PER_LOOP, count)):
+                for pc, occ_list in utils.select_fi_skips(
+                    pc_count_dict, MAX_SKIPS_PER_LOOP, args.num_skips
+                ).items():
+                    for i_count in occ_list:
                         print("-" * 80)
                         print("Applying instruction skip in ", pc, "occurence", i_count)
                         print("-" * 80)
@@ -524,7 +532,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                             gdb.add_observation(observations)
 
                             gdb.apply_instruction_skip(
-                                pc, parser.parse_next_instruction(pc), i_count
+                                pc, parser.parse_next_instruction(pc), i_count + 1
                             )
                             gdb.send_command("c", check_response=False)
 
@@ -565,14 +573,14 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                 else:
                                     gdb = reset_gdb(gdb)
 
-                        except json.JSONDecodeError:
+                        except (json.JSONDecodeError, IndexError, KeyError, TypeError):
                             print(
                                 "Error: JSON decoding failed. Invalid response format",
                                 flush=True,
                             )
                             try:
                                 gdb = reset_target_and_gdb(gdb)
-                            except TimeoutError:
+                            except (TimeoutError, IndexError):
                                 gdb = re_initialize(gdb)
 
                         except TimeoutError as e:
@@ -580,7 +588,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                             print(e, flush=True)
                             try:
                                 gdb = reset_target_and_gdb(gdb)
-                            except TimeoutError:
+                            except (TimeoutError, IndexError):
                                 gdb = re_initialize(gdb)
 
             finally:
@@ -591,7 +599,9 @@ class AsymCryptolibFiSim(unittest.TestCase):
                     gdb.close_gdb()
                 target.close_openocd()
                 sys.stdout = original_stdout
-                self.assertEqual(successful_faults, 0)
+                utils.finish_fi_campaign(parser, successful_faults, args)
+                if not (args.num_skips > 0 or args.dump_json):
+                    self.assertEqual(successful_faults, 0)
                 self.assertEqual(started, True)
 
     def test_p384_ecdh(self):
@@ -719,8 +729,11 @@ class AsymCryptolibFiSim(unittest.TestCase):
                 gdb = reset_target_and_gdb(gdb)
 
                 started = True
-                for pc, count in pc_count_dict.items():
-                    for i_count in range(min(MAX_SKIPS_PER_LOOP, count)):
+                for pc, occ_list in utils.select_fi_skips(
+                    pc_count_dict, MAX_SKIPS_PER_LOOP, args.num_skips
+                ).items():
+                    for i_count in occ_list:
+                        ecdh_output = [None, None]
                         # Search for collisions in outputs between the ecdh instances
                         for i in range(2):
                             print("-" * 80)
@@ -738,7 +751,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                 gdb.add_observation(observations)
 
                                 gdb.apply_instruction_skip(
-                                    pc, parser.parse_next_instruction(pc), i_count
+                                    pc, parser.parse_next_instruction(pc), i_count + 1
                                 )
                                 gdb.send_command("c", check_response=False)
 
@@ -756,6 +769,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                     if crash_observation in gdb_response:
                                         print("Crash detected, resetting", flush=True)
                                         gdb = reset_target_and_gdb(gdb)
+                                        break
                                     else:
                                         testos_response_json = json.loads(testos_response)
                                         print("Output:", testos_response_json, flush=True)
@@ -785,15 +799,16 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                         gdb = reset_target_and_gdb(gdb)
                                     else:
                                         gdb = reset_gdb(gdb)
+                                        break
 
-                            except json.JSONDecodeError:
+                            except (json.JSONDecodeError, IndexError, KeyError, TypeError):
                                 print(
                                     "Error: JSON decoding failed. Invalid response format",
                                     flush=True,
                                 )
                                 try:
                                     gdb = reset_target_and_gdb(gdb)
-                                except TimeoutError:
+                                except (TimeoutError, IndexError):
                                     gdb = re_initialize(gdb)
 
                             except TimeoutError as e:
@@ -801,7 +816,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                 print(e, flush=True)
                                 try:
                                     gdb = reset_target_and_gdb(gdb)
-                                except TimeoutError:
+                                except (TimeoutError, IndexError):
                                     gdb = re_initialize(gdb)
 
             finally:
@@ -812,7 +827,9 @@ class AsymCryptolibFiSim(unittest.TestCase):
                     gdb.close_gdb()
                 target.close_openocd()
                 sys.stdout = original_stdout
-                self.assertEqual(successful_faults, 0)
+                utils.finish_fi_campaign(parser, successful_faults, args)
+                if not (args.num_skips > 0 or args.dump_json):
+                    self.assertEqual(successful_faults, 0)
                 self.assertEqual(started, True)
 
     def test_p256_verify(self):
@@ -948,8 +965,10 @@ class AsymCryptolibFiSim(unittest.TestCase):
                 gdb = reset_target_and_gdb(gdb)
 
                 started = True
-                for pc, count in pc_count_dict.items():
-                    for i_count in range(min(MAX_SKIPS_PER_LOOP, count)):
+                for pc, occ_list in utils.select_fi_skips(
+                    pc_count_dict, MAX_SKIPS_PER_LOOP, args.num_skips
+                ).items():
+                    for i_count in occ_list:
                         print("-" * 80)
                         print("Applying instruction skip in ", pc, "occurence", i_count)
                         print("-" * 80)
@@ -965,7 +984,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                             gdb.add_observation(observations)
 
                             gdb.apply_instruction_skip(
-                                pc, parser.parse_next_instruction(pc), i_count
+                                pc, parser.parse_next_instruction(pc), i_count + 1
                             )
                             gdb.send_command("c", check_response=False)
 
@@ -1006,14 +1025,14 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                 else:
                                     gdb = reset_gdb(gdb)
 
-                        except json.JSONDecodeError:
+                        except (json.JSONDecodeError, IndexError, KeyError, TypeError):
                             print(
                                 "Error: JSON decoding failed. Invalid response format",
                                 flush=True,
                             )
                             try:
                                 gdb = reset_target_and_gdb(gdb)
-                            except TimeoutError:
+                            except (TimeoutError, IndexError):
                                 gdb = re_initialize(gdb)
 
                         except TimeoutError as e:
@@ -1021,7 +1040,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                             print(e, flush=True)
                             try:
                                 gdb = reset_target_and_gdb(gdb)
-                            except TimeoutError:
+                            except (TimeoutError, IndexError):
                                 gdb = re_initialize(gdb)
 
             finally:
@@ -1032,7 +1051,9 @@ class AsymCryptolibFiSim(unittest.TestCase):
                     gdb.close_gdb()
                 target.close_openocd()
                 sys.stdout = original_stdout
-                self.assertEqual(successful_faults, 0)
+                utils.finish_fi_campaign(parser, successful_faults, args)
+                if not (args.num_skips > 0 or args.dump_json):
+                    self.assertEqual(successful_faults, 0)
                 self.assertEqual(started, True)
 
     def test_p256_ecdh(self):
@@ -1160,8 +1181,11 @@ class AsymCryptolibFiSim(unittest.TestCase):
                 gdb = reset_target_and_gdb(gdb)
 
                 started = True
-                for pc, count in pc_count_dict.items():
-                    for i_count in range(min(MAX_SKIPS_PER_LOOP, count)):
+                for pc, occ_list in utils.select_fi_skips(
+                    pc_count_dict, MAX_SKIPS_PER_LOOP, args.num_skips
+                ).items():
+                    for i_count in occ_list:
+                        ecdh_output = [None, None]
                         # Search for collisions in outputs between the ecdh instances
                         for i in range(2):
                             print("-" * 80)
@@ -1179,7 +1203,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                 gdb.add_observation(observations)
 
                                 gdb.apply_instruction_skip(
-                                    pc, parser.parse_next_instruction(pc), i_count
+                                    pc, parser.parse_next_instruction(pc), i_count + 1
                                 )
                                 gdb.send_command("c", check_response=False)
 
@@ -1197,6 +1221,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                     if crash_observation in gdb_response:
                                         print("Crash detected, resetting", flush=True)
                                         gdb = reset_target_and_gdb(gdb)
+                                        break
                                     else:
                                         testos_response_json = json.loads(testos_response)
                                         print("Output:", testos_response_json, flush=True)
@@ -1226,15 +1251,16 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                         gdb = reset_target_and_gdb(gdb)
                                     else:
                                         gdb = reset_gdb(gdb)
+                                        break
 
-                            except json.JSONDecodeError:
+                            except (json.JSONDecodeError, IndexError, KeyError, TypeError):
                                 print(
                                     "Error: JSON decoding failed. Invalid response format",
                                     flush=True,
                                 )
                                 try:
                                     gdb = reset_target_and_gdb(gdb)
-                                except TimeoutError:
+                                except (TimeoutError, IndexError):
                                     gdb = re_initialize(gdb)
 
                             except TimeoutError as e:
@@ -1242,7 +1268,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                 print(e, flush=True)
                                 try:
                                     gdb = reset_target_and_gdb(gdb)
-                                except TimeoutError:
+                                except (TimeoutError, IndexError):
                                     gdb = re_initialize(gdb)
 
             finally:
@@ -1253,7 +1279,9 @@ class AsymCryptolibFiSim(unittest.TestCase):
                     gdb.close_gdb()
                 target.close_openocd()
                 sys.stdout = original_stdout
-                self.assertEqual(successful_faults, 0)
+                utils.finish_fi_campaign(parser, successful_faults, args)
+                if not (args.num_skips > 0 or args.dump_json):
+                    self.assertEqual(successful_faults, 0)
                 self.assertEqual(started, True)
 
     def test_rsa_pkcs1v15_verify(self):
@@ -1411,8 +1439,10 @@ class AsymCryptolibFiSim(unittest.TestCase):
                 gdb = reset_target_and_gdb(gdb)
 
                 started = True
-                for pc, count in pc_count_dict.items():
-                    for i_count in range(min(MAX_SKIPS_PER_LOOP, count)):
+                for pc, occ_list in utils.select_fi_skips(
+                    pc_count_dict, MAX_SKIPS_PER_LOOP, args.num_skips
+                ).items():
+                    for i_count in occ_list:
                         print("-" * 80)
                         print("Applying instruction skip in ", pc, "occurence", i_count)
                         print("-" * 80)
@@ -1428,7 +1458,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                             gdb.add_observation(observations)
 
                             gdb.apply_instruction_skip(
-                                pc, parser.parse_next_instruction(pc), i_count
+                                pc, parser.parse_next_instruction(pc), i_count + 1
                             )
                             gdb.send_command("c", check_response=False)
 
@@ -1479,14 +1509,14 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                 else:
                                     gdb = reset_gdb(gdb)
 
-                        except json.JSONDecodeError:
+                        except (json.JSONDecodeError, IndexError, KeyError, TypeError):
                             print(
                                 "Error: JSON decoding failed. Invalid response format",
                                 flush=True,
                             )
                             try:
                                 gdb = reset_target_and_gdb(gdb)
-                            except TimeoutError:
+                            except (TimeoutError, IndexError):
                                 gdb = re_initialize(gdb)
 
                         except TimeoutError as e:
@@ -1494,7 +1524,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                             print(e, flush=True)
                             try:
                                 gdb = reset_target_and_gdb(gdb)
-                            except TimeoutError:
+                            except (TimeoutError, IndexError):
                                 gdb = re_initialize(gdb)
 
             finally:
@@ -1505,7 +1535,9 @@ class AsymCryptolibFiSim(unittest.TestCase):
                     gdb.close_gdb()
                 target.close_openocd()
                 sys.stdout = original_stdout
-                self.assertEqual(successful_faults, 0)
+                utils.finish_fi_campaign(parser, successful_faults, args)
+                if not (args.num_skips > 0 or args.dump_json):
+                    self.assertEqual(successful_faults, 0)
                 self.assertEqual(started, True)
 
     def test_rsa_pss_verify(self):
@@ -1664,8 +1696,10 @@ class AsymCryptolibFiSim(unittest.TestCase):
                 gdb = reset_target_and_gdb(gdb)
 
                 started = True
-                for pc, count in pc_count_dict.items():
-                    for i_count in range(min(MAX_SKIPS_PER_LOOP, count)):
+                for pc, occ_list in utils.select_fi_skips(
+                    pc_count_dict, MAX_SKIPS_PER_LOOP, args.num_skips
+                ).items():
+                    for i_count in occ_list:
                         print("-" * 80)
                         print("Applying instruction skip in ", pc, "occurence", i_count)
                         print("-" * 80)
@@ -1681,7 +1715,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                             gdb.add_observation(observations)
 
                             gdb.apply_instruction_skip(
-                                pc, parser.parse_next_instruction(pc), i_count
+                                pc, parser.parse_next_instruction(pc), i_count + 1
                             )
                             gdb.send_command("c", check_response=False)
 
@@ -1732,14 +1766,14 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                 else:
                                     gdb = reset_gdb(gdb)
 
-                        except json.JSONDecodeError:
+                        except (json.JSONDecodeError, IndexError, KeyError, TypeError):
                             print(
                                 "Error: JSON decoding failed. Invalid response format",
                                 flush=True,
                             )
                             try:
                                 gdb = reset_target_and_gdb(gdb)
-                            except TimeoutError:
+                            except (TimeoutError, IndexError):
                                 gdb = re_initialize(gdb)
 
                         except TimeoutError as e:
@@ -1747,7 +1781,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                             print(e, flush=True)
                             try:
                                 gdb = reset_target_and_gdb(gdb)
-                            except TimeoutError:
+                            except (TimeoutError, IndexError):
                                 gdb = re_initialize(gdb)
 
             finally:
@@ -1758,7 +1792,9 @@ class AsymCryptolibFiSim(unittest.TestCase):
                     gdb.close_gdb()
                 target.close_openocd()
                 sys.stdout = original_stdout
-                self.assertEqual(successful_faults, 0)
+                utils.finish_fi_campaign(parser, successful_faults, args)
+                if not (args.num_skips > 0 or args.dump_json):
+                    self.assertEqual(successful_faults, 0)
                 self.assertEqual(started, True)
                 print("-" * 80)
 
@@ -1772,12 +1808,11 @@ class AsymCryptolibFiSim(unittest.TestCase):
         n_len = 256
         d = [x for x in (key.d).to_bytes(256, "little")]
 
-        # Create a second set of inputs with a single bit flipped to check for collisions
-        data1 = [i for i in range(16)]
-        data2 = data1.copy()
-        data2[0] ^= 1
+        # We prepare two data inputs and check for collisions between them
+        data_len = 16
+        data1 = [i for i in range(data_len)]
+        data2 = [data_len - i for i in range(data_len)]
         data_inputs = [data1, data2]
-        data_len = len(data1)
 
         cfg = 0
         trigger = 0x4
@@ -1915,8 +1950,11 @@ class AsymCryptolibFiSim(unittest.TestCase):
                 gdb = reset_target_and_gdb(gdb)
 
                 started = True
-                for pc, count in pc_count_dict.items():
-                    for i_count in range(min(MAX_SKIPS_PER_LOOP, count)):
+                for pc, occ_list in utils.select_fi_skips(
+                    pc_count_dict, MAX_SKIPS_PER_LOOP, args.num_skips
+                ).items():
+                    for i_count in occ_list:
+                        sign_output = [None, None]
                         # Search for collisions in outputs between the sign instances
                         for i in range(2):
                             print("-" * 80)
@@ -1933,7 +1971,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                 gdb.add_observation(observations)
 
                                 gdb.apply_instruction_skip(
-                                    pc, parser.parse_next_instruction(pc), i_count
+                                    pc, parser.parse_next_instruction(pc), i_count + 1
                                 )
                                 gdb.send_command("c", check_response=False)
 
@@ -1961,6 +1999,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                     if crash_observation in gdb_response:
                                         print("Crash detected, resetting", flush=True)
                                         gdb = reset_target_and_gdb(gdb)
+                                        break
                                     else:
                                         testos_response_json = json.loads(testos_response)
                                         print("Output:", testos_response_json, flush=True)
@@ -1996,14 +2035,15 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                         gdb = reset_target_and_gdb(gdb)
                                     else:
                                         gdb = reset_gdb(gdb)
-                            except json.JSONDecodeError:
+                                        break
+                            except (json.JSONDecodeError, IndexError, KeyError, TypeError):
                                 print(
                                     "Error: JSON decoding failed. Invalid response format",
                                     flush=True,
                                 )
                                 try:
                                     gdb = reset_target_and_gdb(gdb)
-                                except TimeoutError:
+                                except (TimeoutError, IndexError):
                                     gdb = re_initialize(gdb)
 
                             except TimeoutError as e:
@@ -2011,7 +2051,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                 print(e, flush=True)
                                 try:
                                     gdb = reset_target_and_gdb(gdb)
-                                except TimeoutError:
+                                except (TimeoutError, IndexError):
                                     gdb = re_initialize(gdb)
 
             finally:
@@ -2021,7 +2061,9 @@ class AsymCryptolibFiSim(unittest.TestCase):
                     gdb.close_gdb()
                 target.close_openocd()
                 sys.stdout = original_stdout
-                self.assertEqual(successful_faults, 0)
+                utils.finish_fi_campaign(parser, successful_faults, args)
+                if not (args.num_skips > 0 or args.dump_json):
+                    self.assertEqual(successful_faults, 0)
                 self.assertEqual(started, True)
 
     def test_x25519_ecdh(self):
@@ -2162,8 +2204,11 @@ class AsymCryptolibFiSim(unittest.TestCase):
                 gdb = reset_target_and_gdb(gdb)
 
                 started = True
-                for pc, count in pc_count_dict.items():
-                    for i_count in range(min(MAX_SKIPS_PER_LOOP, count)):
+                for pc, occ_list in utils.select_fi_skips(
+                    pc_count_dict, MAX_SKIPS_PER_LOOP, args.num_skips
+                ).items():
+                    for i_count in occ_list:
+                        ecdh_output = [None, None]
                         # Search for collisions in outputs between the ecdh instances
                         for i in range(2):
                             print("-" * 80)
@@ -2185,7 +2230,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                 gdb.add_observation(observations)
 
                                 gdb.apply_instruction_skip(
-                                    pc, parser.parse_next_instruction(pc), i_count
+                                    pc, parser.parse_next_instruction(pc), i_count + 1
                                 )
                                 gdb.send_command("c", check_response=False)
 
@@ -2207,6 +2252,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                     if crash_observation in gdb_response:
                                         print("Crash detected, resetting", flush=True)
                                         gdb = reset_target_and_gdb(gdb)
+                                        break
                                     else:
                                         testos_response_json = json.loads(testos_response)
                                         print("Output:", testos_response_json, flush=True)
@@ -2240,14 +2286,15 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                         gdb = reset_target_and_gdb(gdb)
                                     else:
                                         gdb = reset_gdb(gdb)
-                            except json.JSONDecodeError:
+                                        break
+                            except (json.JSONDecodeError, IndexError, KeyError, TypeError):
                                 print(
                                     "Error: JSON decoding failed. Invalid response format",
                                     flush=True,
                                 )
                                 try:
                                     gdb = reset_target_and_gdb(gdb)
-                                except TimeoutError:
+                                except (TimeoutError, IndexError):
                                     gdb = re_initialize(gdb)
 
                             except TimeoutError as e:
@@ -2255,7 +2302,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                 print(e, flush=True)
                                 try:
                                     gdb = reset_target_and_gdb(gdb)
-                                except TimeoutError:
+                                except (TimeoutError, IndexError):
                                     gdb = re_initialize(gdb)
 
             finally:
@@ -2265,7 +2312,9 @@ class AsymCryptolibFiSim(unittest.TestCase):
                     gdb.close_gdb()
                 target.close_openocd()
                 sys.stdout = original_stdout
-                self.assertEqual(successful_faults, 0)
+                utils.finish_fi_campaign(parser, successful_faults, args)
+                if not (args.num_skips > 0 or args.dump_json):
+                    self.assertEqual(successful_faults, 0)
                 self.assertEqual(started, True)
 
     def test_ed25519_verify(self):
@@ -2341,38 +2390,38 @@ class AsymCryptolibFiSim(unittest.TestCase):
             0,
         ]
         r = [
-            179,
-            233,
-            109,
-            11,
-            158,
-            166,
-            221,
-            245,
-            31,
-            170,
-            150,
-            231,
-            193,
-            167,
-            36,
-            93,
-            15,
-            224,
-            39,
-            117,
-            62,
-            182,
-            19,
-            173,
-            252,
-            159,
-            107,
-            165,
-            211,
-            94,
-            217,
             145,
+            217,
+            94,
+            211,
+            165,
+            107,
+            159,
+            252,
+            173,
+            19,
+            182,
+            62,
+            117,
+            39,
+            224,
+            15,
+            93,
+            36,
+            167,
+            193,
+            231,
+            150,
+            170,
+            31,
+            245,
+            221,
+            166,
+            158,
+            11,
+            109,
+            233,
+            179,
             0,
             0,
             0,
@@ -2710,8 +2759,10 @@ class AsymCryptolibFiSim(unittest.TestCase):
                 gdb = reset_target_and_gdb(gdb)
 
                 started = True
-                for pc, count in pc_count_dict.items():
-                    for i_count in range(min(MAX_SKIPS_PER_LOOP, count)):
+                for pc, occ_list in utils.select_fi_skips(
+                    pc_count_dict, MAX_SKIPS_PER_LOOP, args.num_skips
+                ).items():
+                    for i_count in occ_list:
                         print("-" * 80)
                         print("Applying instruction skip in ", pc, "occurrence", i_count)
                         print("-" * 80)
@@ -2725,7 +2776,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                             gdb.add_observation(observations)
 
                             gdb.apply_instruction_skip(
-                                pc, parser.parse_next_instruction(pc), i_count
+                                pc, parser.parse_next_instruction(pc), i_count + 1
                             )
                             gdb.send_command("c", check_response=False)
 
@@ -2771,14 +2822,14 @@ class AsymCryptolibFiSim(unittest.TestCase):
                                     gdb = reset_target_and_gdb(gdb)
                                 else:
                                     gdb = reset_gdb(gdb)
-                        except json.JSONDecodeError:
+                        except (json.JSONDecodeError, IndexError, KeyError, TypeError):
                             print(
                                 "Error: JSON decoding failed. Invalid response format",
                                 flush=True,
                             )
                             try:
                                 gdb = reset_target_and_gdb(gdb)
-                            except TimeoutError:
+                            except (TimeoutError, IndexError):
                                 gdb = re_initialize(gdb)
 
                         except TimeoutError as e:
@@ -2786,7 +2837,7 @@ class AsymCryptolibFiSim(unittest.TestCase):
                             print(e, flush=True)
                             try:
                                 gdb = reset_target_and_gdb(gdb)
-                            except TimeoutError:
+                            except (TimeoutError, IndexError):
                                 gdb = re_initialize(gdb)
 
             finally:
@@ -2796,7 +2847,9 @@ class AsymCryptolibFiSim(unittest.TestCase):
                     gdb.close_gdb()
                 target.close_openocd()
                 sys.stdout = original_stdout
-                self.assertEqual(successful_faults, 0)
+                utils.finish_fi_campaign(parser, successful_faults, args)
+                if not (args.num_skips > 0 or args.dump_json):
+                    self.assertEqual(successful_faults, 0)
                 self.assertEqual(started, True)
 
 
