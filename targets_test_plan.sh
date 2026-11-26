@@ -1,11 +1,13 @@
 CW310_ROM_EXT_TESTS=(
+  '//sw/device/silicon_creator/rom_ext/e2e/dice_chain:corrupted_mldsa_digest_test_fpga_cw310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/dice_chain:debug_mode_off_dice_mldsa_test_fpga_cw310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/dice_chain:debug_mode_on_dice_cwt_test_fpga_cw310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/dice_chain:debug_mode_on_dice_mldsa_test_fpga_cw310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/dice_chain:mldsa87_refresh_test_fpga_cw310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_dice_cwt_test_fpga_cw310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_dice_mldsa_test_fpga_cw310_rom_ext'
-  '//sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_flash_storage_dice_mldsa_test_fpga_cw310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/dice_chain:no_refresh_on_change_dice_mldsa_test_fpga_cw310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/dice_chain:watchdog_skip_cert_gen_test_fpga_cw310_rom_ext'
 )
 
 CW310_ROM_WITH_FAKE_KEYS_TESTS=(
@@ -316,8 +318,8 @@ CW340_SIVAL_ROM_EXT_TESTS=(
 
 HYPER310_ROM_EXT_TESTS=(
   '//sw/device/silicon_creator/rom_ext/e2e/attestation:print_certs_test_fpga_hyper310_rom_ext'
-  '//sw/device/silicon_creator/rom_ext/e2e/attestation:print_flash_storage_mldsa_certs_overlapped_test_fpga_hyper310_rom_ext'
-  '//sw/device/silicon_creator/rom_ext/e2e/attestation:print_flash_storage_mldsa_certs_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/attestation:print_mldsa87_certs_test_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/attestation:print_mldsa_certs_overlapped_test_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/attestation:print_mldsa_certs_test_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/boot_svc:boot_svc_after_wakeup_disabled_test_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/boot_svc:boot_svc_after_wakeup_enabled_test_fpga_hyper310_rom_ext'
@@ -377,6 +379,7 @@ HYPER310_ROM_EXT_TESTS=(
   '//sw/device/silicon_creator/rom_ext/e2e/isfb:isfb_product_expr_test_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/isfb:isfb_unconstrained_test_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/lockdown:bank_erase_lockdown_fpga_hyper310_rom_ext'
+  '//sw/device/silicon_creator/rom_ext/e2e/lockdown:regwen_lockdown_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/ownership:anyversion_transfer_test_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/ownership:anyversion_unlock_transfer_test_fpga_hyper310_rom_ext'
   '//sw/device/silicon_creator/rom_ext/e2e/ownership:anyversion_unlock_update_test_fpga_hyper310_rom_ext'
@@ -498,6 +501,7 @@ INS_ROM_CW310_ROM_EXT_TESTS=(
 
 INS_ROM_CW310_ROM_WITH_FAKE_KEYS_TESTS=(
   '//sw/device/silicon_creator/rom/e2e/boot_policy_big_image:boot_policy_big_image_rma_bigger_than_128k_fpga_cw310_rom_with_fake_keys'
+  '//sw/device/silicon_creator/rom/e2e/boot_policy_flash_ecc_error:flash_exc_load_test_fpga_cw310_rom_with_fake_keys'
   '//sw/device/silicon_creator/rom/e2e/bootstrap:e2e_bootstrap_rma_fpga_cw310_rom_with_fake_keys'
   '//sw/device/silicon_creator/rom/e2e/clkmgr:jitter_enabled_test_fpga_cw310_rom_with_fake_keys'
   '//sw/device/silicon_creator/rom/e2e/rstmgr:alert_info_enabled_test_fpga_cw310_rom_with_fake_keys'
@@ -514,7 +518,9 @@ UNIT_TESTS=(
   '//sw/device/lib/crypto/impl:status_unittest'
   '//sw/device/silicon_creator/lib/boot_svc:boot_svc_header_unittest'
   '//sw/device/silicon_creator/lib/boot_svc:boot_svc_min_bl0_sec_ver_unittest'
+  '//sw/device/silicon_creator/lib/cert:cdi_0_exts_template_unittest'
   '//sw/device/silicon_creator/lib/cert:cdi_0_template_unittest'
+  '//sw/device/silicon_creator/lib/cert:cdi_1_exts_template_unittest'
   '//sw/device/silicon_creator/lib/cert:cdi_1_template_unittest'
   '//sw/device/silicon_creator/lib/cert:cdi_hybrid_template_unittest'
   '//sw/device/silicon_creator/lib/cert:cert_unittest'
@@ -529,6 +535,7 @@ UNIT_TESTS=(
   '//sw/device/silicon_creator/lib/drivers:otp_unittest'
   '//sw/device/silicon_creator/lib/drivers:rnd_unittest'
   '//sw/device/silicon_creator/lib/drivers:uart_unittest'
+  '//sw/device/silicon_creator/lib/drivers:usb_unittest'
   '//sw/device/silicon_creator/lib/ownership:isfb_unittest'
   '//sw/device/silicon_creator/lib/ownership:owner_block_unittest'
   '//sw/device/silicon_creator/lib/ownership:ownership_activate_unittest'
