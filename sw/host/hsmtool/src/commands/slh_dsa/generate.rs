@@ -21,7 +21,8 @@ pub struct Generate {
     id: Option<String>,
     #[arg(short, long)]
     label: Option<String>,
-    #[arg(short, long)]
+    #[arg(short, long, default_value = "sha2-128s")]
+    #[serde(default)]
     parameter_set: SlhDsaParameterSet,
     /// Permit the generated key to be extractable.
     #[arg(long)]
@@ -57,6 +58,7 @@ impl Generate {
     Clone,
     Copy,
     Debug,
+    Default,
     PartialEq,
     Eq,
     Hash,
@@ -68,6 +70,7 @@ impl Generate {
 // #[value(rename_all = "lower")]
 #[repr(u64)]
 enum SlhDsaParameterSet {
+    #[default]
     #[serde(rename = "CKP_SLH_DSA_SHA2_128S")]
     Sha2_128S = cryptoki_sys::CKP_SLH_DSA_SHA2_128S,
     #[serde(rename = "CKP_SLH_DSA_SHAKE_128S")]
@@ -140,11 +143,14 @@ impl Dispatch for Generate {
         private_template.insert(AttributeType::Id, id);
         private_template.insert(AttributeType::Label, result.label.clone());
         private_template.insert(AttributeType::KeyType, KeyType::SlhDsa.into());
+        private_template.insert(AttributeType::Extractable, AttrData::from(false));
         if let Some(tpl) = &self.private_template {
             private_template.merge(tpl.clone());
         }
 
-        private_template.insert(AttributeType::Extractable, AttrData::from(self.extractable));
+        if self.extractable {
+            private_template.insert(AttributeType::Extractable, AttrData::from(true));
+        }
 
         log::debug!(
             "public_template = {}",

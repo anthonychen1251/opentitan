@@ -286,7 +286,7 @@ class _FICampaign:
             all_pcs = list(pc_count_dict.keys())
             random.shuffle(all_pcs)
             for pc in all_pcs:
-                max_occ = min(max(max_skips_per_loop, 3), pc_count_dict[pc])
+                max_occ = min(max_skips_per_loop, pc_count_dict[pc])
                 self.plan.append((pc, [random.randrange(max_occ)]))
         else:
             for pc, count in pc_count_dict.items():
@@ -294,7 +294,6 @@ class _FICampaign:
 
         self.current_point = None
         self._current_hit = False
-        self._partial_hits = 0
         self.attempts = 0
         self.executed_points = []
         self.results = {}
@@ -307,12 +306,8 @@ class _FICampaign:
             self._current_hit = True
             pc_int, occ = self.current_point
             self.executed_points.append((pc_int, occ))
-            self.results.setdefault(pc_int, {})[occ] = False
+            self.results.setdefault(pc_int, {}).setdefault(occ, False)
             self.outcomes.setdefault((pc_int, occ), "No fault")
-
-    def record_partial(self, hits):
-        if hits and hits > 0:
-            self._partial_hits = hits
 
     def items(self):
         for pc, occs in self.plan:
@@ -322,7 +317,7 @@ class _FICampaign:
             yield pc, self._iter_occs(pc, occs)
 
     def _iter_occs(self, pc, occs):
-        pc_int = int(pc, 16)
+        pc_int = int(str(pc).split("->", 1)[0], 16)
         for occ in occs:
             if (self.num_skips and self.num_skips > 0 and
                     len(self.executed_points) >= self.num_skips):
@@ -330,23 +325,7 @@ class _FICampaign:
             self.attempts += 1
             self.current_point = (pc_int, occ)
             self._current_hit = False
-            self._partial_hits = 0
-            if not (self.num_skips and self.num_skips > 0):
-                self.mark_hit()
             yield occ
-            if (
-                self.num_skips and
-                self.num_skips > 0 and
-                not self._current_hit and
-                self._partial_hits > 0
-            ):
-                max_fb = min(max(self.max_skips_per_loop, 3), self._partial_hits)
-                fallback_occ = random.randrange(max_fb)
-                self.attempts += 1
-                self.current_point = (pc_int, fallback_occ)
-                self._current_hit = False
-                self._partial_hits = 0
-                yield fallback_occ
 
     def observe_line(self, line):
         if self.current_point is None or not self._current_hit:
@@ -356,9 +335,9 @@ class _FICampaign:
             self.results.setdefault(pc_int, {})[occ] = True
             self.outcomes[(pc_int, occ)] = "Successful corruption (FI attack)"
         elif self.outcomes.get((pc_int, occ)) != "Successful corruption (FI attack)":
-            if "Crash detected" in line:
+            if "Crash detected" in line or "Error: JSON decoding failed" in line:
                 self.outcomes[(pc_int, occ)] = "Caught (crash)"
-            elif "Target did not respond" in line:
+            elif "Target did not respond" in line or "Timeout error" in line:
                 self.outcomes[(pc_int, occ)] = "Caught (timeout)"
 
 
@@ -368,11 +347,6 @@ _active_campaign = None
 def mark_skip_hit():
     if _active_campaign is not None:
         _active_campaign.mark_hit()
-
-
-def record_partial_hits(hits):
-    if _active_campaign is not None:
-        _active_campaign.record_partial(hits)
 
 
 def select_fi_skips(pc_count_dict, max_skips_per_loop, num_skips=0):
@@ -477,7 +451,11 @@ def finish_fi_campaign(dis_parser, successful_faults, args, elf_path=None):
         elf_bin_name = os.path.splitext(os.path.basename(elf_path))[0]
 
     insns = dis_parser.parse_all_instructions() if dis_parser else {}
-    pc_counts = {int(pc, 16): count for pc, count in campaign.pc_count_dict.items()}
+    pc_counts = {
+        int(str(pc).split("->", 1)[0], 16): count
+        for pc, count in campaign.pc_count_dict.items()
+        if "->" not in str(pc)
+    }
     elf_sha256 = _compute_campaign_sha256(insns, pc_counts) or elf_sha256
     touched_funcs = {
         insns[pc]["func"]

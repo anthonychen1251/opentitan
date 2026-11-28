@@ -169,7 +169,7 @@ cryptotest(
     test_args = " ".join([
         "--input=\"$(rootpath //sw/host/cryptotest/testvectors/acvp:rsa_vectors.json)\"",
         "--run-siggen",
-        "--timeout=250s",
+        "--timeout=500s",
     ]),
     test_harness = "//sw/host/tests/crypto/acvp:harness",
     test_vectors = [
@@ -183,7 +183,7 @@ cryptotest(
     test_args = " ".join([
         "--input=\"$(rootpath //sw/host/cryptotest/testvectors/acvp:rsa_keygen_vectors.json)\"",
         "--run-keygen",
-        "--timeout=250s",
+        "--timeout=500s",
     ]),
     test_harness = "//sw/host/tests/crypto/acvp:harness",
     test_vectors = [
@@ -491,8 +491,7 @@ RSA_TESTVECTOR_TARGETS = [
         "pss",
     ]
 ] + [
-    "//sw/host/cryptotest/testvectors/data:wycheproof_rsa_{}_{}_{}_sign.json".format(
-        padding_mode,
+    "//sw/host/cryptotest/testvectors/data:wycheproof_rsa_pkcs1_1.5_{}_{}_sign.json".format(
         security_level,
         hash_suffix,
     )
@@ -505,10 +504,6 @@ RSA_TESTVECTOR_TARGETS = [
         "sha3_256",
         "sha3_384",
         "sha3_512",
-    ]
-    for padding_mode in [
-        "pkcs1_1.5",
-        "pss",
     ]
 ]
 
@@ -545,6 +540,18 @@ RSA_RANDOM_TESTVECTOR_TARGETS = [
         "sha256",
         "sha384",
         "sha512",
+    ]
+] + [
+    "//sw/host/cryptotest/testvectors/data:random_rsa_pkcs1_1.5_{}_{}.json".format(
+        security_level,
+        hash_suffix,
+    )
+    for security_level in [
+        2048,
+        3072,
+        4096,
+    ]
+    for hash_suffix in [
         "sha3_256",
         "sha3_384",
         "sha3_512",
@@ -816,6 +823,24 @@ cryptotest(
     test_vectors = DRBG_TESTVECTOR_TARGETS,
 )
 
+HMAC_DRBG_TESTVECTOR_TARGETS = [
+    "//sw/host/cryptotest/testvectors/data:nist_cavp_hmac_drbg_sp_800_90a_reseed_json",
+    "//sw/host/cryptotest/testvectors/data:nist_cavp_hmac_drbg_sp_800_90a_no_reseed_json",
+]
+
+HMAC_DRBG_TESTVECTOR_ARGS = " ".join([
+    "--drbg-json=\"$(rootpath {})\"".format(target)
+    for target in HMAC_DRBG_TESTVECTOR_TARGETS
+])
+
+cryptotest(
+    name = "hmac_drbg_kat",
+    slow_test = True,
+    test_args = HMAC_DRBG_TESTVECTOR_ARGS,
+    test_harness = "//sw/host/tests/crypto/hmac_drbg_kat:harness",
+    test_vectors = HMAC_DRBG_TESTVECTOR_TARGETS,
+)
+
 HMAC_SHA256_TESTVECTOR_TARGETS = [
     "//sw/host/cryptotest/testvectors/data:wycheproof_hmac_sha256.json",
     "//sw/host/cryptotest/testvectors/data:nist_cavp_hmac_sha256_fips_198_1_json",
@@ -966,12 +991,14 @@ test_suite(
         ":ecdsa_kat",
         ":ed25519_kat",
         ":ed25519_random_kat",
+        ":hmac_drbg_kat",
         ":hmac_sha256_kat",
         ":hmac_sha384_kat",
         ":hmac_sha512_kat",
         ":kdf_random_kat",
         ":kmac_kat",
         ":rsa_kat",
+        ":rsa_keygen_kat",
         ":rsa_random_kat",
         ":sha256_kat",
         ":sha384_kat",

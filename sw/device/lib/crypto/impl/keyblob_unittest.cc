@@ -382,14 +382,13 @@ TEST(Keyblob, RemaskDoesNotChangeKey) {
   };
 
   // Copy the keyblob for later comparison.
-  uint32_t keyblob_copy[ARRAYSIZE(keyblob)];
-  memcpy(keyblob_copy, keyblob.data(), sizeof(keyblob));
+  std::vector<uint32_t> keyblob_copy = keyblob;
 
   // Remask the key.
   EXPECT_OK(keyblob_remask(&key));
 
   // Check that every word of the keyblob changed.
-  for (size_t i = 0; i < ARRAYSIZE(keyblob); i++) {
+  for (size_t i = 0; i < keyblob.size(); i++) {
     EXPECT_NE(keyblob[i], keyblob_copy[i]);
   }
 
@@ -423,10 +422,6 @@ TEST(Keyblob, RemaskPassesIntegrity) {
       .keyblob = keyblob.data(),
       .checksum = 0,
   };
-
-  // Copy the keyblob for later comparison.
-  uint32_t keyblob_copy[ARRAYSIZE(keyblob)];
-  memcpy(keyblob_copy, keyblob.data(), sizeof(keyblob));
 
   // Remask the key.
   EXPECT_OK(keyblob_remask(&key));
@@ -585,6 +580,130 @@ TEST(Keyblob, KeyUnmaskNegative) {
   uint32_t *share0;
   uint32_t *share1;
   EXPECT_NOT_OK(keyblob_to_shares(&huge_key, &share0, &share1));
+}
+
+TEST(Keyblob, WriteSharesChunked) {
+  std::array<uint32_t, 8> test_share0 = {0x01234567, 0x89abcdef, 0x00010203,
+                                         0x04050607, 0x11223344, 0x55667788,
+                                         0x99aabbcc, 0xddeeff00};
+  std::array<uint32_t, 8> test_share1 = {0x08090a0b, 0x0c0d0e0f, 0x10111213,
+                                         0x14151617, 0xa1b2c3d4, 0xe5f60718,
+                                         0x293a4b5c, 0x6d7e8f90};
+
+  ASSERT_EQ(test_share0.size(), keyblob_share_num_words(kConfigOddBytes));
+  size_t keyblob_words = keyblob_num_words(kConfigOddBytes);
+  std::vector<uint32_t> expected_keyblob(keyblob_words, 0);
+  std::vector<uint32_t> chunked_keyblob(keyblob_words, 0);
+
+  EXPECT_OK(keyblob_from_shares(test_share0.data(), test_share1.data(),
+                                kConfigOddBytes, expected_keyblob.data()));
+
+  // Write the shares in three chunks: 3 words, 3 words, and 2 words.
+  EXPECT_OK(keyblob_write_shares(test_share0.data(), test_share1.data(),
+                                 /*word_offset=*/0, /*num_words=*/3,
+                                 kConfigOddBytes, chunked_keyblob.data()));
+  EXPECT_OK(keyblob_write_shares(test_share0.data() + 3, test_share1.data() + 3,
+                                 /*word_offset=*/3, /*num_words=*/3,
+                                 kConfigOddBytes, chunked_keyblob.data()));
+  EXPECT_OK(keyblob_write_shares(test_share0.data() + 6, test_share1.data() + 6,
+                                 /*word_offset=*/6, /*num_words=*/2,
+                                 kConfigOddBytes, chunked_keyblob.data()));
+
+  EXPECT_THAT(chunked_keyblob, ElementsAreArray(expected_keyblob));
+}
+
+TEST(Keyblob, WriteSharesNegative) {
+  std::array<uint32_t, 4> test_share0 = {0};
+  std::array<uint32_t, 4> test_share1 = {0};
+  std::vector<uint32_t> keyblob(keyblob_num_words(kConfigCtr128), 0);
+
+  // Hardware-backed key configuration is rejected.
+  EXPECT_NOT_OK(keyblob_write_shares(
+      test_share0.data(), test_share1.data(), /*word_offset=*/0,
+      /*num_words=*/4, kConfigCtrSideloaded, keyblob.data()));
+
+  // Zero words is rejected.
+  EXPECT_NOT_OK(keyblob_write_shares(
+      test_share0.data(), test_share1.data(), /*word_offset=*/0,
+      /*num_words=*/0, kConfigCtr128, keyblob.data()));
+
+  // Offset exceeds share_words (4).
+  EXPECT_NOT_OK(keyblob_write_shares(
+      test_share0.data(), test_share1.data(), /*word_offset=*/5,
+      /*num_words=*/1, kConfigCtr128, keyblob.data()));
+
+  // Offset + num_words exceeds share_words (4).
+  EXPECT_NOT_OK(keyblob_write_shares(
+      test_share0.data(), test_share1.data(), /*word_offset=*/2,
+      /*num_words=*/3, kConfigCtr128, keyblob.data()));
+
+  // Overflow check on num_words.
+  EXPECT_NOT_OK(keyblob_write_shares(
+      test_share0.data(), test_share1.data(), /*word_offset=*/2,
+      /*num_words=*/SIZE_MAX, kConfigCtr128, keyblob.data()));
+}
+
+TEST(Keyblob, EccMismatchedKeyLengthRejected) {
+  uint32_t share0[32] = {0};
+  uint32_t share1[32] = {0};
+  uint32_t keyblob_buf[64] = {0};
+  uint32_t *out0 = nullptr;
+  uint32_t *out1 = nullptr;
+
+  constexpr uint32_t kNumShares = 2;
+
+  otcrypto_key_config_t bad_p256 = kConfigEcdsaP256;
+  bad_p256.key_length = 64;
+  EXPECT_EQ(keyblob_share_num_words(bad_p256), 0);
+  EXPECT_NOT_OK(keyblob_from_shares(share0, share1, bad_p256, keyblob_buf));
+
+  // Verify keyblob_to_shares rejects `bad_p256` both with the non-zero keyblob
+  // byte length an unvalidated 64-byte ECC config would have used
+  // ((64 + 8) * kNumShares), with a valid P-256 keyblob length, and with 0.
+  for (uint32_t blob_len : {
+           kNumShares * (64u + 8u),
+           static_cast<uint32_t>(keyblob_num_words(kConfigEcdsaP256) *
+                                 sizeof(uint32_t)),
+           0u,
+       }) {
+    otcrypto_blinded_key_t bad_key = {
+        .config = bad_p256,
+        .keyblob_length = blob_len,
+        .keyblob = keyblob_buf,
+        .checksum = 0,
+    };
+    EXPECT_NOT_OK(keyblob_to_shares(&bad_key, &out0, &out1));
+  }
+
+  otcrypto_key_config_t p256_48 = kConfigEcdsaP256;
+  p256_48.key_length = 48;
+  EXPECT_EQ(keyblob_share_num_words(p256_48), 0);
+  EXPECT_NOT_OK(keyblob_from_shares(share0, share1, p256_48, keyblob_buf));
+  otcrypto_blinded_key_t p256_48_key = {
+      .config = p256_48,
+      .keyblob_length = kNumShares * (48u + 8u),
+      .keyblob = keyblob_buf,
+      .checksum = 0,
+  };
+  EXPECT_NOT_OK(keyblob_to_shares(&p256_48_key, &out0, &out1));
+
+  otcrypto_key_config_t bad_p384 = {
+      .version = kOtcryptoLibVersion1,
+      .key_mode = kOtcryptoKeyModeEcdsaP384,
+      .key_length = 32,
+      .hw_backed = kHardenedBoolFalse,
+      .exportable = kHardenedBoolFalse,
+      .security_level = kOtcryptoKeySecurityLevelLow,
+  };
+  EXPECT_EQ(keyblob_share_num_words(bad_p384), 0);
+  EXPECT_NOT_OK(keyblob_from_shares(share0, share1, bad_p384, keyblob_buf));
+  otcrypto_blinded_key_t bad_p384_key = {
+      .config = bad_p384,
+      .keyblob_length = kNumShares * (32u + 8u),
+      .keyblob = keyblob_buf,
+      .checksum = 0,
+  };
+  EXPECT_NOT_OK(keyblob_to_shares(&bad_p384_key, &out0, &out1));
 }
 
 }  // namespace

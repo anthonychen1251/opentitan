@@ -15,7 +15,7 @@ def secver_write_selection():
 # NOTE: the version numbers are integers, but have to be encoded as strings
 # because of how the bazel rule accepts attributes.
 
-_ROM_EXT_DATE = "20261105"
+_ROM_EXT_DATE = "20261124"
 
 # Most significant digit for release candidate (reserved for future purposes)
 _ROM_EXT_RC_MSD = "0"
@@ -32,7 +32,7 @@ ROM_EXT_VERSION = struct(
 ROM_EXT_VARIATIONS = {
     "dice_x509": struct(
         deps = [
-            "//sw/device/silicon_creator/lib/cert:dice",
+            "//sw/device/silicon_creator/lib/cert:dice_cdi",
         ],
         slot_spec = {},
         imm_exports = [],
@@ -46,7 +46,7 @@ ROM_EXT_VARIATIONS = {
     ),
     "dice_mldsa": struct(
         deps = [
-            "//sw/device/silicon_creator/lib/cert:dice_mldsa",
+            "//sw/device/silicon_creator/lib/cert:dice_mldsa_cdi",
         ],
         slot_spec = EARLGREY_MLDSA_SLOTS,
         imm_exports = [
@@ -403,5 +403,26 @@ TEST_OWNER_CONFIGS = {
             "WITH_RESCUE_TIMEOUT=0",
         ],
         "rescue_module": ["//sw/device/silicon_creator/lib/rescue:rescue_spidfu"],
+    },
+    "owner_flash_ecc_off": {
+        # A scramble-off, ECC-off region at pages 224..255 of each slot, and a
+        # rescue range that targets that region.
+        "owner_defines": [
+            "WITH_FLASH_CONFIG=1",
+            "WITH_FLASH_START=224",
+            "WITH_FLASH_SIZE=32",
+            "WITH_FLASH_SCRAMBLE=kMultiBitBool4False",
+            "WITH_FLASH_ECC=kMultiBitBool4False",
+            # 0x58 is 'X'modem.
+            "WITH_RESCUE_PROTOCOL=0x58",
+            "WITH_RESCUE_START=224",
+            "WITH_RESCUE_SIZE=32",
+        ],
+        "rescue_module": ["//sw/device/silicon_creator/lib/rescue:rescue_xmodem"],
+    },
+    "owner_flash_scr_ecc": {
+        # Scrambled, ECC-protected regions over the firmware area of each slot.
+        "owner_defines": ["WITH_FLASH_CONFIG=1"],
+        "rescue_module": ["//sw/device/silicon_creator/lib/rescue:rescue_xmodem"],
     },
 }

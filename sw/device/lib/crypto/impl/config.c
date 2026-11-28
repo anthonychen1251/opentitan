@@ -9,6 +9,7 @@
 #include "sw/device/lib/crypto/drivers/alert.h"
 #include "sw/device/lib/crypto/drivers/entropy.h"
 #include "sw/device/lib/crypto/drivers/keymgr.h"
+#include "sw/device/lib/crypto/drivers/kmac.h"
 #include "sw/device/lib/crypto/drivers/otbn.h"
 #include "sw/device/lib/crypto/drivers/rv_core_ibex.h"
 #include "sw/device/lib/crypto/impl/cmvp.h"
@@ -22,6 +23,9 @@
 otcrypto_status_t otcrypto_security_config_check(
     otcrypto_key_security_level_t security_level) {
   if (launder32(security_level) != kOtcryptoKeySecurityLevelLow) {
+#if defined(OT_DISABLE_HARDENING)
+    return OTCRYPTO_FATAL_ERR;
+#else
     // Check if the jittery clock is enabled.
     uint32_t jittery_clk_en = abs_mmio_read32(
         TOP_EARLGREY_CLKMGR_AON_BASE_ADDR + CLKMGR_JITTER_ENABLE_REG_OFFSET);
@@ -39,6 +43,7 @@ otcrypto_status_t otcrypto_security_config_check(
       return OTCRYPTO_FATAL_ERR;
     }
     HARDENED_CHECK_EQ(ibex_secure_config, kHardenedBoolTrue);
+#endif
   } else {
     // Do not check the device config when security level is low.
     HARDENED_CHECK_EQ(security_level, kOtcryptoKeySecurityLevelLow);
@@ -102,6 +107,7 @@ otcrypto_status_t otcrypto_init(otcrypto_key_security_level_t security_level,
 
   // Instantiate the entropy source in FIPS mode.
   HARDENED_TRY(otcrypto_entropy_init());
+  HARDENED_TRY(kmac_hwip_default_configure());
 
 #ifdef FIPS_MODE
   OTCRYPTO_HEALTH_CHECK(kTestRngBit);

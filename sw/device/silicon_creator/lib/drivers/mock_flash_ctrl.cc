@@ -82,6 +82,11 @@ void flash_ctrl_info_cfg_lock(const flash_ctrl_info_page_t *info_page) {
   MockFlashCtrl::Instance().InfoCfgLock(info_page);
 }
 
+void flash_ctrl_cert_info_page_ro_lockdown(
+    const flash_ctrl_info_page_t *info_page) {
+  MockFlashCtrl::Instance().CertInfoPageRoLockdown(info_page);
+}
+
 void flash_ctrl_data_region_protect(flash_ctrl_region_index_t region,
                                     uint32_t page_offset, uint32_t num_pages,
                                     flash_ctrl_perms_t perms,
@@ -89,6 +94,17 @@ void flash_ctrl_data_region_protect(flash_ctrl_region_index_t region,
                                     hardened_bool_t lock) {
   MockFlashCtrl::Instance().DataRegionProtect(region, page_offset, num_pages,
                                               perms, cfg, lock);
+}
+
+void flash_ctrl_data_region_save(flash_ctrl_region_index_t region,
+                                 flash_ctrl_data_region_state_t *state) {
+  MockFlashCtrl::Instance().DataRegionSave(region, state);
+}
+
+void flash_ctrl_data_region_restore(
+    flash_ctrl_region_index_t region,
+    const flash_ctrl_data_region_state_t *state) {
+  MockFlashCtrl::Instance().DataRegionRestore(region, state);
 }
 
 void flash_ctrl_bank_erase_perms_set(hardened_bool_t enable) {
