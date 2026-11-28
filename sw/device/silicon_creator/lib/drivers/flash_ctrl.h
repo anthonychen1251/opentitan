@@ -172,6 +172,7 @@ FLASH_CTRL_INFO_PAGES_DEFINE(INFO_PAGE_STRUCT_DECL_);
 enum {
   kFlashCtrlSecMmioCertInfoPageCreatorCfg = 2,
   kFlashCtrlSecMmioCertInfoPageOwnerRestrict = 2,
+  kFlashCtrlSecMmioCertInfoPageRoLockdown = 3,
   kFlashCtrlSecMmioCertInfoPagesOwnerRestrict = 5,
   kFlashCtrlSecMmioCreatorInfoPagesLockdown = 14,
   kFlashCtrlSecMmioDataDefaultCfgSet = 1,
@@ -182,7 +183,7 @@ enum {
   kFlashCtrlSecMmioInfoPermsSet = 1,
   kFlashCtrlSecMmioBankErasePermsSet = 1,
   kFlashCtrlSecMmioInit = 3,
-  kFlashCtrlSecMmioDataRegionProtect = 1,
+  kFlashCtrlSecMmioDataRegionProtect = 2,
   kFlashCtrlSecMmioDataRegionProtectLock = 1,
   kFlashCtrlSecMmioPrimLockdown = 1,
 };
@@ -578,6 +579,39 @@ void flash_ctrl_data_region_protect(flash_ctrl_region_index_t region,
                                     flash_ctrl_cfg_t cfg, hardened_bool_t lock);
 
 /**
+ * Saved state of a data memory protection region.
+ */
+typedef struct flash_ctrl_data_region_state {
+  uint32_t mp_region;      // Raw MP_REGION_<n> value.
+  uint32_t mp_region_cfg;  // Raw MP_REGION_CFG_<n> value.
+} flash_ctrl_data_region_state_t;
+
+/**
+ * Saves the configuration of a data memory protection region.
+ *
+ * Reads the `MP_REGION_${region}` and `MP_REGION_CFG_${region}` registers into
+ * `state`.
+ *
+ * @param region The index of the region to save.
+ * @param[out] state Saved register values for the region.
+ */
+void flash_ctrl_data_region_save(flash_ctrl_region_index_t region,
+                                 flash_ctrl_data_region_state_t *state);
+
+/**
+ * Restores the configuration of a data memory protection region.
+ *
+ * Temporarily disables `MP_REGION_CFG_${region}` before writing `state` back to
+ * `MP_REGION_${region}` and `MP_REGION_CFG_${region}`.
+ *
+ * @param region The index of the region to restore.
+ * @param state Saved register values to restore.
+ */
+void flash_ctrl_data_region_restore(
+    flash_ctrl_region_index_t region,
+    const flash_ctrl_data_region_state_t *state);
+
+/**
  * Sets configuration settings for an info page.
  *
  * The caller is responsible for calling
@@ -683,6 +717,21 @@ void flash_ctrl_cert_info_page_creator_cfg(
  * when sec_mmio is being used to check expectations.
  */
 void flash_ctrl_cert_info_page_owner_restrict(
+    const flash_ctrl_info_page_t *info_page);
+
+/**
+ * Configures a certificate flash info page with certificate settings, restricts
+ * access to read-only, and locks its configuration register.
+ *
+ * Unlike calling `flash_ctrl_cert_info_page_creator_cfg()` followed by
+ * `flash_ctrl_cert_info_page_owner_restrict()`, write and erase permissions are
+ * never enabled.
+ *
+ * The caller is responsible for calling
+ * `SEC_MMIO_WRITE_INCREMENT(kFlashCtrlSecMmioCertInfoPageRoLockdown)`
+ * when sec_mmio is being used to check expectations.
+ */
+void flash_ctrl_cert_info_page_ro_lockdown(
     const flash_ctrl_info_page_t *info_page);
 
 /**

@@ -35,6 +35,10 @@ pub struct Import {
     /// Attributes to apply to the private key.
     #[arg(long)]
     private_attrs: Option<AttributeMap>,
+    /// Permit the imported private key to be extractable.
+    #[arg(long)]
+    #[serde(default)]
+    extractable: bool,
     /// Unwrap the imported key with a wrapping key.
     #[arg(long)]
     unwrap: Option<String>,
@@ -46,9 +50,12 @@ pub struct Import {
 
 impl Import {
     const PRIVATE_ATTRS: &str = r#"{
+        "CKA_CLASS": "CKO_PRIVATE_KEY",
+        "CKA_KEY_TYPE": "CKK_SLH_DSA",
         "CKA_TOKEN": true,
         "CKA_PRIVATE": true,
         "CKA_SENSITIVE": true,
+        "CKA_EXTRACTABLE": false,
         "CKA_DECRYPT": false,
         "CKA_SIGN": true,
     }"#;
@@ -61,14 +68,14 @@ impl Import {
     }"#;
 
     fn unwrap_key(&self, session: &Session, template: &AttributeMap) -> Result<()> {
-        let key = std::fs::read_to_string(&self.filename)?;
+        let key = helper::read_file(&self.filename)?;
         let wrapper: Wrap = self
             .unwrap_mechanism
             .ok_or(anyhow!(
                 "unwrap_mechanism is required when unwrap is specified"
             ))?
             .into();
-        let _key = wrapper.unwrap(session, key.as_bytes(), self.unwrap.as_deref(), template)?;
+        let _key = wrapper.unwrap(session, &key, self.unwrap.as_deref(), template)?;
         Ok(())
     }
 }
@@ -99,6 +106,9 @@ impl Dispatch for Import {
             AttributeMap::from_str(Self::PRIVATE_ATTRS).expect("error in PRIVATE_ATTRS");
         if let Some(tpl) = &self.private_attrs {
             private_attrs.merge(tpl.clone());
+        }
+        if self.extractable {
+            private_attrs.insert(AttributeType::Extractable, AttrData::from(true));
         }
         private_attrs.insert(AttributeType::Id, id.clone());
         private_attrs.insert(AttributeType::Label, label.clone());
